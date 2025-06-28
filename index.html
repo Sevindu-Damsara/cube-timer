@@ -25,6 +25,51 @@
             position: relative; /* Needed for positioning absolute children */
         }
 
+        /* Force twisty-player and its internal canvas backgrounds to none */
+        twisty-player, 
+        twisty-player::part(canvas),
+        twisty-player canvas {
+            background: none !important;
+            background-color: none !important;
+        }
+
+        /* Hide default twisty-player control panel */
+        twisty-player::part(control-panel) {
+            display: none !important;
+        }
+
+        /* Custom styles for twisty-player control panel toolbar */
+        twisty-player::part(control-panel) {
+            background-color: var(--bg-color-secondary, #1e293b);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        twisty-player::part(control-button) {
+            background-color: var(--button-secondary-bg, #475569);
+            color: var(--button-secondary-text, #e2e8f0);
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.4rem 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+
+        twisty-player::part(control-button):hover {
+            background-color: var(--button-secondary-hover-bg, #64748b);
+        }
+
+        twisty-player::part(control-button):active {
+            background-color: var(--button-secondary-bg, #475569);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
         .container {
             background-color: var(--bg-color-secondary, #1e293b); /* Slightly lighter dark blue-gray */
             border-radius: 1.5rem; /* Large rounded corners */
@@ -114,23 +159,42 @@
 
         /* 3D Cube Container Styling */
         #cube3DContainer {
-            background-color: #0f172a !important; /* Set to app background color */
+            background-color: var(--bg-color-primary, #0f172a) !important; /* Match app background color */
             border-radius: 0.75rem;
-            padding: 1rem;
+            padding: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             height: 300px; /* Explicit height for the container to ensure 3D viewer renders */
             width: 100%;
             overflow: hidden; /* Prevent overflow of the viewer */
+            position: relative;
+        }
+
+        /* Add a solid background div behind twisty-player */
+        #cube3DContainer::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-color-primary, #0f172a);
+            border-radius: 0.75rem;
+            z-index: 0;
         }
 
         /* Override twisty-player internal canvas background */
         #scramble3DViewer {
-            background-color: #0f172a !important;
+            background-color: transparent !important;
+            position: relative;
+            z-index: 1;
+            flex-grow: 1;
+            width: 100%;
         }
         #scramble3DViewer canvas {
-            background-color: #0f172a !important;
+            background-color: transparent !important;
+            width: 100% !important;
+            height: 100% !important;
         }
 
 
@@ -138,6 +202,59 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1rem;
+        }
+
+        /* Custom 3D Toolbar Styling */
+        #custom3DToolbar {
+            background-color: var(--bg-color-secondary, #1e293b);
+            padding: 0.5rem 1rem;
+            border-radius: 0 0 0.75rem 0.75rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 3D Cube Container Styling */
+        #cube3DContainer {
+            background-color: var(--bg-color-primary, #0f172a) !important; /* Match app background color */
+            border-radius: 0.75rem;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 300px; /* Explicit height for the container to ensure 3D viewer renders */
+            width: 100%;
+            overflow: hidden; /* Prevent overflow of the viewer */
+            position: relative;
+        }
+
+        /* Override twisty-player internal canvas background */
+        #scramble3DViewer {
+            background-color: transparent !important;
+            position: relative;
+            z-index: 1;
+            flex-grow: 1;
+            width: 100%;
+        }
+        #scramble3DViewer canvas {
+            background-color: transparent !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Custom 3D Toolbar Styling */
+        #custom3DToolbar {
+            background-color: var(--bg-color-secondary, #1e293b);
+            padding: 0.5rem 1rem;
+            border-radius: 0 0 0.75rem 0.75rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .stat-card {
@@ -425,14 +542,21 @@
                 visualization="3D"
                 alg=""
                 puzzle="3x3x3"
-                style="width: 100%; height: 100%; background: transparent !important;"
+                style="width: 100%; height: 100%; background: none !important;"
+                background="none"
                 face-letters="false"
-                control-panel              <!-- Removed '="true"' or any value to adhere to boolean attribute interpretation for default (showing controls) -->
+                control-panel="none"           <!-- Hide default control panel -->
                 hint-arrows="none"             <!-- Added to hide hint arrows -->
                 camera-latitude="15"           <!-- Set default camera angle -->
                 camera-longitude="-45"         <!-- Set default camera angle -->
-                background="transparent"           <!-- Set background to transparent -->
             ></twisty-player>
+
+            <!-- Custom Toolbar for 3D Preview -->
+            <div id="custom3DToolbar" class="flex justify-center gap-4 mt-2 p-2 rounded bg-gray-800 shadow-lg">
+                <button id="btnPlayPause" class="button-secondary px-4 py-2 rounded">Play</button>
+                <button id="btnRestart" class="button-secondary px-4 py-2 rounded">Restart</button>
+                <button id="btnResetCamera" class="button-secondary px-4 py-2 rounded">Reset Camera</button>
+            </div>
         </div>
 
 
@@ -947,22 +1071,22 @@
             scrambleTextDisplay.textContent = generated;
             if (scramble3DViewer) { // Ensure the element is available
                 // Always set puzzle type explicitly.
-                scramble3DViewer.puzzle = twistyPlayerPuzzleType; 
-                // Set algorithm after a very short delay if puzzle type is pyraminx
-                // to give the component a moment to fully reconfigure its parser.
-                // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
-                // due to timing sensitivities with twisty-player's internal parsing.
-                if (cubeType === 'pyraminx') {
-                    // Clear alg first to ensure a fresh parse.
-                    scramble3DViewer.alg = ''; 
-                    setTimeout(() => {
-                        scramble3DViewer.alg = generated;
-                        console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
-                    }, 50); // A small delay (50ms) to ensure internal parser is ready.
-                } else {
-                    scramble3DViewer.alg = generated;
-                    console.log(`[DEBUG] 3D Viewer updated with alg: ${generated} and puzzle: ${twistyPlayerPuzzleType}`);
-                }
+            scramble3DViewer.setAttribute('puzzle', twistyPlayerPuzzleType);
+            // Set algorithm after a very short delay if puzzle type is pyraminx
+            // to give the component a moment to fully reconfigure its parser.
+            // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
+            // due to timing sensitivities with twisty-player's internal parsing.
+            if (cubeType === 'pyraminx') {
+                // Clear alg first to ensure a fresh parse.
+                scramble3DViewer.setAttribute('alg', '');
+                setTimeout(() => {
+                    scramble3DViewer.setAttribute('alg', generated);
+                    console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
+                }, 50); // A small delay (50ms) to ensure internal parser is ready.
+            } else {
+                scramble3DViewer.setAttribute('alg', generated);
+                console.log(`[DEBUG] 3D Viewer updated with alg: ${generated} and puzzle: ${twistyPlayerPuzzleType}`);
+            }
             } else {
                 console.warn("[WARN] scramble3DViewer is not yet available during generateScramble. This is expected on initial load if 3D view is off.");
             }
@@ -1393,9 +1517,9 @@
                 scrambleTextDisplay.style.display = 'none';
                 cube3DContainer.style.display = 'flex'; // Use flex to center the player
                 if (scramble3DViewer) {
-                    scramble3DViewer.alg = scramble; // Ensure 3D viewer shows current scramble
-                    scramble3DViewer.puzzle = getTwistyPlayerPuzzleType(cubeType); // Set correct puzzle type for 3D viewer
-                    console.log(`[DEBUG] 3D view enabled. Scramble: ${scramble}, Puzzle: ${scramble3DViewer.puzzle}`);
+                scramble3DViewer.setAttribute('alg', scramble); // Ensure 3D viewer shows current scramble
+                scramble3DViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(cubeType)); // Set correct puzzle type for 3D viewer
+                console.log(`[DEBUG] 3D view enabled. Scramble: ${scramble}, Puzzle: ${getTwistyPlayerPuzzleType(cubeType)}`);
                 }
             } else {
                 scrambleTextDisplay.style.display = 'block';
@@ -1929,6 +2053,19 @@
             scrambleTextDisplay = document.getElementById('scrambleTextDisplay'); // Updated ID
             cube3DContainer = document.getElementById('cube3DContainer');     // New
             scramble3DViewer = document.getElementById('scramble3DViewer');    // New
+
+            // Fix transparency by setting internal canvas background color inside shadow DOM
+            if (scramble3DViewer) {
+                const shadowRoot = scramble3DViewer.shadowRoot;
+                if (shadowRoot) {
+                    const canvas = shadowRoot.querySelector('canvas');
+                    if (canvas) {
+                        // Remove solid background color to allow transparency
+                        canvas.style.backgroundColor = 'transparent';
+                    }
+                }
+            }
+
             startStopBtn = document.getElementById('startStopBtn');
             resetBtn = document.getElementById('resetBtn');
             scrambleBtn = document.getElementById('scrambleBtn');
@@ -1958,8 +2095,125 @@
 
             setupEventListeners(); // Set up all event listeners
             // Initial load of settings and solves is handled by onAuthStateChanged
+
+            // Additional fix: forcibly set WebGL clear color to app background to remove checkerboard
+            if (scramble3DViewer) {
+                const shadowRoot = scramble3DViewer.shadowRoot;
+                if (shadowRoot) {
+                    const canvas = shadowRoot.querySelector('canvas');
+                    if (canvas) {
+                        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                        if (gl) {
+                            // Set clear color to app background color (dark blue-gray)
+                            gl.clearColor(0.06, 0.09, 0.16, 1.0); // RGB normalized for #0f172a
+                            gl.clear(gl.COLOR_BUFFER_BIT);
+                            console.log("[DEBUG] WebGL clear color set to app background color to remove checkerboard.");
+                        }
+                    }
+                    // Inject CSS into shadow DOM to style control panel and buttons
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        .control-panel {
+                            background-color: var(--bg-color-secondary, #1e293b) !important;
+                            border-radius: 0.5rem !important;
+                            padding: 0.5rem 1rem !important;
+                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+                            display: flex !important;
+                            gap: 1rem !important;
+                            justify-content: center !important;
+                            align-items: center !important;
+                        }
+                        .control-button {
+                            background-color: var(--button-secondary-bg, #475569) !important;
+                            color: var(--button-secondary-text, #e2e8f0) !important;
+                            border: none !important;
+                            border-radius: 0.375rem !important;
+                            padding: 0.4rem 0.8rem !important;
+                            cursor: pointer !important;
+                            font-weight: 600 !important;
+                            transition: background-color 0.3s ease !important;
+                        }
+                        .control-button:hover {
+                            background-color: var(--button-secondary-hover-bg, #64748b) !important;
+                        }
+                        .control-button:active {
+                            background-color: var(--button-secondary-bg, #475569) !important;
+                            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+                        }
+                    `;
+                    shadowRoot.appendChild(style);
+
+                    // Directly style control panel and buttons inline
+                    const controlPanel = shadowRoot.querySelector('.control-panel');
+                    if (controlPanel) {
+                        controlPanel.style.backgroundColor = 'var(--bg-color-secondary, #1e293b)';
+                        controlPanel.style.borderRadius = '0.5rem';
+                        controlPanel.style.padding = '0.5rem 1rem';
+                        controlPanel.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.3)';
+                        controlPanel.style.display = 'flex';
+                        controlPanel.style.gap = '1rem';
+                        controlPanel.style.justifyContent = 'center';
+                        controlPanel.style.alignItems = 'center';
+                    }
+                    const controlButtons = shadowRoot.querySelectorAll('.control-button');
+                    controlButtons.forEach(button => {
+                        button.style.backgroundColor = 'var(--button-secondary-bg, #475569)';
+                        button.style.color = 'var(--button-secondary-text, #e2e8f0)';
+                        button.style.border = 'none';
+                        button.style.borderRadius = '0.375rem';
+                        button.style.padding = '0.4rem 0.8rem';
+                        button.style.cursor = 'pointer';
+                        button.style.fontWeight = '600';
+                        button.style.transition = 'background-color 0.3s ease';
+                        button.addEventListener('mouseenter', () => {
+                            button.style.backgroundColor = 'var(--button-secondary-hover-bg, #64748b)';
+                        });
+                        button.addEventListener('mouseleave', () => {
+                            button.style.backgroundColor = 'var(--button-secondary-bg, #475569)';
+                        });
+                        button.addEventListener('mousedown', () => {
+                            button.style.backgroundColor = 'var(--button-secondary-bg, #475569)';
+                            button.style.boxShadow = 'inset 0 2px 4px rgba(0, 0, 0, 0.4)';
+                        });
+                        button.addEventListener('mouseup', () => {
+                            button.style.boxShadow = 'none';
+                        });
+                    });
+                }
+            }
         };
 
+    </script>
+    <script>
+        // Standalone script to initialize and handle custom 3D toolbar buttons
+        window.addEventListener('DOMContentLoaded', () => {
+            const scramble3DViewer = document.getElementById('scramble3DViewer');
+            const btnPlayPause = document.getElementById('btnPlayPause');
+            const btnRestart = document.getElementById('btnRestart');
+            const btnResetCamera = document.getElementById('btnResetCamera');
+
+            if (btnPlayPause && btnRestart && btnResetCamera && scramble3DViewer) {
+                btnPlayPause.addEventListener('click', () => {
+                    if (scramble3DViewer.isPlaying) {
+                        scramble3DViewer.pause();
+                        btnPlayPause.textContent = 'Play';
+                    } else {
+                        scramble3DViewer.play();
+                        btnPlayPause.textContent = 'Pause';
+                    }
+                });
+
+                btnRestart.addEventListener('click', () => {
+                    scramble3DViewer.restart();
+                });
+
+                btnResetCamera.addEventListener('click', () => {
+                    scramble3DViewer.resetCamera();
+                });
+            } else {
+                console.warn('Custom 3D toolbar buttons or viewer not found.');
+            }
+        });
     </script>
 </body>
 </html>
