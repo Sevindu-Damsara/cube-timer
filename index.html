@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Timer - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Cubing.js for 3D scramble visualization - Using the recommended twisty player module -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <style>
+        /* Custom CSS for a modern, colorful look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color-primary, #0f172a); /* Dark blue-gray background */
+            color: var(--text-color-primary, #e2e8f0); /* Light text color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-y: auto; /* Allow scrolling for content */
+            padding: 20px;
+            position: relative; /* Needed for positioning absolute children */
+        }
+
+        .container {
+            background-color: var(--bg-color-secondary, #1e293b); /* Slightly lighter dark blue-gray */
+            border-radius: 1.5rem; /* Large rounded corners */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); /* Stronger shadow */
+            max-width: 90%;
+            width: 1200px;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .timer-display {
+            font-size: 6rem; /* Large font size for timer */
+            font-weight: 700; /* Bold font */
+            color: var(--timer-color, #818cf8); /* Vibrant purple-blue */
+            text-shadow: 0 0 15px rgba(129, 140, 248, 0.6); /* Subtle glow */
+            letter-spacing: -0.05em; /* Tight letter spacing */
+            margin-bottom: 1rem;
+        }
+
+        .timer-display.inspection {
+            color: #fbbf24; /* Amber for inspection */
+        }
+
+        .timer-display.ready {
+            color: #22c55e; /* Green when ready */
+        }
+
+        .button-primary {
+            background: linear-gradient(145deg, #6366f1, #818cf8); /* Gradient button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .button-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+        }
+
+        .button-secondary {
+            background-color: var(--button-secondary-bg, #475569); /* Slate gray */
+            color: var(--button-secondary-text, #e2e8f0);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .button-secondary:hover {
+            background-color: var(--button-secondary-hover-bg, #64748b);
+            transform: translateY(-1px);
+        }
+
+        .button-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
+        }
+
+        .scramble-display {
+            background-color: var(--card-bg, #334155); /* Darker slate */
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--scramble-color, #a78bfa); /* Light purple */
+            text-align: center;
+            word-break: break-all;
+        }
+
+        /* 3D Cube Container Styling */
+        #cube3DContainer {
+            background-color: #0f172a !important; /* Set to app background color */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px; /* Explicit height for the container to ensure 3D viewer renders */
+            width: 100%;
+            overflow: hidden; /* Prevent overflow of the viewer */
+        }
+
+        /* Override twisty-player internal canvas background */
+        #scramble3DViewer {
+            background-color: #0f172a !important;
+        }
+        #scramble3DViewer canvas {
+            background-color: #0f172a !important;
+        }
+
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background-color: var(--card-bg, #334155);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--stats-value-color, #67e8f9); /* Cyan */
+            margin-top: 0.5rem;
+        }
+
+        .solve-history-item {
+            background-color: var(--card-bg, #334155);
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease-in-out;
+            flex-wrap: wrap; /* Allow wrapping for smaller screens */
+        }
+
+        .solve-history-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .solve-history-item .time {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--solve-time-color, #a78bfa);
+            margin-right: 1rem; /* Space between time and buttons */
+        }
+
+        .solve-history-item .penalty-buttons {
+            display: flex;
+            gap: 0.5rem; /* Space between penalty buttons */
+            margin-top: 0.5rem; /* For wrapping on smaller screens */
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            flex-grow: 1; /* Allow buttons to take available space */
+        }
+
+        .solve-history-item .penalty-buttons button {
+            background-color: #f87171; /* Red for DNF */
+            color: white;
+            padding: 0.3rem 0.7rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .solve-history-item .penalty-buttons button.plus2 {
+            background-color: #fbbf24; /* Amber for +2 */
+        }
+        .solve-history-item .penalty-buttons button.clear-penalty {
+            background-color: #60a5fa; /* Blue for clear */
+        }
+        .solve-history-item .penalty-buttons button.delete {
+            background-color: #dc2626; /* Strong red for delete */
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+        .solve-history-item .penalty-buttons button.insight-button {
+            background-color: #4CAF50; /* Green for Insight */
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+        }
+        .solve-history-item .penalty-buttons button.insight-button:hover {
+            background-color: #45a049;
+        }
+
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--bg-color-secondary, #1e293b);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            color: var(--text-color-primary, #e2e8f0);
+        }
+
+        .modal-close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-color-primary, #e2e8f0);
+            cursor: pointer;
+        }
+
+        .text-gradient {
+            background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .timer-display {
+                font-size: 4rem;
+            }
+            .container {
+                padding: 1.5rem;
+                gap: 1.5rem;
+            }
+            .scramble-display {
+                font-size: 1rem;
+            }
+            .stat-card .value {
+                font-size: 1.5rem;
+            }
+            .button-primary, .button-secondary {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+            .solve-history-item .time {
+                font-size: 1rem;
+            }
+            .auth-corner-buttons {
+                top: 10px;
+                right: 10px;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .timer-display {
+                font-size: 3rem;
+            }
+            .container {
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .solve-history-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .solve-history-item .penalty-buttons {
+                width: 100%;
+                display: flex;
+                justify-content: flex-end;
+            }
+            .solve-history-item .penalty-buttons button {
+                margin-left: 0.25rem;
+            }
+            .auth-corner-buttons {
+                top: 5px;
+                right: 5px;
+                gap: 0.25rem;
+            }
+        }
+        .auth-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .auth-corner-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10; /* Ensure it's above other content */
+        }
+
+        /* Theme specific variables */
+        body.theme-dark {
+            --bg-color-primary: #0f172a;
+            --text-color-primary: #e2e8f0;
+            --bg-color-secondary: #1e293b;
+            --button-secondary-bg: #475569;
+            --button-secondary-text: #e2e8f0;
+            --button-secondary-hover-bg: #64748b;
+            --card-bg: #334155;
+            --timer-color: #818cf8;
+            --scramble-color: #a78bfa;
+            --stats-value-color: #67e8f9;
+        }
+
+        body.theme-light {
+            --bg-color-primary: #f0f2f5;
+            --text-color-primary: #333;
+            --bg-color-secondary: #ffffff;
+            --button-secondary-bg: #e2e8f0;
+            --button-secondary-text: #333;
+            --button-secondary-hover-bg: #cbd5e1;
+            --card-bg: #f9fafb;
+            --timer-color: #3b82f6;
+            --scramble-color: #1d4ed8;
+            --stats-value-color: #0ea5e9;
+        }
+
+        body.theme-vibrant {
+            --bg-color-primary: #2d0b57;
+            --text-color-primary: #f0f2f5;
+            --bg-color-secondary: #4a148c;
+            --button-secondary-bg: #8e24aa;
+            --button-secondary-text: #f0f2f5;
+            --button-secondary-hover-bg: #ab47bc;
+            --card-bg: #6a1b9a;
+            --timer-color: #e0f7fa;
+            --scramble-color: #ce93d8;
+            --stats-value-color: #80cbc4;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Controls in Corner -->
+    <div class="auth-corner-buttons">
+        <button id="signInBtn" class="button-primary">Sign In</button>
+        <button id="signUpBtn" class="button-secondary">Sign Up</button>
+        <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
+    </div>
+
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Rubik's Cube Timer</h1>
+
+        <!-- Username Display -->
+        <div class="text-sm text-center text-gray-400">
+            Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+        </div>
+
+        <!-- Scramble Display (Text) -->
+        <div id="scrambleTextDisplay" class="scramble-display" style="display: block;">
+            Generating scramble...
+        </div>
+
+        <!-- 3D Cube Viewer Container (Initially hidden) -->
+        <div id="cube3DContainer" style="display: none;">
+            <!-- The twisty-player element for 3D visualization -->
+            <twisty-player id="scramble3DViewer"
+                visualization="3D"
+                alg=""
+                puzzle="3x3x3"
+                style="width: 100%; height: 100%; background: transparent !important;"
+                face-letters="false"
+                control-panel              <!-- Removed '="true"' or any value to adhere to boolean attribute interpretation for default (showing controls) -->
+                hint-arrows="none"             <!-- Added to hide hint arrows -->
+                camera-latitude="15"           <!-- Set default camera angle -->
+                camera-longitude="-45"         <!-- Set default camera angle -->
+                background="transparent"           <!-- Set background to transparent -->
+            ></twisty-player>
+        </div>
+
+
+        <!-- Timer Display -->
+        <div id="timerDisplay" class="timer-display text-center">
+            00:00.000
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <button id="startStopBtn" class="button-primary flex-1">Start / Stop (Space)</button>
+            <button id="resetBtn" class="button-secondary flex-1">Reset</button>
+            <button id="scrambleBtn" class="button-secondary flex-1">New Scramble</button>
+            <button id="settingsBtn" class="button-secondary flex-1">Settings</button>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label text-gray-400">Best Time</div>
+                <div id="bestTime" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Ao5</div>
+                <div id="ao5" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Ao12</div>
+                <div id="ao12" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Solves</div>
+                <div id="solveCount" class="value">0</div>
+            </div>
+        </div>
+
+        <!-- Solve History -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gradient mb-4">Solve History</h2>
+            <div id="solveHistoryList" class="max-h-64 overflow-y-auto pr-2">
+                <!-- Solve times will be dynamically added here -->
+                <p class="text-center text-gray-500" id="noSolvesMessage">No solves yet. Start cubing!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeSettingsModal" aria-label="Close settings">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-6">Settings</h2>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <label for="inspectionToggle" class="text-lg">Enable 15s Inspection</label>
+                    <input type="checkbox" id="inspectionToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label for="soundEffectsToggle" class="text-lg">Enable Sound Effects</label>
+                    <input type="checkbox" id="soundEffectsToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label for="cubeTypeSelect" class="text-lg">Cube Type</label>
+                    <select id="cubeTypeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="3x3">3x3</option>
+                        <option value="2x2">2x2</option>
+                        <option value="4x4">4x4</option>
+                        <option value="pyraminx">Pyraminx</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label for="themeSelect" class="text-lg">Theme</label>
+                    <select id="themeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="dark">Dark (Default)</option>
+                        <option value="light">Light</option>
+                        <option value="vibrant">Vibrant</option>
+                    </select>
+                </div>
+
+                <!-- New: 3D Cube View Toggle -->
+                <div class="flex items-center justify-between">
+                    <label for="cubeViewToggle" class="text-lg">Show 3D Cube Scramble</label>
+                    <input type="checkbox" id="cubeViewToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <h3 class="text-xl font-semibold text-gradient mb-3">Change Username</h3>
+                    <div class="mb-3">
+                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New Username:</label>
+                        <input type="text" id="settingsUsernameInput" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="Enter new username">
+                    </div>
+                    <button id="saveUsernameBtn" class="button-primary w-full">Save Username</button>
+                    <p id="usernameUpdateMessage" class="text-sm mt-2 text-center" style="display:none;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication modal">&times;</button>
+            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-6 text-center">Sign In</h2>
+
+            <div class="mb-4">
+                <label for="email" class="block text-gray-300 text-sm font-bold mb-2">Email:</label>
+                <input type="email" id="email" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="your@email.com">
+            </div>
+            <div class="mb-4" id="usernameFieldGroup" style="display:none;">
+                <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
+                <input type="text" id="usernameInput" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="Enter your username">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="password" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="********">
+            </div>
+            <p id="authError" class="text-red-500 text-sm mb-4" style="display:none;"></p>
+
+            <div class="flex flex-col gap-3 mb-4">
+                <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
+                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5">
+                    Sign In with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insight Modal -->
+    <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300">
+                <div class="spinner mx-auto my-4" style="display: none;"></div>
+                <p id="insightMessage" class="text-center">Generating insight...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        console.log("[DEBUG] Script execution started.");
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged,
+                 createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        console.log("[DEBUG] Firebase imports completed.");
+
+        // IMPORTANT: FIREBASE FIRESTORE SECURITY RULES
+        // To fix "Missing or insufficient permissions" errors, you MUST add these rules
+        // to your Firebase project's Firestore database rules.
+        // Go to Firebase Console -> Firestore Database -> Rules tab, and replace the content with this:
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            // Allow read/write to private user data
+            match /artifacts/{appId}/users/{userId}/{document=**} {
+              allow read, write: if request.auth != null && request.auth.uid == userId;
+            }
+
+            // If you later add public data, you might need rules like this:
+            // match /artifacts/{appId}/public/data/{document=**} {
+            //   allow read, write: if request.auth != null;
+            // }
+          }
+        }
+        */
+
+        // --- Firebase Configuration for a Standard Hosting Environment ---
+        // IMPORTANT: Replace these with your actual Firebase project configuration.
+        // You can find this in your Firebase Project Settings -> General -> Your apps -> Firebase SDK snippet -> Config.
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // Define a static application ID for data storage paths in Firestore.
+        // You can change this to any string that uniquely identifies your app's data.
+        const appId = 'rubik-timer-app-v1';
+        console.log(`[DEBUG] App ID: ${appId}, Firebase Config Defined.`);
+
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // Initialize Firebase
+        console.log("[DEBUG] Attempting Firebase initialization.");
+        if (firebaseConfig.apiKey && firebaseConfig.projectId) { // Check if config is provided
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            console.log("[DEBUG] Firebase initialized. Setting up auth state listener.");
+
+            // Listen for authentication state changes
+            onAuthStateChanged(auth, async (user) => {
+                console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    console.log(`[DEBUG] User authenticated. UID: ${userId}`);
+
+                    // Update UI for authenticated user
+                    document.getElementById('signInBtn').style.display = 'none';
+                    document.getElementById('signUpBtn').style.display = 'none';
+                    document.getElementById('signOutBtn').style.display = 'inline-block';
+                    console.log("[DEBUG] Auth UI updated for signed in user.");
+
+                    await fetchAndDisplayUsername(user.uid, user.email, user.displayName);
+                    console.log("[DEBUG] Username fetched and displayed.");
+
+                    loadUserSettings(); // Load user settings
+                    setupRealtimeSolvesListener(); // Setup listener for solves
+                    console.log("[DEBUG] User settings and solve listener setup complete.");
+
+                } else {
+                    console.log("[DEBUG] User not authenticated (signed out or initial state). Attempting anonymous sign-in if not already ready.");
+                    // User is signed out or initially not authenticated
+                    userId = null; // Clear userId when signed out
+                    isAuthReady = false; // Not ready for Firestore ops as no authenticated user
+
+                    // Try to sign in anonymously if no user and not already marked as ready (e.g., from a previous anonymous session)
+                    if (auth && !auth.currentUser) {
+                        try {
+                            await signInAnonymously(auth);
+                            console.log("[DEBUG] Signed in anonymously.");
+                        } catch (anonError) {
+                            console.error("[ERROR] Anonymous sign-in failed:", anonError);
+                            // If anonymous sign-in also fails, then operate in a truly offline/guest mode
+                            document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
+                            console.log("[DEBUG] Fallback to purely local/offline mode due to anonymous sign-in failure.");
+                        }
+                    }
+                    
+                    // Update UI for unauthenticated user
+                    document.getElementById('signInBtn').style.display = 'inline-block';
+                    document.getElementById('signUpBtn').style.display = 'inline-block';
+                    document.getElementById('signOutBtn').style.display = 'none';
+                    if (!auth.currentUser) { // Ensure it still says Guest if anonymous sign-in failed
+                        document.getElementById('usernameDisplay').textContent = 'Guest';
+                    }
+                    console.log("[DEBUG] Auth UI updated for unauthenticated user.");
+                    
+                    // Clear solves and reset timer for signed out state
+                    solves = [];
+                    renderSolveHistory();
+                    resetTimer();
+                    console.log("[DEBUG] Local solves cleared and timer reset due to sign out.");
+                }
+            });
+        } else {
+            console.warn("[DEBUG] Firebase config not completely provided. Running in offline/guest mode.");
+            userId = crypto.randomUUID(); // Fallback for no Firebase config
+            document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
+            isAuthReady = true; // Assume ready for local operations
+            // No Firestore operations without config, but the app can still function locally
+            setupRealtimeSolvesListener(); // This will not fetch data but will setup the local data array
+            // Update UI for unauthenticated user (offline mode)
+            document.getElementById('signInBtn').style.display = 'inline-block';
+            document.getElementById('signUpBtn').style.display = 'inline-block';
+            document.getElementById('signOutBtn').style.display = 'none';
+            console.log("[DEBUG] Offline/Guest mode activated.");
+        }
+
+        /**
+         * Function to fetch and display username from Firestore
+         * Moved to global scope for accessibility
+         */
+        async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
+            console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
+            const usernameDisplayElement = document.getElementById('usernameDisplay');
+            if (!db || !uid) {
+                usernameDisplayElement.textContent = 'Guest (Offline)'; // Fallback if no DB or UID
+                console.log("[DEBUG] fetchAndDisplayUsername: DB or UID not available. Displaying Guest (Offline).");
+                return;
+            }
+
+            const userProfileRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+            try {
+                console.log(`[DEBUG] Attempting to get user profile from Firestore: ${userProfileRef.path}`);
+                const docSnap = await getDoc(userProfileRef);
+                let customUsername = null;
+
+                if (docSnap.exists() && docSnap.data().username) {
+                    customUsername = docSnap.data().username;
+                    console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
+                } else {
+                    console.log("[DEBUG] User profile not found or no username. Generating default.");
+                    // No custom username set, create a default one and save it
+                    let defaultUsername;
+                    if (displayName) {
+                        defaultUsername = displayName;
+                    } else if (email) {
+                        defaultUsername = email.split('@')[0];
+                    } else { // Anonymous or fallback if no email/displayName
+                        defaultUsername = 'Guest-' + uid.substring(0, 6);
+                    }
+                    await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                    customUsername = defaultUsername;
+                    console.log(`[DEBUG] Default username created and saved: ${customUsername}`);
+                }
+
+                // Display User ID, and custom username if available
+                if (customUsername && customUsername !== `Guest-${uid.substring(0, 6)}`) {
+                    usernameDisplayElement.textContent = `UID: ${uid} (Username: ${customUsername})`;
+                } else {
+                    usernameDisplayElement.textContent = `UID: ${uid}`;
+                }
+                console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
+            } catch (e) {
+                console.error("[ERROR] Error fetching or setting username:", e);
+                // Fallback in case of Firestore error, use UID only
+                usernameDisplayElement.textContent = `UID: ${uid} (Error fetching username)`;
+            }
+            console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
+        }
+
+        // --- Timer Variables ---
+        let startTime;
+        let elapsedTime = 0;
+        let timerInterval;
+        let isInspecting = false;
+        let isTiming = false;
+        let inspectionTimeLeft = 15;
+        let inspectionCountdownInterval;
+        let scramble = '';
+        let solves = []; // Array to store solve objects: [{ time: ms, penalty: null|'+2'|'DNF', timestamp: date, scramble: string }]
+        let spaceDownTime = 0; // Initialize here, directly in the module scope.
+        
+        // Declare DOM element variables globally, assign them in window.onload
+        let timerDisplay;
+        let scrambleTextDisplay; // Renamed
+        let cube3DContainer;     // New
+        let scramble3DViewer;    // New (now twisty-player)
+        let startStopBtn;
+        let resetBtn;
+        let scrambleBtn;
+        let settingsBtn;
+        let solveHistoryList;
+        let bestTimeDisplay;
+        let ao5Display;
+        let ao12Display;
+        let solveCountDisplay;
+        let noSolvesMessage;
+        let inspectionToggle;
+        let soundEffectsToggle;
+        let cubeTypeSelect;
+        let themeSelect;
+        let cubeViewToggle; // New
+        let settingsUsernameInput;
+        let saveUsernameBtn;
+        let usernameUpdateMessage;
+        let aiInsightModal;
+        let closeAiInsightModalBtn;
+        let aiInsightContentDisplay;
+        let insightMessageElement;
+        let insightSpinner;
+
+        // Sound effects
+        // Initialize Tone.js synths. These are global to avoid re-creating them on every play.
+        const startSound = new Tone.Synth({
+            oscillator: { type: "triangle" },
+            envelope: {
+                attack: 0.01,
+                decay: 0.1,
+                sustain: 0.1,
+                release: 0.5,
+            }
+        }).toDestination();
+        console.log("[DEBUG] Tone.js startSound initialized.");
+
+        const stopSound = new Tone.MembraneSynth({
+            pitchDecay: 0.05,
+            octaves: 8,
+            envelope: {
+                attack: 0.001,
+                decay: 0.4,
+                sustain: 0.01,
+                release: 0.6,
+            }
+        }).toDestination();
+        console.log("[DEBUG] Tone.js stopSound initialized.");
+
+        const inspectionBeep = new Tone.Synth({
+            oscillator: { type: "square" },
+            envelope: {
+                attack: 0.005,
+                decay: 0.05,
+                sustain: 0.0,
+                release: 0.05,
+            }
+        }).toDestination();
+        console.log("[DEBUG] Tone.js inspectionBeep initialized.");
+
+        // New sound for "Go!"
+        const goSound = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: {
+                attack: 0.02,
+                decay: 0.2,
+                sustain: 0.1,
+                release: 0.3,
+            }
+        }).toDestination();
+        console.log("[DEBUG] Tone.js goSound initialized.");
+
+        // Settings variables
+        let enableInspection = true;
+        let enableSoundEffects = true;
+        let cubeType = '3x3';
+        let currentTheme = 'dark'; // Default theme
+        let show3DCubeView = false; // New: Default to text scramble view
+        console.log("[DEBUG] Initial settings variables set.");
+
+        // --- Utility Functions ---
+
+        /**
+         * Formats milliseconds into M:SS.mmm string.
+         * @param {number} ms - Milliseconds to format.
+         * @returns {string} Formatted time string.
+         */
+        function formatTime(ms) {
+            if (ms === null || isNaN(ms)) {
+                return '--:--.--';
+            }
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const milliseconds = Math.floor(ms % 1000);
+            const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+            return formatted;
+        }
+
+        /**
+         * Generates a scramble based on the selected cube type.
+         * @returns {string} A new scramble string.
+         */
+        function generateScramble() {
+            console.log("[DEBUG] Entering generateScramble.");
+            const moves3x3 = ['R', 'L', 'U', 'D', 'F', 'B'];
+            const moves2x2 = ['R', 'U', 'F'];
+            const moves4x4 = ['R', 'L', 'U', 'D', 'F', 'B', 'Rw', 'Uw', 'Fw']; // Simplified for demo
+            const movesPyraminx = ['R', 'L', 'U', 'B']; // Main moves
+            const movesPyraminxTips = ['r', 'l', 'u', 'b']; // Tips moves
+            const suffixes = ['', "'", '2']; // For 3x3, 2x2, 4x4
+            const suffixesPyraminx = ['', "'"]; // For Pyraminx
+
+            let scrambleMoves = [];
+            let length = 0;
+            let twistyPlayerPuzzleType = '3x3x3'; // Default for twisty-player
+
+            const getRandomMove = (movesArray, suffixArray) => {
+                const move = movesArray[Math.floor(Math.random() * movesArray.length)];
+                const suffix = suffixArray[Math.floor(Math.random() * suffixArray.length)];
+                return move + suffix;
+            };
+
+            switch (cubeType) {
+                case '2x2':
+                    length = 9 + Math.floor(Math.random() * 3); // 9-11 moves
+                    twistyPlayerPuzzleType = '2x2x2';
+                    for (let i = 0; i < length; i++) {
+                        scrambleMoves.push(getRandomMove(moves2x2, suffixes));
+                    }
+                    break;
+                case '3x3':
+                    length = 20 + Math.floor(Math.random() * 2); // 20-21 moves
+                    twistyPlayerPuzzleType = '3x3x3';
+                    for (let i = 0; i < length; i++) {
+                        scrambleMoves.push(getRandomMove(moves3x3, suffixes));
+                    }
+                    break;
+                case '4x4':
+                    length = 40 + Math.floor(Math.random() * 6); // 40-45 moves
+                    twistyPlayerPuzzleType = '4x4x4';
+                    // This is a very simplified 4x4 scramble. Real 4x4 scrambles are more complex.
+                    for (let i = 0; i < length; i++) {
+                        scrambleMoves.push(getRandomMove(moves4x4, suffixes));
+                    }
+                    break;
+                case 'pyraminx':
+                    length = 8 + Math.floor(Math.random() * 3); // 8-10 moves for main
+                    twistyPlayerPuzzleType = 'pyraminx'; // twisty-player supports 'pyraminx' puzzle type
+                    for (let i = 0; i < length; i++) {
+                        scrambleMoves.push(getRandomMove(movesPyraminx, suffixesPyraminx));
+                    }
+                    // Add tip moves (usually 0-4 tip moves)
+                    for (let i = 0; i < Math.floor(Math.random() * 5); i++) {
+                        scrambleMoves.push(getRandomMove(movesPyraminxTips, suffixesPyraminx));
+                    }
+                    break;
+                default:
+                    // Fallback to 3x3 if something unexpected
+                    length = 20;
+                    twistyPlayerPuzzleType = '3x3x3';
+                    for (let i = 0; i < length; i++) {
+                        scrambleMoves.push(getRandomMove(moves3x3, suffixes));
+                    }
+            }
+            const generated = scrambleMoves.join(' ');
+            console.log(`[DEBUG] generateScramble: Generated for ${cubeType}: ${generated}`);
+
+            // Update both displays regardless of current view setting
+            scrambleTextDisplay.textContent = generated;
+            if (scramble3DViewer) { // Ensure the element is available
+                // Always set puzzle type explicitly.
+                scramble3DViewer.puzzle = twistyPlayerPuzzleType; 
+                // Set algorithm after a very short delay if puzzle type is pyraminx
+                // to give the component a moment to fully reconfigure its parser.
+                // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
+                // due to timing sensitivities with twisty-player's internal parsing.
+                if (cubeType === 'pyraminx') {
+                    // Clear alg first to ensure a fresh parse.
+                    scramble3DViewer.alg = ''; 
+                    setTimeout(() => {
+                        scramble3DViewer.alg = generated;
+                        console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
+                    }, 50); // A small delay (50ms) to ensure internal parser is ready.
+                } else {
+                    scramble3DViewer.alg = generated;
+                    console.log(`[DEBUG] 3D Viewer updated with alg: ${generated} and puzzle: ${twistyPlayerPuzzleType}`);
+                }
+            } else {
+                console.warn("[WARN] scramble3DViewer is not yet available during generateScramble. This is expected on initial load if 3D view is off.");
+            }
+            return generated;
+        }
+
+        /**
+         * Calculates the average of the last N solves, dropping the best and worst times.
+         * @param {Array<Object>} solveList - Array of solve objects.
+         * @param {number} n - Number of solves to consider (e.g., 5 for Ao5, 12 for Ao12).
+         * @returns {string} Formatted average time or '--:--.--'.
+         */
+        function calculateAverage(solveList, n) {
+            console.log(`[DEBUG] Entering calculateAverage for N=${n} with ${solveList.length} solves.`);
+            if (solveList.length < n) {
+                console.log(`[DEBUG] calculateAverage: Not enough solves (${solveList.length} < ${n}). Returning '--:--.--'.`);
+                return '--:--.--';
+            }
+
+            // Get the last N solves
+            const lastNSolves = solveList.slice(-n);
+            console.log(`[DEBUG] calculateAverage: Last ${n} solves:`, lastNSolves.map(s => `${s.time}ms (penalty: ${s.penalty})`));
+
+            // Filter out DNFs and apply +2 penalties for calculations
+            let timesForAvg = [];
+            let hasDNF = false;
+            lastNSolves.forEach(solve => {
+                if (solve.penalty === 'DNF') {
+                    hasDNF = true;
+                    console.log("[DEBUG] calculateAverage: DNF found.");
+                } else if (solve.penalty === '+2') {
+                    timesForAvg.push(solve.time + 2000);
+                    console.log(`[DEBUG] calculateAverage: Added +2 penalty to ${solve.time}ms.`);
+                } else {
+                    timesForAvg.push(solve.time);
+                }
+            });
+
+            // If there's a DNF, the average is DNF
+            if (hasDNF) {
+                console.log("[DEBUG] calculateAverage: Returning 'DNF' due to DNF in list.");
+                return 'DNF';
+            }
+
+            // Sort times to drop best and worst
+            timesForAvg.sort((a, b) => a - b);
+            console.log("[DEBUG] calculateAverage: Times sorted:", timesForAvg);
+
+            // Drop best and worst if N > 2
+            if (timesForAvg.length > 2) { // Ensure there are enough elements to slice
+                timesForAvg = timesForAvg.slice(1, -1);
+                console.log("[DEBUG] calculateAverage: Dropped best/worst. Remaining times:", timesForAvg);
+            } else {
+                console.log("[DEBUG] calculateAverage: Not enough times to drop best/worst after filtering or N is too small.");
+            }
+            
+
+            if (timesForAvg.length === 0) {
+                console.log("[DEBUG] calculateAverage: No valid times for average. Returning '--:--.--'.");
+                return '--:--.--';
+            }
+
+            const sum = timesForAvg.reduce((acc, time) => acc + time, 0);
+            const avg = sum / timesForAvg.length;
+            const formattedAvg = formatTime(avg);
+            console.log(`[DEBUG] calculateAverage: Sum: ${sum}, Count: ${timesForAvg.length}, Avg: ${avg}ms, Formatted: ${formattedAvg}`);
+            return formattedAvg;
+        }
+
+        /**
+         * Renders the solve history list and updates statistics.
+         */
+        function renderSolveHistory() {
+            console.log("[DEBUG] Entering renderSolveHistory.");
+            solveHistoryList.innerHTML = '';
+            if (solves.length === 0) {
+                noSolvesMessage.style.display = 'block';
+                bestTimeDisplay.textContent = '--:--.--';
+                ao5Display.textContent = '--:--.--';
+                ao12Display.textContent = '--:--.--';
+                solveCountDisplay.textContent = '0';
+                console.log("[DEBUG] renderSolveHistory: No solves, displaying empty stats.");
+                return;
+            } else {
+                noSolvesMessage.style.display = 'none';
+            }
+
+            // Sort solves by timestamp (descending) for display
+            const sortedSolves = [...solves].sort((a, b) => b.timestamp - a.timestamp);
+            console.log(`[DEBUG] renderSolveHistory: Rendering ${sortedSolves.length} sorted solves.`);
+
+            sortedSolves.forEach(solve => {
+                const solveItem = document.createElement('div');
+                solveItem.className = 'solve-history-item';
+                solveItem.setAttribute('data-id', solve.id);
+
+                let displayTime = solve.time;
+                let penaltyText = '';
+                if (solve.penalty === '+2') {
+                    displayTime += 2000;
+                    penaltyText = ' (+2)';
+                } else if (solve.penalty === 'DNF') {
+                    displayTime = 'DNF';
+                    penaltyText = ' (DNF)';
+                }
+
+                solveItem.innerHTML = `
+                    <div class="time">${displayTime === 'DNF' ? 'DNF' : formatTime(displayTime)}<span class="text-sm text-gray-400 ml-2">${penaltyText}</span></div>
+                    <div class="penalty-buttons">
+                        <button class="insight-button button-secondary" onclick="getSolveInsight('${solve.id}')">Get Insight ✨</button>
+                        <button class="plus2 button-secondary" onclick="applyPenalty('${solve.id}', '+2')">+2</button>
+                        <button class="button-secondary" onclick="applyPenalty('${solve.id}', 'DNF')">DNF</button>
+                        <button class="clear-penalty button-secondary" onclick="applyPenalty('${solve.id}', null)">Clear</button>
+                        <button class="delete button-secondary" onclick="deleteSolve('${solve.id}')">Delete</button>
+                    </div>
+                `;
+                solveHistoryList.appendChild(solveItem);
+                // console.log(`[DEBUG] renderSolveHistory: Appended solve item for ID: ${solve.id}`);
+            });
+
+            updateStatistics();
+            console.log("[DEBUG] Exiting renderSolveHistory. Statistics updated.");
+        }
+
+        /**
+         * Updates the best time, Ao5, Ao12, and solve count displays.
+         */
+        function updateStatistics() {
+            console.log("[DEBUG] Entering updateStatistics.");
+            const validSolves = solves.filter(s => s.penalty !== 'DNF');
+            let actualTimes = validSolves.map(s => s.time + (s.penalty === '+2' ? 2000 : 0));
+
+            const best = actualTimes.length > 0 ? Math.min(...actualTimes) : null;
+            bestTimeDisplay.textContent = formatTime(best);
+            console.log(`[DEBUG] Statistics: Best Time: ${formatTime(best)}`);
+
+            ao5Display.textContent = calculateAverage(solves, 5);
+            console.log(`[DEBUG] Statistics: Ao5: ${ao5Display.textContent}`);
+            ao12Display.textContent = calculateAverage(solves, 12);
+            console.log(`[DEBUG] Statistics: Ao12: ${ao12Display.textContent}`);
+            solveCountDisplay.textContent = solves.length;
+            console.log(`[DEBUG] Statistics: Solve Count: ${solves.length}`);
+            console.log("[DEBUG] Exiting updateStatistics.");
+        }
+
+        /**
+         * Adds a new solve to the history.
+         * @param {number} time - The solve time in milliseconds.
+         */
+        async function addSolve(time) {
+            console.log(`[DEBUG] Entering addSolve with time: ${time}ms.`);
+            const newSolve = {
+                time: time,
+                penalty: null,
+                timestamp: Date.now(),
+                scramble: scramble, // Store the scramble with the solve
+            };
+            if (isAuthReady && db && userId) {
+                console.log("[DEBUG] addSolve: Authenticated and Firestore ready. Attempting to add to Firestore.");
+                try {
+                    const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
+                    const docRef = await addDoc(solvesCollectionRef, newSolve);
+                    console.log("[DEBUG] Document written to Firestore with ID: ", docRef.id);
+                    // The onSnapshot listener will update the 'solves' array and re-render
+                } catch (e) {
+                    console.error("[ERROR] Error adding document to Firestore: ", e);
+                    // Fallback to local array if Firestore fails, but won't persist
+                    solves.push({ ...newSolve, id: crypto.randomUUID() });
+                    renderSolveHistory();
+                    console.log("[DEBUG] addSolve: Firestore failed, added to local array.");
+                }
+            } else {
+                console.log("[DEBUG] addSolve: Not authenticated or Firestore not ready. Adding to local array.");
+                // If not authenticated or in offline mode, just add to local array
+                solves.push({ ...newSolve, id: crypto.randomUUID() });
+                renderSolveHistory();
+            }
+            console.log("[DEBUG] Exiting addSolve.");
+        }
+
+        /**
+         * Determines the user's cubing level based on solve time for a 3x3 cube.
+         * This is a simple heuristic and can be adjusted.
+         * @param {number} solveTimeMs - The solve time in milliseconds.
+         * @param {string} cubeType - The type of cube (e.g., '3x3').
+         * @returns {string} The estimated level (e.g., "Beginner", "Intermediate", "Advanced", "Expert").
+         */
+        function getUserLevel(solveTimeMs, cubeType) {
+            console.log(`[DEBUG] Determining user level for ${cubeType} solve time: ${solveTimeMs}ms`);
+            if (cubeType === '3x3') {
+                if (solveTimeMs > 120000) return "Beginner"; // Over 2 minutes (120,000 ms)
+                if (solveTimeMs > 60000) return "Novice";   // 1-2 minutes (60,000 ms)
+                if (solveTimeMs > 30000) return "Intermediate"; // 30-60 seconds (30,000 ms)
+                if (solveTimeMs > 15000) return "Advanced";   // 15-30 seconds (15,000 ms)
+                return "Expert"; // Under 15 seconds
+            }
+            // Add more cube types and their thresholds here if needed
+            return "General Cubist"; // Default for other cube types or if not specified
+        }
+
+        /**
+         * Fetches an AI-generated insight for a specific solve.
+         * @param {string} solveId - The ID of the solve for which to generate an insight.
+         */
+        window.getSolveInsight = async function(solveId) {
+            console.log(`[DEBUG] Requesting AI insight for solve ID: ${solveId}`);
+            const solve = solves.find(s => s.id === solveId);
+
+            if (!solve) {
+                insightMessageElement.textContent = "Error: Solve not found.";
+                insightSpinner.style.display = 'none';
+                aiInsightModal.classList.add('open');
+                console.error(`[ERROR] Solve with ID ${solveId} not found.`);
+                return;
+            }
+
+            // Display loading state
+            insightMessageElement.textContent = "Generating insight...";
+            insightSpinner.style.display = 'block';
+            aiInsightModal.classList.add('open');
+            aiInsightModal.focus(); // Focus the modal for accessibility
+
+            // The prompt focuses solely on the scramble's inherent properties for an opening strategy.
+            const prompt = `Analyze the ${cubeType} scramble: '${solve.scramble}'. Provide a detailed observation (2-3 sentences) focused on the initial cross or first F2L pair. The observation should identify a specific beneficial feature as if visually inspecting the cube, such as an already solved or easily solvable cross edge/corner, or an intuitive first F2L pair. For example: "You might notice the White-Orange edge is already placed, requiring only an F2 move to join the cross." or "Observe that the Green-Red edge and corner are paired up and ready for insertion." Deliver the insight directly, using simple and clear language, without conversational intros or concluding remarks. Focus solely on a valuable setup observation.`;
+
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // You will need to provide your Gemini API key here for a normal hosting environment.
+            // For testing locally without an API key, you can comment out the API call and provide a dummy response.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                console.log("[DEBUG] Making Gemini API call for insight with refined prompt.");
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const insightText = result.candidates[0].content.parts[0].text;
+                    insightMessageElement.textContent = insightText;
+                    console.log("[DEBUG] Gemini API response received and displayed.");
+                } else {
+                    insightMessageElement.textContent = "Could not generate insight. Please try again.";
+                    console.warn("[WARN] Gemini API response structure unexpected:", result);
+                }
+            } catch (e) {
+                insightMessageElement.textContent = "Failed to connect to AI. Please check your network or ensure your API key is correct.";
+                console.error("[ERROR] Error calling Gemini API:", e);
+            } finally {
+                insightSpinner.style.display = 'none'; // Hide spinner
+                console.log("[DEBUG] AI Insight generation process completed.");
+            }
+        };
+
+        /**
+         * Applies or clears a penalty for a given solve.
+         * Global function for onclick in dynamically created HTML.
+         * @param {string} id - The ID of the solve to update.
+         * @param {string|null} penaltyType - '+2', 'DNF', or null to clear.
+         */
+        window.applyPenalty = async function(id, penaltyType) {
+            console.log(`[DEBUG] Entering applyPenalty for ID: ${id}, Penalty: ${penaltyType}`);
+            if (!isAuthReady || !db || !userId) {
+                console.warn("[WARN] Firestore not ready or user not authenticated. Cannot apply penalty persistently.");
+                // For local fallback:
+                const solveIndex = solves.findIndex(s => s.id === id);
+                if (solveIndex !== -1) {
+                    solves[solveIndex].penalty = penaltyType;
+                    renderSolveHistory(); // Re-render local changes
+                    console.log("[DEBUG] applyPenalty: Applied locally as Firestore is unavailable.");
+                } else {
+                    console.log("[DEBUG] applyPenalty: Solve not found in local array.");
+                }
+                return;
+            }
+
+            const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
+            try {
+                console.log(`[DEBUG] applyPenalty: Attempting to update doc in Firestore: ${solveRef.path}`);
+                await updateDoc(solveRef, { penalty: penaltyType });
+                console.log(`[DEBUG] Penalty ${penaltyType} applied to solve ${id} in Firestore.`);
+            } catch (e) {
+                console.error("[ERROR] Error updating penalty in Firestore: ", e);
+            }
+            console.log("[DEBUG] Exiting applyPenalty.");
+        };
+
+        /**
+         * Deletes a solve from the history.
+         * Global function for onclick in dynamically created HTML.
+         * @param {string} id - The ID of the solve to delete.
+         */
+        window.deleteSolve = async function(id) {
+            console.log(`[DEBUG] Entering deleteSolve for ID: ${id}`);
+            if (!isAuthReady || !db || !userId) {
+                console.warn("[WARN] Firestore not ready or user not authenticated. Cannot delete solve persistently.");
+                // For local fallback:
+                solves = solves.filter(s => s.id !== id);
+                renderSolveHistory(); // Re-render local changes
+                console.log("[DEBUG] deleteSolve: Deleted locally as Firestore is unavailable.");
+                return;
+            }
+
+            const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
+            try {
+                console.log(`[DEBUG] deleteSolve: Attempting to delete doc from Firestore: ${solveRef.path}`);
+                await deleteDoc(solveRef);
+                console.log(`[DEBUG] Solve ${id} deleted from Firestore.`);
+            } catch (e) {
+                console.error("[ERROR] Error deleting solve from Firestore: ", e);
+            }
+            console.log("[DEBUG] Exiting deleteSolve.");
+        };
+
+        /**
+         * Sets up the real-time listener for user's solves from Firestore.
+         */
+        function setupRealtimeSolvesListener() {
+            console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
+            if (isAuthReady && db && userId) {
+                console.log("[DEBUG] setupRealtimeSolvesListener: Authenticated and Firestore ready. Setting up onSnapshot.");
+                const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
+                // Note: orderBy is commented out due to potential index issues,
+                // and data will be sorted in JavaScript.
+                const q = query(solvesCollectionRef /*, orderBy('timestamp', 'desc')*/);
+
+                onSnapshot(q, (snapshot) => {
+                    console.log("[DEBUG] onSnapshot callback triggered. Processing snapshot changes.");
+                    solves = [];
+                    snapshot.forEach((doc) => {
+                        solves.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log(`[DEBUG] Solves updated from Firestore. Total solves: ${solves.length}.`);
+                    renderSolveHistory();
+                }, (error) => {
+                    console.error("[ERROR] Error listening to solves: ", error);
+                    // Handle error, maybe display a message to the user
+                });
+            } else {
+                console.log("[DEBUG] setupRealtimeSolvesListener: Firestore not available or not authenticated, will use local solves array.");
+                renderSolveHistory(); // Render any existing local solves (if user was previously anonymous)
+            }
+            console.log("[DEBUG] Exiting setupRealtimeSolvesListener.");
+        }
+
+        /**
+         * Loads user settings from Firestore or defaults.
+         */
+        async function loadUserSettings() {
+            console.log("[DEBUG] Entering loadUserSettings.");
+            if (isAuthReady && db && userId) {
+                console.log("[DEBUG] loadUserSettings: Authenticated and Firestore ready. Attempting to load settings.");
+                const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
+                try {
+                    const docSnap = await getDoc(userSettingsRef);
+                    if (docSnap.exists()) {
+                        const settings = docSnap.data();
+                        enableInspection = settings.enableInspection !== undefined ? settings.enableInspection : true;
+                        enableSoundEffects = settings.soundEffects !== undefined ? settings.soundEffects : true;
+                        cubeType = settings.cubeType || '3x3';
+                        currentTheme = settings.theme || 'dark';
+                        show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // Load new setting
+                        console.log("[DEBUG] User settings loaded:", settings);
+                    } else {
+                        console.log("[DEBUG] No user settings found in Firestore, using defaults.");
+                        // Save default settings if none exist
+                        saveUserSettings();
+                    }
+                } catch (e) {
+                    console.error("[ERROR] Error loading user settings from Firestore: ", e);
+                }
+            } else {
+                 console.log("[DEBUG] loadUserSettings: Firestore not available or not authenticated, using local settings.");
+            }
+            applySettingsToUI();
+            console.log("[DEBUG] Exiting loadUserSettings.");
+        }
+
+        /**
+         * Saves current user settings to Firestore.
+         */
+        async function saveUserSettings() {
+            console.log("[DEBUG] Entering saveUserSettings.");
+            if (isAuthReady && db && userId) {
+                console.log("[DEBUG] saveUserSettings: Authenticated and Firestore ready. Attempting to save settings.");
+                const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
+                const settingsToSave = {
+                    enableInspection: enableInspection,
+                    enableSoundEffects: enableSoundEffects,
+                    cubeType: cubeType,
+                    theme: currentTheme,
+                    show3DCubeView: show3DCubeView, // Save new setting
+                    lastUpdated: Date.now()
+                };
+                try {
+                    console.log("[DEBUG] Attempting to set doc in Firestore:", settingsToSave);
+                    await setDoc(userSettingsRef, settingsToSave, { merge: true });
+                    console.log("[DEBUG] User settings saved to Firestore.");
+                } catch (e) {
+                    console.error("[ERROR] Error saving user settings to Firestore: ", e);
+                }
+            } else {
+                 console.log("[WARN] Firestore not available or not authenticated. Settings will not be saved persistently.");
+            }
+            console.log("[DEBUG] Exiting saveUserSettings.");
+        }
+
+        /**
+         * Applies loaded/default settings to the UI elements.
+         */
+        function applySettingsToUI() {
+            console.log("[DEBUG] Entering applySettingsToUI.");
+            if (inspectionToggle) inspectionToggle.checked = enableInspection;
+            if (soundEffectsToggle) soundEffectsToggle.checked = enableSoundEffects;
+            if (cubeTypeSelect) cubeTypeSelect.value = cubeType;
+            if (themeSelect) themeSelect.value = currentTheme;
+            if (cubeViewToggle) cubeViewToggle.checked = show3DCubeView; // Apply 3D view toggle setting
+
+            // Update visibility of scramble displays based on 'show3DCubeView'
+            if (show3DCubeView) {
+                scrambleTextDisplay.style.display = 'none';
+                cube3DContainer.style.display = 'flex'; // Use flex to center the player
+                if (scramble3DViewer) {
+                    scramble3DViewer.alg = scramble; // Ensure 3D viewer shows current scramble
+                    scramble3DViewer.puzzle = getTwistyPlayerPuzzleType(cubeType); // Set correct puzzle type for 3D viewer
+                    console.log(`[DEBUG] 3D view enabled. Scramble: ${scramble}, Puzzle: ${scramble3DViewer.puzzle}`);
+                }
+            } else {
+                scrambleTextDisplay.style.display = 'block';
+                cube3DContainer.style.display = 'none';
+                console.log("[DEBUG] Text view enabled.");
+            }
+
+            document.body.className = `theme-${currentTheme}`; // Apply theme class
+            scramble = generateScramble(); // Regenerate scramble based on new cube type
+            console.log("[DEBUG] UI settings applied and scramble regenerated.");
+            console.log("[DEBUG] Exiting applySettingsToUI.");
+        }
+
+        /**
+         * Helper to map cubeType to twisty-player puzzle type.
+         * @param {string} type - The cube type string (e.g., '3x3').
+         * @returns {string} The corresponding twisty-player puzzle type.
+         */
+        function getTwistyPlayerPuzzleType(type) {
+            switch (type) {
+                case '2x2': return '2x2x2';
+                case '3x3': return '3x3x3';
+                case '4x4': return '4x4x4';
+                case 'pyraminx': return 'pyraminx';
+                default: return '3x3x3'; // Default to 3x3 if unknown
+            }
+        }
+
+
+        /**
+         * Updates the username in Firestore.
+         */
+        async function updateUsername() {
+            console.log("[DEBUG] Entering updateUsername.");
+            if (!isAuthReady || !db || !userId) {
+                usernameUpdateMessage.textContent = "Please sign in to change your username.";
+                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                usernameUpdateMessage.style.display = 'block';
+                console.warn("[WARN] Not authenticated or Firestore not ready. Cannot update username.");
+                return;
+            }
+
+            const newUsername = settingsUsernameInput.value.trim();
+            if (!newUsername) {
+                usernameUpdateMessage.textContent = "Username cannot be empty.";
+                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                usernameUpdateMessage.style.display = 'block';
+                console.warn("[WARN] New username is empty.");
+                return;
+            }
+
+            const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+            try {
+                console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
+                await updateDoc(userProfileRef, { username: newUsername });
+                usernameUpdateMessage.textContent = "Username updated successfully!";
+                usernameUpdateMessage.style.color = "#22c55e"; // Green for success
+                usernameUpdateMessage.style.display = 'block';
+                console.log("[DEBUG] Username updated successfully in Firestore.");
+                
+                // Update the displayed username immediately
+                await fetchAndDisplayUsername(userId, auth.currentUser?.email, auth.currentUser?.displayName);
+                console.log("[DEBUG] Displayed username refreshed after update.");
+
+                setTimeout(() => {
+                    usernameUpdateMessage.style.display = 'none';
+                    console.log("[DEBUG] Username update message hidden.");
+                }, 3000); // Hide message after 3 seconds
+
+            } catch (e) { 
+                console.error("[ERROR] Error updating username in Firestore: ", e);
+                usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
+                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                usernameUpdateMessage.style.display = 'block';
+            }
+            console.log("[DEBUG] Exiting updateUsername.");
+        }
+
+
+        // --- Timer Logic ---
+
+        /**
+         * Starts or stops the timer/inspection.
+         */
+        async function toggleTimer() {
+            console.log("[DEBUG] Entering toggleTimer.");
+            // This ensures the audio context is running on user interaction,
+            // though it's also called in the event listeners. It acts as a safeguard.
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+                console.log("[DEBUG] AudioContext ensured to be running (Tone.start() called).");
+            }
+
+            if (isTiming) {
+                console.log("[DEBUG] toggleTimer: Currently timing, stopping timer.");
+                // Stop the timer
+                clearInterval(timerInterval);
+                isTiming = false;
+                startStopBtn.textContent = 'Start / Stop (Space)';
+                timerDisplay.classList.remove('ready');
+                if (enableSoundEffects) {
+                    console.log("[DEBUG] Playing stop sound.");
+                    stopSound.triggerAttackRelease("C2", "8n");
+                }
+                addSolve(elapsedTime); // Add solve to history
+                scramble = generateScramble(); // Generate new scramble for next solve
+                // The scramble display update (text or 3D) is handled internally by generateScramble
+                timerDisplay.textContent = formatTime(0); // Reset display to 0 for next solve
+                elapsedTime = 0; // Reset elapsedTime
+                console.log("[DEBUG] New scramble generated and timer reset for next solve.");
+            } else if (isInspecting) {
+                console.log("[DEBUG] toggleTimer: Currently inspecting, starting timer early.");
+                // User pressed spacebar again during inspection to start timing early
+                clearInterval(inspectionCountdownInterval);
+                isInspecting = false;
+                isTiming = true;
+                timerDisplay.classList.remove('inspection');
+                timerDisplay.classList.remove('ready'); // Remove ready state if it was there
+                timerDisplay.textContent = formatTime(0);
+                startStopBtn.textContent = 'Stop (Space)';
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 10); // Update every 10ms for millisecond precision
+                if (enableSoundEffects) {
+                    console.log("Playing Go! sound (inspection stopped early).");
+                    goSound.triggerAttackRelease(["C4", "E4", "G4"], "8n"); // "Go!" sound
+                }
+            } else {
+                console.log("[DEBUG] toggleTimer: Initial start. Checking inspection setting.");
+                // Initial start: enter inspection or start timer immediately
+                if (enableInspection) {
+                    isInspecting = true;
+                    inspectionTimeLeft = 15;
+                    timerDisplay.classList.add('inspection');
+                    timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
+                    startStopBtn.textContent = 'Start (Space)'; // Change button text for inspection phase
+                    console.log("[DEBUG] Starting 15s inspection countdown.");
+
+                    // Start inspection countdown and beeps
+                    inspectionCountdownInterval = setInterval(() => {
+                        inspectionTimeLeft--;
+                        console.log(`[DEBUG] Inspection countdown: ${inspectionTimeLeft}s remaining.`);
+                        if (inspectionTimeLeft >= 0) {
+                            timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
+                            if (enableSoundEffects) {
+                                // Play beep at 10 seconds and from 5 seconds down to 1
+                                if (inspectionTimeLeft === 10 || (inspectionTimeLeft <= 5 && inspectionTimeLeft > 0)) {
+                                    console.log(`[DEBUG] Playing inspection beep for ${inspectionTimeLeft}s.`);
+                                    inspectionBeep.triggerAttackRelease("C5", "16n");
+                                } else if (inspectionTimeLeft === 0) {
+                                    // At 0 seconds, play a distinct beep and the "Go!" sound
+                                    console.log("[DEBUG] Playing final inspection beep and Go! sound (0s).");
+                                    inspectionBeep.triggerAttackRelease("C5", "8n"); // Louder/longer beep for 0
+                                    goSound.triggerAttackRelease(["C4", "E4", "G4"], "8n"); // "Go!" sound
+
+                                    // AUTOSTART THE TIMER HERE
+                                    clearInterval(inspectionCountdownInterval); // Stop inspection countdown
+                                    isInspecting = false;
+                                    isTiming = true;
+                                    timerDisplay.classList.remove('inspection', 'ready');
+                                    timerDisplay.textContent = formatTime(0);
+                                    startStopBtn.textContent = 'Stop (Space)';
+                                    startTime = Date.now();
+                                    timerInterval = setInterval(updateTimer, 10); // Start actual timer
+                                    console.log("[DEBUG] Inspection ended. Auto-starting timer.");
+                                }
+                            }
+
+                            if (inspectionTimeLeft <= 8) { // After 8 seconds, ready to start
+                                timerDisplay.classList.add('ready');
+                            }
+                        } else {
+                            console.log("[DEBUG] Inspection time ran out. Forcing stop.");
+                            // This block handles the case where inspection time completely runs out without auto-start
+                            // (which means user didn't have sound enabled, or the auto-start failed for some reason)
+                            // or if they had auto-start, but the penalty logic still needs to catch cases.
+                            // For simplicity, if it auto-starts, the solve time will reflect any delay in stopping.
+                            clearInterval(inspectionCountdownInterval);
+                            isTiming = false; // Ensure timer isn't running without user input
+                            isInspecting = false;
+                            timerDisplay.classList.remove('inspection', 'ready');
+                            timerDisplay.textContent = formatTime(0);
+                            scramble = generateScramble();
+                            // The scramble display update (text or 3D) is handled internally by generateScramble
+                            startStopBtn.textContent = 'Start / Stop (Space)';
+                            if (enableSoundEffects) {
+                                console.log("Playing forced stop sound due to inspection timeout.");
+                                stopSound.triggerAttackRelease("F2", "8n"); // A different sound for forced stop
+                            }
+                            addSolve(elapsedTime + 2000); // Adding +2 if it went past 0 without manual start (shouldn't happen with auto-start if sounds are on)
+                        }
+                    }, 1000);
+                } else {
+                    console.log("[DEBUG] No inspection enabled. Starting timer immediately.");
+                    // No inspection, start timer immediately
+                    isTiming = true;
+                    timerDisplay.classList.remove('inspection', 'ready');
+                    timerDisplay.textContent = formatTime(0);
+                    startStopBtn.textContent = 'Stop (Space)';
+                    startTime = Date.now();
+                    timerInterval = setInterval(updateTimer, 10);
+                    if (enableSoundEffects) {
+                        console.log("Playing initial start sound (no inspection).");
+                        startSound.triggerAttackRelease("C4", "8n"); // Initial start sound
+                    }
+                }
+            }
+            console.log("[DEBUG] Exiting toggleTimer.");
+        }
+
+
+        /**
+         * Updates the timer display during timing phase.
+         */
+        function updateTimer() {
+            elapsedTime = Date.now() - startTime;
+            timerDisplay.textContent = formatTime(elapsedTime);
+        }
+
+        /**
+         * Resets the timer and generates a new scramble.
+         */
+        function resetTimer() {
+            clearInterval(timerInterval);
+            clearInterval(inspectionCountdownInterval);
+            isTiming = false;
+            isInspecting = false;
+            elapsedTime = 0;
+            inspectionTimeLeft = 15;
+            timerDisplay.textContent = formatTime(0);
+            timerDisplay.classList.remove('inspection', 'ready');
+            startStopBtn.textContent = 'Start / Stop (Space)';
+            scramble = generateScramble();
+            // Note: scrambleDisplay is now handled internally by generateScramble
+            // to update either text or 3D viewer based on `show3DCubeView`
+        }
+
+        // --- Event Listeners ---
+
+        /**
+         * Sets up all event listeners for buttons and keyboard input.
+         */
+        function setupEventListeners() {
+            startStopBtn.addEventListener('click', async () => {
+                if (enableSoundEffects) {
+                    // Ensure audio context is running on user interaction
+                    if (Tone.context.state !== 'running') {
+                        await Tone.start();
+                        console.log("AudioContext started by button click.");
+                    }
+                }
+                toggleTimer();
+            });
+
+            resetBtn.addEventListener('click', resetTimer);
+
+            scrambleBtn.addEventListener('click', () => {
+                scramble = generateScramble();
+                // scrambleDisplay.textContent is now handled inside generateScramble
+                resetTimer(); // Reset timer when generating new scramble
+            });
+
+            settingsBtn.addEventListener('click', () => {
+                const settingsModal = document.getElementById('settingsModal');
+                settingsModal.classList.add('open');
+                // Pre-fill username input if user is signed in and has a username
+                if (auth.currentUser && db && userId) {
+                    const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+                    getDoc(userProfileRef).then(docSnap => {
+                        if (docSnap.exists() && docSnap.data().username) {
+                            settingsUsernameInput.value = docSnap.data().username;
+                        } else {
+                            settingsUsernameInput.value = '';
+                        }
+                    }).catch(e => {
+                        console.error("Error loading username for settings:", e);
+                        settingsUsernameInput.value = ''; // Clear on error
+                    });
+                } else {
+                    settingsUsernameInput.value = '';
+                }
+                usernameUpdateMessage.style.display = 'none'; // Hide previous messages
+                // Ensure UI reflects current settings when modal opens
+                applySettingsToUI();
+            });
+
+            document.getElementById('closeSettingsModal').addEventListener('click', () => {
+                document.getElementById('settingsModal').classList.remove('open');
+                saveUserSettings(); // Save settings when modal closes
+            });
+
+            // AI Insight Modal close button listener
+            closeAiInsightModalBtn.addEventListener('click', () => {
+                aiInsightModal.classList.remove('open');
+            });
+
+            // New: Close settings modal with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const settingsModal = document.getElementById('settingsModal');
+                    if (settingsModal.classList.contains('open')) {
+                        settingsModal.classList.remove('open');
+                        saveUserSettings(); // Save settings when modal closes
+                        console.log("[DEBUG] Settings modal closed via Escape key.");
+                    }
+                    const authModal = document.getElementById('authModal');
+                    if (authModal.classList.contains('open')) {
+                        authModal.classList.remove('open');
+                        console.log("[DEBUG] Auth modal closed via Escape key.");
+                    }
+                    const aiInsightModal = document.getElementById('aiInsightModal');
+                    if (aiInsightModal.classList.contains('open')) {
+                        aiInsightModal.classList.remove('open');
+                        console.log("[DEBUG] AI Insight modal closed via Escape key.");
+                    }
+                }
+            });
+
+
+            inspectionToggle.addEventListener('change', (e) => {
+                enableInspection = e.target.checked;
+                saveUserSettings();
+            });
+
+            soundEffectsToggle.addEventListener('change', (e) => {
+                enableSoundEffects = e.target.checked;
+                saveUserSettings();
+            });
+
+            cubeTypeSelect.addEventListener('change', (e) => {
+                cubeType = e.target.value;
+                saveUserSettings();
+                // Scramble generation and display update handled by applySettingsToUI
+                // (which is called after saveUserSettings in loadUserSettings, or can be called explicitly here)
+                scramble = generateScramble(); // Generate new scramble with new type
+                resetTimer(); // Reset timer when cube type changes
+            });
+
+            themeSelect.addEventListener('change', (e) => {
+                currentTheme = e.target.value;
+                document.body.className = `theme-${currentTheme}`; // Apply new theme
+                saveUserSettings();
+            });
+
+            // New: 3D Cube View Toggle Listener
+            cubeViewToggle.addEventListener('change', (e) => {
+                show3DCubeView = e.target.checked;
+                saveUserSettings();
+                applySettingsToUI(); // Re-apply settings to update display
+            });
+
+
+            saveUsernameBtn.addEventListener('click', updateUsername); // New event listener for save username
+
+            // Keyboard input for timer
+            document.addEventListener('keydown', async (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault(); // Prevent scrolling
+                    if (enableSoundEffects) {
+                        // Ensure audio context is running on user interaction via keyboard
+                        if (Tone.context.state !== 'running') {
+                            await Tone.start();
+                            console.log("AudioContext started by keydown.");
+                        }
+                    }
+
+                    if (e.repeat) return; // Ignore key repeat
+
+                    spaceDownTime = Date.now(); // Record when spacebar was pressed down
+                    timerDisplay.classList.add('ready'); // Indicate ready state visually
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+
+                    const spaceUpTime = Date.now();
+                    const holdDuration = spaceUpTime - spaceDownTime;
+
+                    timerDisplay.classList.remove('ready');
+
+                    // If held for a short duration (e.g., < 500ms) and timer not running, it's a tap to toggle
+                    if (holdDuration < 500 && !isTiming && !isInspecting) {
+                         // This is the initial tap to start inspection or timer
+                        toggleTimer();
+                    } else if (isInspecting && holdDuration >= 500) {
+                        // If in inspection and space held, start actual timing
+                        toggleTimer();
+                    } else if (isTiming) {
+                        // If timing, stop the timer regardless of hold duration
+                        toggleTimer();
+                    }
+                    spaceDownTime = 0; // Reset spaceDownTime
+                }
+            });
+
+            // --- Authentication Event Listeners ---
+            const authModal = document.getElementById('authModal');
+            const authModalTitle = document.getElementById('authModalTitle');
+            const emailInput = document.getElementById('email');
+            const usernameInputField = document.getElementById('usernameInput'); // Get new username input field
+            const usernameFieldGroup = document.getElementById('usernameFieldGroup'); // Get its container
+            const passwordInput = document.getElementById('password');
+            const authError = document.getElementById('authError');
+            const emailAuthBtn = document.getElementById('emailAuthBtn');
+            const googleSignInBtn = document.getElementById('googleSignInBtn');
+            const signInBtn = document.getElementById('signInBtn');
+            const signUpBtn = document.getElementById('signUpBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+
+            function showAuthError(message) {
+                authError.textContent = message;
+                authError.style.display = 'block';
+            }
+
+            function clearAuthError() {
+                authError.textContent = '';
+                authError.style.display = 'none';
+            }
+
+            signInBtn.addEventListener('click', () => {
+                authModal.classList.add('open');
+                authModalTitle.textContent = 'Sign In';
+                emailAuthBtn.textContent = 'Sign In';
+                emailAuthBtn.onclick = handleSignIn;
+                usernameFieldGroup.style.display = 'none'; // Hide username field for sign-in
+                clearAuthError();
+            });
+
+            signUpBtn.addEventListener('click', () => {
+                authModal.classList.add('open');
+                authModalTitle.textContent = 'Sign Up';
+                emailAuthBtn.textContent = 'Sign Up';
+                emailAuthBtn.onclick = handleSignUp;
+                usernameFieldGroup.style.display = 'block'; // Show username field for sign-up
+                clearAuthError();
+            });
+
+            document.getElementById('closeAuthModal').addEventListener('click', () => {
+                authModal.classList.remove('open');
+                clearAuthError();
+            });
+
+            signOutBtn.addEventListener('click', async () => {
+                if (auth) {
+                    try {
+                        await signOut(auth);
+                        solves = []; // Clear local solves on sign out
+                        renderSolveHistory(); // Update UI
+                        resetTimer(); // Reset timer state
+                        document.getElementById('usernameDisplay').textContent = 'Guest'; // Reset display to Guest
+                        console.log("User signed out successfully.");
+                    } catch (error) {
+                        console.error("Error signing out:", error);
+                    }
+                }
+            });
+
+            async function handleSignIn() {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                clearAuthError();
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    authModal.classList.remove('open');
+                    console.log("Signed in with email:", email);
+                    // Username display will be handled by onAuthStateChanged
+                } catch (error) {
+                    showAuthError(error.message);
+                    console.error("Email sign-in error:", error);
+                }
+            }
+
+            async function handleSignUp() {
+                const email = emailInput.value;
+                const username = usernameInputField.value.trim(); // Get username from input
+                const password = passwordInput.value;
+                clearAuthError();
+
+                if (!username) {
+                    showAuthError("Please enter a username.");
+                    return;
+                }
+
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    
+                    if (db) {
+                        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
+                        await setDoc(userProfileRef, { username: username }, { merge: true }); // Save custom username
+                    }
+                    authModal.classList.remove('open');
+                    console.log("Signed up with email:", email, "Username:", username);
+                    // Username display will be handled by onAuthStateChanged
+                } catch (error) {
+                    showAuthError(error.message);
+                    console.error("Email sign-up error:", error);
+                }
+            }
+
+            googleSignInBtn.addEventListener('click', async () => {
+                const provider = new GoogleAuthProvider();
+                clearAuthError();
+                try {
+                    const userCredential = await signInWithPopup(auth, provider);
+                    const user = userCredential.user;
+                    if (db) {
+                        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
+                        const docSnap = await getDoc(userProfileRef);
+                        if (!docSnap.exists() || !docSnap.data().username) {
+                            // Only set if no username exists, or is empty
+                            const defaultUsername = user.displayName || user.email.split('@')[0];
+                            await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                        }
+                    }
+                    authModal.classList.remove('open');
+                    console.log("Signed in with Google.");
+                    // Username display will be handled by onAuthStateChanged
+                } catch (error) {
+                    showAuthError(error.message);
+                    console.error("Google sign-in error:", error);
+                }
+            });
+        }
+
+        // --- Initialization on Window Load ---
+        window.onload = function() {
+            // Assign DOM elements to variables after the document is loaded
+            timerDisplay = document.getElementById('timerDisplay');
+            scrambleTextDisplay = document.getElementById('scrambleTextDisplay'); // Updated ID
+            cube3DContainer = document.getElementById('cube3DContainer');     // New
+            scramble3DViewer = document.getElementById('scramble3DViewer');    // New
+            startStopBtn = document.getElementById('startStopBtn');
+            resetBtn = document.getElementById('resetBtn');
+            scrambleBtn = document.getElementById('scrambleBtn');
+            settingsBtn = document.getElementById('settingsBtn');
+            solveHistoryList = document.getElementById('solveHistoryList');
+            bestTimeDisplay = document.getElementById('bestTime');
+            ao5Display = document.getElementById('ao5');
+            ao12Display = document.getElementById('ao12');
+            solveCountDisplay = document.getElementById('solveCount');
+            noSolvesMessage = document.getElementById('noSolvesMessage');
+            inspectionToggle = document.getElementById('inspectionToggle');
+            soundEffectsToggle = document.getElementById('soundEffectsToggle');
+            cubeTypeSelect = document.getElementById('cubeTypeSelect');
+            themeSelect = document.getElementById('themeSelect');
+            cubeViewToggle = document.getElementById('cubeViewToggle'); // New
+            settingsUsernameInput = document.getElementById('settingsUsernameInput');
+            saveUsernameBtn = document.getElementById('saveUsernameBtn');
+            usernameUpdateMessage = document.getElementById('usernameUpdateMessage');
+            aiInsightModal = document.getElementById('aiInsightModal');
+            closeAiInsightModalBtn = document.getElementById('closeAiInsightModal');
+            aiInsightContentDisplay = document.getElementById('aiInsightContent');
+            insightMessageElement = document.getElementById('insightMessage');
+            insightSpinner = aiInsightContentDisplay.querySelector('.spinner');
+
+            scramble = generateScramble();
+            // scrambleTextDisplay.textContent is now handled within generateScramble
+
+            setupEventListeners(); // Set up all event listeners
+            // Initial load of settings and solves is handled by onAuthStateChanged
+        };
+
+    </script>
+</body>
+</html>
