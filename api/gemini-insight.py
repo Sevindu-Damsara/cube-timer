@@ -19,7 +19,6 @@ def gemini_insight_handler():
     """HTTP endpoint that generates AI insight using Gemini API.
     Handles both preflight (OPTIONS) and actual (POST) requests.
     """
-    # Log that a request has been received. This will appear in Vercel logs.
     print("DEBUG: gemini_insight_handler received a request.")
 
     # Handle CORS preflight (OPTIONS) request. Vercel routes these automatically.
@@ -35,75 +34,85 @@ def gemini_insight_handler():
         # Validate the incoming JSON payload.
         if not request_json:
             print("ERROR: No JSON body received.")
-            return jsonify({"error": "No JSON body received. Please send a JSON payload."}), 400
-        if 'scramble' not in request_json:
-            print("ERROR: Missing 'scramble' in request body.")
-            return jsonify({"error": "Missing 'scramble' in request body. Ensure 'scramble' key is present."}), 400
-        if 'cubeType' not in request_json:
-            print("ERROR: Missing 'cubeType' in request body.")
-            return jsonify({"error": "Missing 'cubeType' in request body. Ensure 'cubeType' key is present."}), 400
+            return jsonify({"error": "No JSON body received."}), 400
 
-        scramble = request_json['scramble']
-        cube_type = request_json['cubeType']
-        print(f"DEBUG: Extracted Scramble: '{scramble}', Cube Type: '{cube_type}'")
+        # Extract data from the request.
+        scramble = request_json.get('scramble')
+        cube_type = request_json.get('cubeType', '3x3')
+        solve_time_ms = request_json.get('solveTimeMs')
+        penalty = request_json.get('penalty')
+        user_level = request_json.get('userLevel')
 
-        # Retrieve the Gemini API key from environment variables.
-        # This environment variable MUST be set in Vercel project settings under "Environment Variables".
-        # Ensure it is named exactly: `GEMINI_API_KEY`
+        # Basic validation for required fields
+        if not scramble:
+            print("ERROR: Missing 'scramble' in request.")
+            return jsonify({"error": "Missing 'scramble' in request."}), 400
+
+        # Construct prompt for the Gemini API
+        # We are asking for multiple pieces of information in a structured JSON format.
+        # The prompt is carefully crafted to guide Gemini's response.
+        solve_time_str = f"{solve_time_ms / 1000:.2f} seconds" if solve_time_ms is not None else "an unknown time"
+        if penalty == '+2':
+            solve_time_str += " with a +2 penalty"
+        elif penalty == 'DNF':
+            solve_time_str = "DNF (Did Not Finish)"
+
+        # The core prompt asking for structured data
+        prompt = f"""
+        You are Jarvis, a highly intelligent AI assistant providing expert analysis for Rubik's Cube solves.
+        A user, Sir, Sevindu, has just completed a {cube_type} solve with the following scramble: "{scramble}".
+        The solve time was {solve_time_str}. The user's cubing level is estimated to be "{user_level}".
+
+        Please provide a concise and helpful analysis for this solve. Your response should contain three distinct parts:
+        1.  **General Insight**: A brief, encouraging general analysis of the solve, considering the scramble and outcome.
+        2.  **Optimal Solution (Simulated)**: A plausible, step-by-step example of an optimal or very efficient solution for this exact scramble. Do not state that it's a "simulated" solution, present it as a clear set of moves. Keep it concise, e.g., "R U R' F' L F L' U' R U' R'". For a 3x3, aim for approximately 15-25 moves. For Pyraminx, 8-12 moves. For 2x2, 6-10 moves. For 4x4, 30-45 moves.
+        3.  **Personalized Tip**: A single, actionable tip tailored to the user's "{user_level}" cubing level and the specifics of this solve ({solve_time_str}, {penalty if penalty else 'no penalty'}). For a DNF, suggest focusing on fundamental execution. For slower times, suggest improving look-ahead or specific stages. For faster times, suggest advanced techniques.
+
+        Format your entire response as a JSON object with the following keys:
+        {{
+            "insight": "Your general insight here.",
+            "optimalSolution": "Move sequence here (e.g., R U R' F' L F L' U' R U' R').",
+            "personalizedTip": "Your personalized tip here."
+        }}
+        Ensure the 'optimalSolution' is a string of standard cubing notation moves.
+        """
+
         gemini_api_key = os.environ.get('GEMINI_API_KEY')
-
         if not gemini_api_key:
-            # This is a common cause for 500 errors. Detailed message helps diagnosis.
-            print("ERROR: GEMINI_API_KEY environment variable not set. Function cannot proceed.")
-            return jsonify({"error": "Server configuration error: Gemini API key not found. Please ensure GEMINI_API_KEY is set in Vercel project environment variables."}), 500
+            print("ERROR: GEMINI_API_KEY environment variable not set.")
+            return jsonify({"error": "Server-side AI key not configured."}), 500
 
-        # Construct the prompt for the Gemini model.
-        prompt = f"Analyze the {cube_type} scramble: '{scramble}'. Provide a detailed observation (2-3 sentences) focused on the initial cross or first F2L pair. The observation should identify a specific beneficial feature as if visually inspecting the cube, such as an already solved or easily solvable cross edge/corner, or an intuitive first F2L pair. For example: \"You might notice the White-Orange edge is already placed, requiring only an F2 move to join the cross.\" or \"Observe that the Green-Red edge and corner are paired up and ready for insertion.\" Deliver the insight directly, using simple and clear language, without conversational intros or concluding remarks. Focus solely on a valuable setup observation."
-        print(f"DEBUG: Gemini prompt successfully generated. Length: {len(prompt)} characters.")
-
-        # Define the Gemini API endpoint and payload.
         api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+
         payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {"text": prompt}
-                    ]
-                }
-            ]
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
         }
-        print(f"DEBUG: Preparing to call Gemini API at: {api_url.split('?key=')[0]}...") # Avoid logging full API key
+        
+        print("DEBUG: Sending request to Gemini API.")
+        response = requests.post(api_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
+        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
 
-        # Make the request to the Gemini API.
-        response = requests.post(api_url, headers={"Content-Type": "application/json"}, data=json.dumps(payload))
-        print(f"DEBUG: Gemini API raw response status code: {response.status_code}")
-        
-        # Raise an HTTPError for bad responses (4xx or 5xx) from Gemini.
-        response.raise_for_status() 
-        
-        # Parse the JSON response from Gemini.
-        gemini_result = response.json()
-        print(f"DEBUG: Gemini API response JSON (partial): {json.dumps(gemini_result, indent=2)[:500]}...") # Log first 500 chars to avoid very long logs
-        
-        # Extract the insight text from the Gemini response.
-        if gemini_result.get('candidates') and len(gemini_result['candidates']) > 0 and \
-           gemini_result['candidates'][0].get('content') and \
-           gemini_result['candidates'][0]['content'].get('parts') and \
-           len(gemini_result['candidates'][0]['content']['parts']) > 0:
-            insight_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
-            print(f"DEBUG: Insight extracted successfully. First 50 chars: {insight_text[:50]}...")
-            return jsonify({"insight": insight_text}), 200
+        gemini_response = response.json()
+        print(f"DEBUG: Raw Gemini API response: {json.dumps(gemini_response, indent=2)}")
+
+        # Extract the content from Gemini's response
+        if gemini_response and gemini_response.get('candidates') and gemini_response['candidates'][0].get('content') and gemini_response['candidates'][0]['content'].get('parts'):
+            # Gemini's structured response comes as a string representation of JSON
+            response_text = gemini_response['candidates'][0]['content']['parts'][0]['text']
+            # Attempt to parse the inner JSON string
+            try:
+                parsed_insight = json.loads(response_text)
+                return jsonify(parsed_insight), 200
+            except json.JSONDecodeError as e:
+                print(f"ERROR: Failed to parse Gemini's inner JSON response: {e}. Raw response text: '{response_text}'")
+                return jsonify({"error": "AI response was malformed, please try again."}), 500
         else:
-            # Handle cases where the Gemini response structure is unexpected or content is missing.
-            error_message = f"Failed to generate insight: Unexpected Gemini API response structure. Full response: {json.dumps(gemini_result)}"
-            print(f"ERROR: {error_message}")
-            return jsonify({"error": error_message}), 500
+            print(f"ERROR: Unexpected Gemini API response structure: {gemini_response}")
+            return jsonify({"error": "Failed to get AI insight due to unexpected response structure."}), 500
 
-    # Catch specific request-related errors for better diagnosis.
-    except requests.exceptions.HTTPError as http_err:
-        print(f"ERROR: HTTP error during Gemini API call: {http_err}. Response text: {http_err.response.text}")
-        return jsonify({"error": f"Error from Gemini API ({http_err.response.status_code}): {http_err.response.text}"}), http_err.response.status_code
     except requests.exceptions.ConnectionError as conn_err:
         print(f"ERROR: Connection error during Gemini API call: {conn_err}")
         return jsonify({"error": "Network error: Could not connect to the AI service. Please check your internet connection or try again later."}), 503 # Service Unavailable

@@ -220,6 +220,39 @@
         .solve-history-item .penalty-buttons button.insight-button:hover {
             background-color: #45a049;
         }
+        /* New Voice Command Button Styling */
+        #voiceCommandBtn {
+            background-color: #007bff; /* Blue */
+            color: white;
+            border-radius: 50%;
+            width: 48px; /* Slightly larger touch target */
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem; /* Icon size */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        #voiceCommandBtn:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        #voiceCommandBtn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+        }
+        #voiceCommandBtn.active {
+            background-color: #dc3545; /* Red when active */
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
 
         .modal {
             position: fixed;
@@ -251,7 +284,14 @@
             max-width: 500px; /* Desktop max-width */
             position: relative;
             color: var(--text-color-primary, #e2e8f0);
+            max-height: 90vh; /* Prevent content from overflowing screen vertically */
+            overflow-y: auto; /* Allow scrolling within modal if content is too long */
         }
+        /* Specifically for AI Insight Modal to take more width on desktop */
+        #aiInsightModal .modal-content {
+            max-width: 700px; /* Wider for insight display */
+        }
+
 
         .modal-close-button {
             position: absolute;
@@ -316,8 +356,10 @@
                 height: 250px; /* Adjusted height for mobile */
             }
 
-            .control-buttons {
-                flex-direction: column; /* Stack buttons vertically */
+            /* Control buttons flex-direction is already column for sm: (which is 640px)
+               but we can specify here for max-width just to be explicit if needed */
+            .flex-col.sm\:flex-row { /* Targeting the control buttons div */
+                flex-direction: column;
                 gap: 0.75rem; /* Adjusted gap */
             }
             .button-primary, .button-secondary {
@@ -370,6 +412,11 @@
                 max-height: 90vh; /* Control vertical height */
                 overflow-y: auto; /* Allow scrolling within modal */
             }
+            /* Adjust AI Insight Modal for mobile */
+            #aiInsightModal .modal-content {
+                max-width: none; /* No max-width on mobile */
+            }
+
             .modal-close-button {
                 font-size: 1.75rem; /* Larger close button for touch */
                 padding: 0.5rem; /* Increase touch area */
@@ -386,6 +433,16 @@
             .modal-content h3 {
                 font-size: 1.1rem; /* Smaller subheading */
                 margin-bottom: 0.75rem;
+            }
+            /* Voice Command Button Mobile Adjustments */
+            #voiceCommandBtn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+                position: fixed; /* Keep it fixed on screen */
+                bottom: 20px;
+                right: 20px;
+                z-index: 100; /* Ensure it's above other content */
             }
         }
 
@@ -563,6 +620,11 @@
 
     </div>
 
+    <!-- Floating Action Button for Voice Commands -->
+    <button id="voiceCommandBtn" class="fixed bottom-6 right-6 z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.25-2.52 5.8-5.3 5.8S6.7 14.25 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+    </button>
+
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
@@ -652,9 +714,17 @@
         <div class="modal-content">
             <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
             <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
-            <div id="aiInsightContent" class="text-gray-300">
+            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
                 <div class="spinner mx-auto my-4" style="display: none;"></div>
                 <p id="insightMessage" class="text-center">Generating insight...</p>
+                <div id="optimalSolutionDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Optimal Solution:</h3>
+                    <p id="optimalSolutionText" class="font-mono text-white text-sm"></p>
+                </div>
+                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
+                    <p id="personalizedTipText" class="text-white text-sm"></p>
+                </div>
             </div>
         </div>
     </div>
@@ -941,10 +1011,120 @@
         let aiInsightContentDisplay;
         let insightMessageElement;
         let insightSpinner;
+        let optimalSolutionDisplay; // New
+        let optimalSolutionText;    // New
+        let personalizedTipDisplay; // New
+        let personalizedTipText;    // New
         // New variables for toolbar buttons
         let playPreviewBtn;
         let pausePreviewBtn;
         let restartPreviewBtn;
+        // Voice command button
+        let voiceCommandBtn; // New
+        let isListeningForVoice = false; // New state for voice recognition
+
+        // Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechSynthesis = window.SpeechSynthesisUtterance;
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        const synth = window.speechSynthesis;
+
+        if (recognition) {
+            recognition.continuous = false; // Stop after first utterance
+            recognition.interimResults = false; // Only return final results
+            recognition.lang = 'en-US'; // Set language
+
+            recognition.onstart = () => {
+                console.log("[DEBUG] Voice recognition started.");
+                isListeningForVoice = true;
+                if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
+                speakAsJarvis("Listening, Sir.");
+            };
+
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript.toLowerCase();
+                console.log(`[DEBUG] Voice command received: "${command}"`);
+                handleVoiceCommand(command);
+            };
+
+            recognition.onend = () => {
+                console.log("[DEBUG] Voice recognition ended.");
+                isListeningForVoice = false;
+                if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
+            };
+
+            recognition.onerror = (event) => {
+                console.error(`[ERROR] Voice recognition error: ${event.error}`);
+                isListeningForVoice = false;
+                if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
+                // Only speak error if it's not a common "no-speech" or "not-allowed"
+                if (event.error !== 'no-speech' && event.error !== 'not-allowed') {
+                    speakAsJarvis(`Pardon me, Sir. An error occurred with voice input: ${event.error}.`);
+                }
+            };
+        } else {
+            console.warn("[WARN] Web Speech API not supported in this browser.");
+        }
+
+        /**
+         * Jarvis speaks.
+         * @param {string} text - The text for Jarvis to speak.
+         */
+        function speakAsJarvis(text) {
+            if (enableSoundEffects && synth && SpeechSynthesis) {
+                const utterance = new SpeechSynthesis(text);
+                utterance.voice = synth.getVoices().find(voice => voice.name.includes('Google US English')); // Try to find a good voice
+                utterance.pitch = 1;
+                utterance.rate = 1;
+                synth.speak(utterance);
+                console.log(`[DEBUG] Jarvis speaking: "${text}"`);
+            } else {
+                console.log(`[DEBUG] Jarvis would speak (sounds disabled or API not supported): "${text}"`);
+            }
+        }
+
+        /**
+         * Handles incoming voice commands.
+         * @param {string} command - The recognized voice command.
+         */
+        function handleVoiceCommand(command) {
+            command = command.toLowerCase().trim(); // Ensure consistency
+            console.log(`[DEBUG] Processing voice command: "${command}"`);
+
+            if (command.includes('start timer') || command.includes('begin timer') || command.includes('go')) {
+                speakAsJarvis("Initiating timer sequence, Sir.");
+                toggleTimer();
+            } else if (command.includes('stop timer') || command.includes('halt timer') || command.includes('end timer')) {
+                if (isTiming) {
+                    speakAsJarvis("Timer halted, Sir.");
+                    toggleTimer(); // This will stop the timer and add solve
+                } else {
+                    speakAsJarvis("The timer is not currently running, Sir.");
+                }
+            } else if (command.includes('new scramble') || command.includes('scramble')) {
+                speakAsJarvis("Generating new scramble, Sir.");
+                scramble = generateScramble();
+                resetTimer();
+            } else if (command.includes('reset timer') || command.includes('clear timer')) {
+                speakAsJarvis("Timer reset, Sir.");
+                resetTimer();
+            } else if (command.includes('open settings') || command.includes('settings')) {
+                speakAsJarvis("Opening settings, Sir.");
+                if (settingsBtn) settingsBtn.click();
+            } else if (command.includes('close settings') || command.includes('dismiss settings')) {
+                speakAsJarvis("Closing settings, Sir.");
+                if (closeSettingsModalBtn) closeSettingsModalBtn.click();
+            } else if (command.includes('get insight') || command.includes('analyze solve')) {
+                if (solves.length > 0) {
+                    speakAsJarvis("Accessing neural network for solve analysis, Sir.");
+                    getSolveInsight(solves[solves.length - 1].id); // Get insight for the last solve
+                } else {
+                    speakAsJarvis("There are no solves recorded to analyze, Sir.");
+                }
+            } else {
+                speakAsJarvis("Pardon me, Sir. I did not understand that command. Please try again.");
+            }
+        }
 
         // Sound effects
         // Initialize Tone.js synths. These are global to avoid re-creating them on every play.
@@ -1406,6 +1586,16 @@
                 renderSolveHistory();
             }
             console.log("[DEBUG] Exiting addSolve.");
+
+            // Automatically trigger AI insight after a solve
+            // Check if AI Insight function URL is configured before calling
+            if (geminiInsightFunctionUrl !== "https://cube-timer-ten.vercel.app/api/gemini-insight") {
+                 speakAsJarvis("Your solve is complete, Sir. Analyzing your performance.");
+                 // Use the latest solve (which is the newSolve just added)
+                 getSolveInsight(newSolve.id); 
+            } else {
+                 console.warn("[WARN] Gemini Insight function URL not configured, skipping automatic insight generation.");
+            }
         }
 
         /**
@@ -1444,20 +1634,27 @@
                 return;
             }
 
-            // Display loading state
+            // Display loading state and hide previous content
             if (insightMessageElement) insightMessageElement.textContent = "Generating insight...";
             if (insightSpinner) insightSpinner.style.display = 'block';
+            if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
+            if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
             if (aiInsightModal) {
                 aiInsightModal.classList.add('open');
                 aiInsightModal.focus(); // Focus the modal for accessibility
             }
 
+            // Determine user level for personalized tip
+            const userLevel = getUserLevel(solve.time, cubeType);
+
             // Prepare the data to send to the Cloud Function
             const requestData = {
+                type: "get_insight", // Indicate the type of request
                 scramble: solve.scramble,
                 cubeType: cubeType,
-                // You might also send auth token if your function requires authenticated calls
-                // idToken: await auth.currentUser.getIdToken() // Example
+                solveTimeMs: solve.time,
+                penalty: solve.penalty,
+                userLevel: userLevel
             };
 
             // Use the Cloud Function URL
@@ -1465,15 +1662,16 @@
 
             // Important: Replace "YOUR_CLOUD_FUNCTION_URL_HERE" with the actual URL
             // obtained after deploying your Vercel Function.
-            if (apiUrl === "YOUR_CLOUD_FUNCTION_URL_HERE" || !apiUrl) {
-                if (insightMessageElement) insightMessageElement.textContent = "Cloud Function URL not configured. Please deploy your function and update the code.";
+            if (apiUrl === "https://cube-timer-ten.vercel.app/api/gemini-insight" || !apiUrl) { // Updated placeholder check
+                if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please deploy your function and update the code.";
                 if (insightSpinner) insightSpinner.style.display = 'none';
                 console.error("[ERROR] Gemini Insight Cloud Function URL is not set.");
+                speakAsJarvis("Sir, the AI insight system is currently offline. Please configure the cloud function URL.");
                 return;
             }
 
             try {
-                console.log("[DEBUG] Making Cloud Function call for insight.");
+                console.log("[DEBUG] Making Cloud Function call for insight with data:", requestData);
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1486,17 +1684,37 @@
                 }
 
                 const result = await response.json();
+                console.log("[DEBUG] Cloud Function raw response:", result);
 
-                if (result.insight) {
-                    if (insightMessageElement) insightMessageElement.textContent = result.insight;
-                    console.log("[DEBUG] Cloud Function response received and displayed.");
+                // Display insights
+                if (result.insight && insightMessageElement) {
+                    insightMessageElement.textContent = result.insight;
+                    insightMessageElement.style.display = 'block';
                 } else {
-                    if (insightMessageElement) insightMessageElement.textContent = "Could not generate insight. Please try again.";
-                    console.warn("[WARN] Cloud Function response structure unexpected:", result);
+                    insightMessageElement.textContent = "General insight unavailable.";
                 }
+
+                if (result.optimalSolution && optimalSolutionText && optimalSolutionDisplay) {
+                    optimalSolutionText.textContent = result.optimalSolution;
+                    optimalSolutionDisplay.style.display = 'block';
+                } else {
+                    if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
+                }
+
+                if (result.personalizedTip && personalizedTipText && personalizedTipDisplay) {
+                    personalizedTipText.textContent = result.personalizedTip;
+                    personalizedTipDisplay.style.display = 'block';
+                    speakAsJarvis(`Sir, my analysis suggests: ${result.personalizedTip}`);
+                } else {
+                    if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
+                }
+                
+                console.log("[DEBUG] Cloud Function response received and displayed.");
+
             } catch (e) {
                 if (insightMessageElement) insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
                 console.error("[ERROR] Error calling Cloud Function:", e);
+                speakAsJarvis(`Sir, I encountered an error while generating insight: ${e.message}`);
             } finally {
                 if (insightSpinner) insightSpinner.style.display = 'none'; // Hide spinner
                 console.log("[DEBUG] AI Insight generation process completed.");
@@ -1652,7 +1870,8 @@
                         console.log("[DEBUG] No user settings found in Firestore, using defaults and saving.");
                         saveUserSettings(); // Save default settings to Firestore
                     }
-                } catch (e) {
+                }
+                catch (e) {
                     console.error("[ERROR] Error loading user settings from Firestore: ", e);
                     if (e.code === 'permission-denied') {
                          console.warn("[WARN] Firestore permission denied for settings. Falling back to local storage for settings.");
@@ -2104,6 +2323,22 @@
                 }
             }); else console.error("[ERROR] restartPreviewBtn not found!");
 
+            // Voice Command Button Listener
+            if (voiceCommandBtn && recognition) { // Only add if both exist
+                voiceCommandBtn.addEventListener('click', () => {
+                    if (isListeningForVoice) {
+                        recognition.stop();
+                        speakAsJarvis("Voice input suspended.");
+                    } else {
+                        recognition.start();
+                    }
+                });
+            } else if (voiceCommandBtn) {
+                 // Hide if SpeechRecognition API is not supported
+                 voiceCommandBtn.style.display = 'none';
+                 console.warn("[WARN] Voice command button hidden as Web Speech API is not supported.");
+            }
+
 
             document.addEventListener('keydown', (e) => {
                 if (e.code === 'Escape') {
@@ -2372,9 +2607,15 @@
             aiInsightContentDisplay = document.getElementById('aiInsightContent');
             insightMessageElement = document.getElementById('insightMessage');
             insightSpinner = aiInsightContentDisplay.querySelector('.spinner');
+            optimalSolutionDisplay = document.getElementById('optimalSolutionDisplay');
+            optimalSolutionText = document.getElementById('optimalSolutionText');
+            personalizedTipDisplay = document.getElementById('personalizedTipDisplay');
+            personalizedTipText = document.getElementById('personalizedTipText');
             playPreviewBtn = document.getElementById('playPreviewBtn');
             pausePreviewBtn = document.getElementById('pausePreviewBtn');
             restartPreviewBtn = document.getElementById('restartPreviewBtn');
+            voiceCommandBtn = document.getElementById('voiceCommandBtn');
+
 
             // Set the flag to indicate DOM elements are ready
             domElementsReady = true; 
