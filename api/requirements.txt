@@ -1,7 +1,6 @@
-# requirements.txt inside your 'functions' directory
-# This file specifies Python dependencies for your Cloud Function.
+# api/requirements.txt for your Vercel Python Function
+# This file specifies Python dependencies for your Vercel Cloud Function.
 
-functions-framework==3.*
+Flask==3.*
 requests==2.*
-google-generativeai==0.7.0 # Although we're using direct requests, including this might be useful for future direct client usage
-Flask==3.* # flask is typically a dependency for functions-framework
+flask-cors==4.* # This is the crucial missing dependency for CORS handling
