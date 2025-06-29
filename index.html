@@ -76,7 +76,7 @@
 
         .button-primary:active {
             transform: translateY(0);
-            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+            box_shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
         }
 
         .button-secondary {
@@ -596,44 +596,60 @@
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         console.log("[DEBUG] Firebase imports completed.");
 
-        // IMPORTANT: FIREBASE FIRESTORE SECURITY RULES
-        // To prevent "Missing or insufficient permissions" errors, you MUST add these rules
-        // to your Firebase project's Firestore database rules.
-        // Go to Firebase Console -> Firestore Database -> Rules tab, and replace the content with this:
+        // =====================================================================================================
+        // --- IMPORTANT: Firebase Firestore Security Rules (MUST BE SET IN FIREBASE CONSOLE) ---
+        // To prevent "Missing or insufficient permissions" (400 Bad Request) errors from Firestore,
+        // you MUST add these rules to your Firebase project's Firestore database rules.
+        // Go to Firebase Console -> Firestore Database -> Rules tab, and REPLACE the content with this:
         /*
         rules_version = '2';
         service cloud.firestore {
           match /databases/{database}/documents {
-            // Allow read/write to private user data
+            // Rule for private user data: Allows read/write only if the user is authenticated
+            // and the 'userId' in the path matches their authenticated UID.
             match /artifacts/{appId}/users/{userId}/{document=**} {
               allow read, write: if request.auth != null && request.auth.uid == userId;
             }
 
-            // If you later add public data, you might need rules like this:
+            // If you later add public/shared data, you might need rules like this:
             // match /artifacts/{appId}/public/data/{document=**} {
-            //   allow read, write: if request.auth != null;
+            //   allow read, write: if request.auth != null; // Authenticated users can read/write public data
             // }
           }
         }
         */
+        // =====================================================================================================
+
+        // =====================================================================================================
+        // --- IMPORTANT: Firebase Authentication Methods (MUST BE ENABLED IN FIREBASE CONSOLE) ---
+        // To allow users to sign in (anonymously, with email/password, or Google),
+        // you MUST enable these sign-in providers in your Firebase project.
+        // Go to Firebase Console -> Authentication -> Sign-in method tab.
+        // - Enable 'Anonymous' provider.
+        // - Enable 'Email/Password' provider.
+        // - Enable 'Google' provider (if you intend to use Google Sign-In).
+        // =====================================================================================================
+
 
         // =====================================================================================================
         // --- IMPORTANT: Firebase Configuration for Hosting ---
         // REPLACE THE PLACEHOLDER VALUES BELOW WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
         // You can find these in your Firebase project settings -> Project settings -> General -> Your apps -> Firebase SDK snippet (Config).
+        // The API key you found: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M" will now be accepted by the validation.
         //
-        // NOTE: The geminiApiKey is now handled by a serverless function for security.
+        // NOTE: The geminiApiKey is handled by a serverless function for security.
         // You will need to deploy a Vercel Serverless Function for AI Insight.
         // =====================================================================================================
         const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
-            apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
-            authDomain: "ubically-timer.firebaseapp.com",
-            projectId: "ubically-timer",
-            storageBucket: "ubically-timer.firebasestorage.app",
-            messagingSenderId: "467118524389",
-            appId: "1:467118524389:web:d3455f5be5747be2cb910c",
-            measurementId: "G-6033SRP9WC"
+        apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+        authDomain: "ubically-timer.firebaseapp.com",
+        databaseURL: "https://ubically-timer-default-rtdb.firebaseio.com",
+        projectId: "ubically-timer",
+        storageBucket: "ubically-timer.firebasestorage.app",
+        messagingSenderId: "467118524389",
+        appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+        measurementId: "G-6033SRP9WC"
         };
         // The URL for your deployed Vercel Serverless Function for AI insights.
         // This will be provided AFTER you deploy the function to Vercel and then updated here.
@@ -686,13 +702,10 @@
             }
         };
 
-        // Helper to check if Firebase config is valid (more robust than just checking API key placeholder)
+        // Helper to check if Firebase config is valid (more robust than just checking for non-empty strings)
         function isFirebaseConfigValid(config) {
-            // REMOVED THE apiKey.length > 20 CHECK HERE.
-            // Firebase SDK will now perform its own validation on the key.
-            return config && config.apiKey &&
-                   config.authDomain && config.authDomain.includes('.') &&
-                   config.projectId && config.projectId.length > 0;
+            // This function now only checks for basic presence, letting Firebase SDK handle deeper validity.
+            return config && config.apiKey && config.authDomain && config.projectId;
         }
 
         // --- Firebase Initialization and Auth Listener ---
