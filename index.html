@@ -12,7 +12,7 @@
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <style>
         /* Custom CSS for a modern, colorful look */
-        /* Body styles are kept largely the same, focusing on centering and full viewport height */
+        /* BASE STYLES: These apply by default, effectively serving as the DESKTOP-FIRST layout. */
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color-primary, #0f172a); /* Dark blue-gray background */
@@ -22,48 +22,30 @@
             align-items: center;
             min-height: 100vh;
             overflow-y: auto; /* Allow scrolling for content */
-            padding: 16px; /* Adjusted padding for better mobile fit */
+            padding: 20px; /* Desktop padding */
             position: relative; /* Needed for positioning absolute children */
         }
 
-        /* The container's width is now primarily controlled by Tailwind's max-w classes */
         .container {
             background-color: var(--bg-color-secondary, #1e293b); /* Slightly lighter dark blue-gray */
             border-radius: 1.5rem; /* Large rounded corners */
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); /* Stronger shadow */
-            width: 100%; /* Take full width on small screens */
-            max-width: 100%; /* Ensure it doesn't exceed 100% viewport width */
-            padding: 1.5rem; /* Adjusted padding for mobile */
+            max-width: 1200px; /* Desktop max-width */
+            width: 90%; /* Desktop relative width */
+            padding: 2.5rem; /* Desktop padding */
             display: flex;
             flex-direction: column;
-            gap: 1.5rem; /* Adjusted gap for mobile */
-            position: relative; /* Ensure relative positioning for inner absolute elements if needed */
+            gap: 2rem; /* Desktop gap */
+            position: relative;
         }
 
-        /* Responsive Timer Display Font Sizes */
         .timer-display {
-            font-size: 3.5rem; /* Default for very small mobile screens */
+            font-size: 6rem; /* Desktop font size for timer */
             font-weight: 700;
             color: var(--timer-color, #818cf8);
             text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
             letter-spacing: -0.05em;
-            margin-bottom: 0.5rem; /* Slightly less margin */
-        }
-        /* Specific adjustments for larger mobile/tablet and desktop */
-        @media (min-width: 480px) { /* min-w-md equivalent for custom sizing */
-            .timer-display {
-                font-size: 5rem;
-            }
-        }
-        @media (min-width: 768px) { /* md: equivalent */
-            .timer-display {
-                font-size: 7rem;
-            }
-        }
-        @media (min-width: 1024px) { /* lg: equivalent */
-            .timer-display {
-                font-size: 8rem; /* Even larger for large desktops */
-            }
+            margin-bottom: 1rem;
         }
 
         .timer-display.inspection {
@@ -74,11 +56,10 @@
             color: #22c55e; /* Green when ready */
         }
 
-        /* Button styles remain consistent for touch targets */
         .button-primary {
             background: linear-gradient(145deg, #6366f1, #818cf8); /* Gradient button */
             color: white;
-            padding: 0.75rem 1.5rem; /* Ample padding for touch */
+            padding: 0.75rem 1.5rem;
             border-radius: 0.75rem;
             font-weight: 600;
             transition: all 0.2s ease-in-out;
@@ -88,7 +69,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem; /* Base font size for buttons */
+            font-size: 1rem; /* Base for desktop */
         }
 
         .button-primary:hover {
@@ -104,14 +85,14 @@
         .button-secondary {
             background-color: var(--button-secondary-bg, #475569); /* Slate gray */
             color: var(--button-secondary-text, #e2e8f0);
-            padding: 0.75rem 1.5rem; /* Ample padding for touch */
+            padding: 0.75rem 1.5rem;
             border-radius: 0.75rem;
             font-weight: 600;
             transition: all 0.2s ease-in-out;
             box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
             border: none;
             cursor: pointer;
-            font-size: 1rem; /* Base font size for buttons */
+            font-size: 1rem; /* Base for desktop */
         }
 
         .button-secondary:hover {
@@ -128,113 +109,66 @@
             background-color: var(--card-bg, #334155); /* Darker slate */
             padding: 1rem 1.5rem;
             border-radius: 0.75rem;
-            font-size: 1rem; /* Adjusted for mobile readability */
+            font-size: 1.2rem; /* Desktop font size */
             font-weight: 500;
             color: var(--scramble-color, #a78bfa); /* Light purple */
             text-align: center;
             word-break: break-all;
         }
-        @media (min-width: 768px) { /* md: */
-            .scramble-display {
-                font-size: 1.2rem; /* Larger on desktop */
-            }
-        }
-
 
         /* 3D Cube Container Styling */
         #cube3DContainer {
-            background-color: var(--bg-color-primary); /* Changed to match app background */
+            background-color: var(--bg-color-primary);
             border-radius: 0.75rem;
             padding: 1rem;
             display: flex;
-            flex-direction: column; /* Changed to column to stack player and toolbar */
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 250px; /* Default height for mobile */
+            height: 300px; /* Desktop height */
             width: 100%;
-            overflow: hidden; /* Prevent overflow of the viewer */
-            position: relative; /* Needed for positioning the toolbar absolutely */
+            overflow: hidden;
+            position: relative;
         }
-        @media (min-width: 480px) {
-            #cube3DContainer {
-                height: 300px; /* Slightly larger on medium screens */
-            }
-        }
-        @media (min-width: 768px) {
-            #cube3DContainer {
-                height: 350px; /* Even larger on tablets/desktops */
-            }
-        }
-        @media (min-width: 1024px) {
-            #cube3DContainer {
-                height: 400px; /* Largest on large desktops */
-            }
-        }
-
 
         /* Twisty player needs a height */
         #scramble3DViewer {
-            height: calc(100% - 60px); /* Adjust height to make space for toolbar */
+            height: calc(100% - 60px);
             width: 100%;
         }
 
-        /* Statistics Grid - now uses Tailwind's responsive grid classes */
         .stats-grid {
             display: grid;
-            /* Default: 2 columns on mobile, minimum 150px each, will wrap to 1 column if space is too small */
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Desktop grid layout */
             gap: 1rem;
         }
-        @media (min-width: 640px) { /* sm: equivalent */
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* 3 columns on small desktops */
-            }
-        }
-        @media (min-width: 1024px) { /* lg: equivalent */
-            .stats-grid {
-                grid-template-columns: repeat(4, 1fr); /* 4 columns on large desktops */
-            }
-        }
-
 
         .stat-card {
             background-color: var(--card-bg, #334155);
-            padding: 0.8rem; /* Adjusted padding */
+            padding: 1rem;
             border-radius: 0.75rem;
             text-align: center;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .stat-card .value {
-            font-size: 1.6rem; /* Adjusted for mobile */
+            font-size: 1.8rem; /* Desktop font size */
             font-weight: 700;
             color: var(--stats-value-color, #67e8f9); /* Cyan */
             margin-top: 0.5rem;
         }
-        @media (min-width: 768px) { /* md: */
-            .stat-card .value {
-                font-size: 1.8rem; /* Larger on desktop */
-            }
-        }
 
         .solve-history-item {
             background-color: var(--card-bg, #334155);
-            padding: 0.75rem 1rem; /* Adjusted padding */
+            padding: 0.75rem 1.25rem;
             border-radius: 0.5rem;
             margin-bottom: 0.75rem;
-            display: flex;
-            flex-direction: column; /* Default to column for better stacking on mobile */
+            display: flex; /* Default to row for desktop */
             justify-content: space-between;
-            align-items: flex-start; /* Align text to start */
+            align-items: center;
             transition: all 0.2s ease-in-out;
-            gap: 0.5rem; /* Gap between time and buttons */
-        }
-        @media (min-width: 480px) { /* sm: equivalent */
-            .solve-history-item {
-                flex-direction: row; /* Row layout on larger mobile/tablet */
-                align-items: center;
-                gap: 1rem;
-            }
+            flex-wrap: nowrap; /* Prevent wrapping on desktop */
+            gap: 1rem; /* Desktop gap */
         }
 
         .solve-history-item:hover {
@@ -243,39 +177,25 @@
         }
 
         .solve-history-item .time {
-            font-size: 1.1rem; /* Adjusted for mobile */
+            font-size: 1.2rem; /* Desktop font size */
             font-weight: 600;
             color: var(--solve-time-color, #a78bfa);
-            /* Removed margin-right as flex gap handles it now */
         }
-        @media (min-width: 768px) { /* md: */
-            .solve-history-item .time {
-                font-size: 1.2rem; /* Larger on desktop */
-            }
-        }
-
 
         .solve-history-item .penalty-buttons {
             display: flex;
-            flex-wrap: wrap; /* Allow wrapping of buttons */
             gap: 0.5rem; /* Space between penalty buttons */
-            justify-content: flex-end; /* Align buttons to the right */
-            flex-grow: 1; /* Allow buttons to take available space */
-            width: 100%; /* Occupy full width on column layout */
+            flex-wrap: nowrap; /* Prevent wrapping on desktop */
+            justify-content: flex-end;
+            flex-grow: 1;
         }
-        @media (min-width: 480px) {
-            .solve-history-item .penalty-buttons {
-                width: auto; /* Shrink to content width on row layout */
-            }
-        }
-
 
         .solve-history-item .penalty-buttons button {
             background-color: #f87171; /* Red for DNF */
             color: white;
-            padding: 0.4rem 0.8rem; /* Consistent button padding */
+            padding: 0.3rem 0.7rem;
             border-radius: 0.375rem;
-            font-size: 0.85rem; /* Slightly larger font for better readability */
+            font-size: 0.8rem;
             cursor: pointer;
             border: none;
             transition: background-color 0.2s;
@@ -288,23 +208,26 @@
         }
         .solve-history-item .penalty-buttons button.delete {
             background-color: #dc2626; /* Strong red for delete */
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
         }
         .solve-history-item .penalty-buttons button.insight-button {
             background-color: #4CAF50; /* Green for Insight */
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
             box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
         }
         .solve-history-item .penalty-buttons button.insight-button:hover {
             background-color: #45a049;
         }
 
-        /* Modal Overlays */
         .modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Slightly darker overlay */
+            background-color: rgba(0, 0, 0, 0.6);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -319,26 +242,16 @@
             visibility: visible;
         }
 
-        /* Modal Content for Mobile and Desktop */
         .modal-content {
             background-color: var(--bg-color-secondary, #1e293b);
-            padding: 1.5rem; /* Adjusted padding for mobile */
+            padding: 2rem; /* Desktop padding */
             border-radius: 1rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            width: 95%; /* Fill more of the screen on mobile */
-            max-width: 480px; /* Max width for larger screens */
+            width: 90%; /* Desktop width */
+            max-width: 500px; /* Desktop max-width */
             position: relative;
             color: var(--text-color-primary, #e2e8f0);
-            max-height: 90vh; /* Prevent content from overflowing screen vertically */
-            overflow-y: auto; /* Allow scrolling within modal if content is too long */
         }
-        @media (min-width: 768px) { /* md: */
-            .modal-content {
-                padding: 2rem; /* Larger padding on desktop */
-                max-width: 600px; /* Slightly larger max width for desktop modals */
-            }
-        }
-
 
         .modal-close-button {
             position: absolute;
@@ -346,10 +259,9 @@
             right: 1rem;
             background: none;
             border: none;
-            font-size: 1.75rem; /* Larger close button for touch */
+            font-size: 1.5rem;
             color: var(--text-color-primary, #e2e8f0);
             cursor: pointer;
-            padding: 0.2rem; /* Add padding to increase touch area */
         }
 
         .text-gradient {
@@ -358,10 +270,148 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Auth corner buttons now dynamically placed by Tailwind, no custom media query needed here */
-        .auth-corner-buttons {
-            margin-top: -0.5rem; /* Pull up slightly to reduce gap with H1 on mobile */
+        /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
+        /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
+        @media (max-width: 767px) {
+            body {
+                padding: 16px; /* Reduced padding for mobile */
+            }
+
+            .container {
+                padding: 1.5rem; /* Reduced padding for mobile */
+                gap: 1.5rem; /* Reduced gap for mobile */
+                max-width: 100%; /* Take full width on mobile */
+                width: 100%; /* Ensure it fills the screen */
+            }
+
+            .auth-corner-buttons {
+                /* On mobile, stack buttons vertically and align to the right, inside the container flow */
+                flex-direction: column;
+                align-items: flex-end;
+                margin-top: 0.5rem; /* Adjust to fit content well */
+                margin-bottom: 0.5rem;
+            }
+            .auth-corner-buttons button {
+                padding: 0.5rem 1rem; /* Slightly larger touch targets */
+                font-size: 0.875rem; /* Slightly larger font for readability */
+                width: auto; /* Allow buttons to size to content */
+            }
+
+            h1 {
+                font-size: 2.5rem; /* Smaller heading for mobile */
+                margin-bottom: 1rem; /* Adjusted margin */
+            }
+
+            .timer-display {
+                font-size: 4rem; /* Smaller timer font for mobile */
+                margin-bottom: 0.5rem;
+            }
+
+            .scramble-display {
+                font-size: 1rem; /* Smaller scramble font for mobile */
+                padding: 0.8rem 1rem; /* Adjusted padding */
+            }
+
+            #cube3DContainer {
+                height: 250px; /* Adjusted height for mobile */
+            }
+
+            .control-buttons {
+                flex-direction: column; /* Stack buttons vertically */
+                gap: 0.75rem; /* Adjusted gap */
+            }
+            .button-primary, .button-secondary {
+                padding: 0.7rem 1.2rem; /* Ensure good touch target */
+                font-size: 0.95rem; /* Slightly smaller font */
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* 2 columns on mobile, adjusts */
+                gap: 0.8rem; /* Smaller gap for stats */
+            }
+            .stat-card {
+                padding: 0.7rem; /* Adjusted padding */
+            }
+            .stat-card .value {
+                font-size: 1.5rem; /* Smaller stat value font */
+            }
+
+            .solve-history-item {
+                flex-direction: column; /* Stack time and buttons */
+                align-items: flex-start; /* Align contents to start */
+                gap: 0.5rem; /* Gap between time and buttons block */
+                padding: 0.6rem 1rem; /* Smaller padding */
+            }
+            .solve-history-item .time {
+                font-size: 1rem; /* Smaller time font */
+                margin-bottom: 0; /* No bottom margin, flex gap handles it */
+            }
+            .solve-history-item .penalty-buttons {
+                flex-wrap: wrap; /* Allow buttons to wrap */
+                justify-content: flex-start; /* Align buttons to the left within their block */
+                width: 100%; /* Take full width */
+                margin-top: 0.25rem; /* Small margin above buttons when stacked */
+                gap: 0.4rem; /* Smaller gap between penalty buttons */
+            }
+            .solve-history-item .penalty-buttons button {
+                padding: 0.3rem 0.6rem; /* Smaller penalty buttons */
+                font-size: 0.75rem;
+            }
+            .solve-history-item .penalty-buttons button.insight-button,
+            .solve-history-item .penalty-buttons button.delete {
+                padding: 0.35rem 0.7rem; /* Slightly larger for main action buttons */
+                font-size: 0.8rem;
+            }
+
+            .modal-content {
+                padding: 1.5rem; /* Adjusted padding for mobile modals */
+                width: 95%; /* Fill almost full width */
+                max-width: none; /* No max width on mobile */
+                max-height: 90vh; /* Control vertical height */
+                overflow-y: auto; /* Allow scrolling within modal */
+            }
+            .modal-close-button {
+                font-size: 1.75rem; /* Larger close button for touch */
+                padding: 0.5rem; /* Increase touch area */
+            }
+
+            /* Adjustments within settings modal for smaller screens */
+            .modal-content label {
+                font-size: 0.95rem; /* Smaller label font */
+            }
+            .modal-content select, .modal-content input[type="text"], .modal-content input[type="email"], .modal-content input[type="password"] {
+                padding: 0.6rem 0.8rem; /* Adjusted input padding */
+                font-size: 0.9rem; /* Adjusted input font size */
+            }
+            .modal-content h3 {
+                font-size: 1.1rem; /* Smaller subheading */
+                margin-bottom: 0.75rem;
+            }
         }
+
+        /* Further specific adjustments for very small screens (e.g., iPhone SE) */
+        @media (max-width: 479px) {
+            .timer-display {
+                font-size: 3rem; /* Even smaller timer font for very small screens */
+            }
+            h1 {
+                font-size: 2rem; /* Even smaller heading for very small screens */
+            }
+            .scramble-display {
+                font-size: 0.9rem; /* Even smaller scramble font */
+            }
+            .stat-card .value {
+                font-size: 1.3rem; /* Even smaller stat value font */
+            }
+            .button-primary, .button-secondary {
+                font-size: 0.9rem; /* Slightly smaller button font */
+                padding: 0.6rem 1rem; /* Reduced padding */
+            }
+            .solve-history-item .penalty-buttons button {
+                font-size: 0.7rem; /* Smallest penalty button font */
+            }
+        }
+
 
         /* Theme specific variables (kept same) */
         body.theme-dark {
@@ -419,15 +469,15 @@
     </style>
 </head>
 <body class="theme-dark"> <!-- Set default theme class here -->
-    <div class="container md:max-w-xl lg:max-w-3xl xl:max-w-4xl mx-auto rounded-3xl">
+    <div class="container mx-auto rounded-3xl">
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
         <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
-            <button id="signInBtn" class="button-primary px-3 py-1.5 text-sm">Sign In</button>
-            <button id="signUpBtn" class="button-secondary px-3 py-1.5 text-sm">Sign Up</button>
-            <button id="signOutBtn" class="button-secondary px-3 py-1.5 text-sm" style="display:none;">Sign Out</button>
+            <button id="signInBtn" class="button-primary">Sign In</button>
+            <button id="signUpBtn" class="button-secondary">Sign Up</button>
+            <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
         </div>
 
-        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gradient mb-4 sm:mb-6">Rubik's Cube Timer</h1>
+        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Rubik's Cube Timer</h1>
 
         <!-- Username Display -->
         <div class="text-sm text-center text-gray-400">
@@ -475,7 +525,7 @@
         </div>
 
         <!-- Control Buttons -->
-        <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4"> <!-- Adjusted gap for mobile -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
             <button id="startStopBtn" class="button-primary flex-1">Start / Stop (Space)</button>
             <button id="resetBtn" class="button-secondary flex-1">Reset</button>
             <button id="scrambleBtn" class="button-secondary flex-1">New Scramble</button>
@@ -504,8 +554,8 @@
 
         <!-- Solve History -->
         <div>
-            <h2 class="text-xl sm:text-2xl font-semibold text-gradient mb-3 sm:mb-4">Solve History</h2>
-            <div id="solveHistoryList" class="max-h-60 sm:max-h-64 overflow-y-auto pr-1 sm:pr-2">
+            <h2 class="text-2xl font-semibold text-gradient mb-4">Solve History</h2>
+            <div id="solveHistoryList" class="max-h-64 overflow-y-auto pr-2">
                 <!-- Solve times will be dynamically added here -->
                 <p class="text-center text-gray-500" id="noSolvesMessage">No solves yet. Start cubing!</p>
             </div>
@@ -517,21 +567,21 @@
     <div id="settingsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
             <button class="modal-close-button" id="closeSettingsModal" aria-label="Close settings">&times;</button>
-            <h2 class="text-xl sm:text-2xl font-bold text-gradient mb-4 sm:mb-6">Settings</h2>
-            <div class="flex flex-col gap-3 sm:gap-4">
+            <h2 class="text-2xl font-bold text-gradient mb-6">Settings</h2>
+            <div class="flex flex-col gap-4">
                 <div class="flex items-center justify-between">
-                    <label for="inspectionToggle" class="text-base sm:text-lg">Enable 15s Inspection</label>
+                    <label for="inspectionToggle" class="text-lg">Enable 15s Inspection</label>
                     <input type="checkbox" id="inspectionToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <label for="soundEffectsToggle" class="text-base sm:text-lg">Enable Sound Effects</label>
+                    <label for="soundEffectsToggle" class="text-lg">Enable Sound Effects</label>
                     <input type="checkbox" id="soundEffectsToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <label for="cubeTypeSelect" class="text-base sm:text-lg">Cube Type</label>
-                    <select id="cubeTypeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-1.5 sm:p-2 text-white text-sm sm:text-base">
+                    <label for="cubeTypeSelect" class="text-lg">Cube Type</label>
+                    <select id="cubeTypeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
                         <option value="3x3">3x3</option>
                         <option value="2x2">2x2</option>
                         <option value="4x4">4x4</option>
@@ -540,8 +590,8 @@
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <label for="themeSelect" class="text-base sm:text-lg">Theme</label>
-                    <select id="themeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-1.5 sm:p-2 text-white text-sm sm:text-base">
+                    <label for="themeSelect" class="text-lg">Theme</label>
+                    <select id="themeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
                         <option value="dark">Dark (Default)</option>
                         <option value="light">Light</option>
                         <option value="vibrant">Vibrant</option>
@@ -550,17 +600,17 @@
 
                 <!-- New: 3D Cube View Toggle -->
                 <div class="flex items-center justify-between">
-                    <label for="cubeViewToggle" class="text-base sm:text-lg">Show 3D Cube Scramble</label>
+                    <label for="cubeViewToggle" class="text-lg">Show 3D Cube Scramble</label>
                     <input type="checkbox" id="cubeViewToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
 
-                <div class="mt-3 pt-3 border-t border-gray-600"> <!-- Adjusted margin/padding -->
-                    <h3 class="text-lg sm:text-xl font-semibold text-gradient mb-2 sm:mb-3">Change Username</h3>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <h3 class="text-xl font-semibold text-gradient mb-3">Change Username</h3>
                     <div class="mb-3">
-                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-1.5 sm:mb-2">New Username:</label>
+                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New Username:</label>
                         <input type="text" id="settingsUsernameInput" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="Enter new username">
                     </div>
-                    <button id="saveUsernameBtn" class="button-primary w-full py-2.5">Save Username</button>
+                    <button id="saveUsernameBtn" class="button-primary w-full">Save Username</button>
                     <p id="usernameUpdateMessage" class="text-sm mt-2 text-center" style="display:none;"></p>
                 </div>
             </div>
@@ -571,25 +621,25 @@
     <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
             <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication modal">&times;</button>
-            <h2 id="authModalTitle" class="text-xl sm:text-2xl font-bold text-gradient mb-4 sm:mb-6 text-center">Sign In</h2>
+            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-6 text-center">Sign In</h2>
 
-            <div class="mb-3 sm:mb-4">
-                <label for="email" class="block text-gray-300 text-sm font-bold mb-1.5 sm:mb-2">Email:</label>
+            <div class="mb-4">
+                <label for="email" class="block text-gray-300 text-sm font-bold mb-2">Email:</label>
                 <input type="email" id="email" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="your@email.com">
             </div>
-            <div class="mb-3 sm:mb-4" id="usernameFieldGroup" style="display:none;">
-                <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-1.5 sm:mb-2">Username:</label>
+            <div class="mb-4" id="usernameFieldGroup" style="display:none;">
+                <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
                 <input type="text" id="usernameInput" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="Enter your username">
             </div>
-            <div class="mb-4 sm:mb-6">
-                <label for="password" class="block text-gray-300 text-sm font-bold mb-1.5 sm:mb-2">Password:</label>
-                <input type="password" id="password" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-2 sm:mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="********">
+            <div class="mb-6">
+                <label for="password" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="password" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="********">
             </div>
-            <p id="authError" class="text-red-500 text-sm mb-3 sm:mb-4" style="display:none;"></p>
+            <p id="authError" class="text-red-500 text-sm mb-4" style="display:none;"></p>
 
-            <div class="flex flex-col gap-2 sm:gap-3 mb-4">
-                <button id="emailAuthBtn" class="button-primary w-full py-2.5">Sign In</button>
-                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2 py-2.5">
+            <div class="flex flex-col gap-3 mb-4">
+                <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
+                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5">
                     Sign In with Google
                 </button>
@@ -601,8 +651,8 @@
     <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
             <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
-            <h2 class="text-xl sm:text-2xl font-bold text-gradient mb-3 sm:mb-4">Solve Insight ✨</h2>
-            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300">
                 <div class="spinner mx-auto my-4" style="display: none;"></div>
                 <p id="insightMessage" class="text-center">Generating insight...</p>
             </div>
