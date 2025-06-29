@@ -1589,7 +1589,8 @@
 
             // Automatically trigger AI insight after a solve
             // Check if AI Insight function URL is configured before calling
-            if (geminiInsightFunctionUrl !== "https://cube-timer-ten.vercel.app/api/gemini-insight") {
+            // This is the correct constant to check, not a hardcoded string
+            if (geminiInsightFunctionUrl) { 
                  speakAsJarvis("Your solve is complete, Sir. Analyzing your performance.");
                  // Use the latest solve (which is the newSolve just added)
                  getSolveInsight(newSolve.id); 
@@ -1658,12 +1659,11 @@
             };
 
             // Use the Cloud Function URL
-            const apiUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; // Corrected URL
+            const apiUrl = geminiInsightFunctionUrl; // Corrected to use the variable directly
 
-            // Important: Replace "YOUR_CLOUD_FUNCTION_URL_HERE" with the actual URL
-            // obtained after deploying your Vercel Function.
-            if (apiUrl === "https://cube-timer-ten.vercel.app/api/gemini-insight" || !apiUrl) { // Updated placeholder check
-                if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please deploy your function and update the code.";
+            // Now, this check truly verifies if the URL is set.
+            if (!apiUrl) { 
+                if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please ensure your Vercel function is deployed and the URL is correct.";
                 if (insightSpinner) insightSpinner.style.display = 'none';
                 console.error("[ERROR] Gemini Insight Cloud Function URL is not set.");
                 speakAsJarvis("Sir, the AI insight system is currently offline. Please configure the cloud function URL.");
