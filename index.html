@@ -433,7 +433,7 @@
                 background="#0f172a"           <!-- Set a default background color that matches dark theme -->
             ></twisty-player>
             <!-- Custom Toolbar -->
-            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
+            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
                 <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
                 </button>
@@ -655,19 +655,32 @@
         // This function attempts to initialize user data and settings (Firestore listener, settings load).
         // It will only proceed if both `domElementsReady` AND `isAuthReady` are true.
         const initializeUserDataAndSettings = async () => {
-            // console.log("[DEBUG] Attempting initializeUserDataAndSettings. DOM Ready:", domElementsReady, "Auth Ready:", isAuthReady, "DB:", !!db, "userId:", userId);
-            if (domElementsReady && isAuthReady && db && userId) {
+            if (!domElementsReady) {
+                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready.");
+                 return;
+            }
+            if (!isAuthReady) {
+                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: Auth not ready.");
+                 return;
+            }
+            // Now both DOM and Auth are ready
+            if (db && userId) {
                 // Use a simple attribute flag on an element to prevent duplicate initialization
-                if (!solveHistoryList.hasAttribute('data-initialized')) {
+                if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized')) {
                     console.log("[DEBUG] Both DOM and Auth ready. Proceeding with user data and settings initialization.");
                     await loadUserSettings(); // This loads settings and calls applySettingsToUI
                     setupRealtimeSolvesListener(); // This sets up onSnapshot listener
                     solveHistoryList.setAttribute('data-initialized', 'true'); // Mark as initialized
                 } else {
-                    console.log("[DEBUG] User data/settings already initialized or awaiting onSnapshot update.");
+                    console.log("[DEBUG] User data/settings already initialized or awaiting onSnapshot update (or solveHistoryList not found).");
                 }
             } else {
-                console.log("[DEBUG] Deferred initializeUserDataAndSettings: Waiting for both DOM and Auth to be ready.");
+                console.log("[DEBUG] Deferred initializeUserDataAndSettings: DB or userId not available after Auth Ready.");
+                // For signed out/anonymous user after DOM is ready:
+                solves = []; // Clear local solves for a clean start if no user
+                renderSolveHistory(); // Render empty history
+                resetTimer(); // Reset timer and generate new scramble
+                // usernameDisplay is set in onAuthStateChanged or initial offline block
             }
         };
 
@@ -687,9 +700,12 @@
                     userId = user.uid;
                     isAuthReady = true;
                     // Update UI for authenticated user (buttons can be accessed before general app init)
-                    document.getElementById('signInBtn').style.display = 'none';
-                    document.getElementById('signUpBtn').style.display = 'none';
-                    document.getElementById('signOutBtn').style.display = 'inline-block';
+                    const signInBtn = document.getElementById('signInBtn');
+                    const signUpBtn = document.getElementById('signUpBtn');
+                    const signOutBtn = document.getElementById('signOutBtn');
+                    if (signInBtn) signInBtn.style.display = 'none';
+                    if (signUpBtn) signUpBtn.style.display = 'none';
+                    if (signOutBtn) signOutBtn.style.display = 'inline-block';
                     console.log("[DEBUG] Auth UI updated for signed in user.");
 
                     await fetchAndDisplayUsername(user.uid, user.email, user.displayName);
@@ -707,10 +723,15 @@
                         // Fallback if anonymous sign-in also fails (e.g., Firebase not set up for it)
                         userId = crypto.randomUUID(); // Fallback to local UUID for guest, no persistence
                         isAuthReady = true; // Still mark as ready for local operations
-                        document.getElementById('usernameDisplay').textContent = 'Guest (Limited)';
-                        document.getElementById('signInBtn').style.display = 'inline-block';
-                        document.getElementById('signUpBtn').style.display = 'inline-block';
-                        document.getElementById('signOutBtn').style.display = 'none';
+                        
+                        const usernameDisplayElement = document.getElementById('usernameDisplay');
+                        if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Limited)';
+                        const signInBtn = document.getElementById('signInBtn');
+                        const signUpBtn = document.getElementById('signUpBtn');
+                        const signOutBtn = document.getElementById('signOutBtn');
+                        if (signInBtn) signInBtn.style.display = 'inline-block';
+                        if (signUpBtn) signUpBtn.style.display = 'inline-block';
+                        if (signOutBtn) signOutBtn.style.display = 'none';
                         initializeUserDataAndSettings(); // Attempt to initialize even if anonymous sign-in failed
                     }
                 }
@@ -720,10 +741,15 @@
             console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved).");
             userId = crypto.randomUUID(); // Fallback for no Firebase config/validity
             isAuthReady = true; // Assume auth is "ready" for local operations
-            document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
-            document.getElementById('signInBtn').style.display = 'inline-block';
-            document.getElementById('signUpBtn').style.display = 'inline-block';
-            document.getElementById('signOutBtn').style.display = 'none';
+            
+            const usernameDisplayElement = document.getElementById('usernameDisplay');
+            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline)';
+            const signInBtn = document.getElementById('signInBtn');
+            const signUpBtn = document.getElementById('signUpBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+            if (signInBtn) signInBtn.style.display = 'inline-block';
+            if (signUpBtn) signUpBtn.style.display = 'inline-block';
+            if (signOutBtn) signOutBtn.style.display = 'none';
             initializeUserDataAndSettings(); // Attempt to initialize in offline mode
         }
 
@@ -736,7 +762,7 @@
             const usernameDisplayElement = document.getElementById('usernameDisplay');
             if (!usernameDisplayElement || !db || !uid || !isAuthReady) { // Ensure DOM element and auth are ready
                 console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement, DB, UID or Auth not available or Auth not ready. Skipping username display.");
-                usernameDisplayElement.textContent = 'Loading...'; // Default
+                if (usernameDisplayElement) usernameDisplayElement.textContent = 'Loading...'; // Default
                 return;
             }
 
@@ -768,7 +794,8 @@
                     customUsername = defaultUsername;
                 }
 
-                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                // Defensive check for auth.currentUser
+                if (auth && auth.currentUser && auth.currentUser.isAnonymous) {
                     usernameDisplayElement.textContent = `Guest (UID: ${uid})`;
                 } else if (customUsername && customUsername !== `Guest-${uid.substring(0, 6)}`) {
                     usernameDisplayElement.textContent = `UID: ${uid} (Username: ${customUsername})`;
@@ -778,7 +805,7 @@
                 console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
             } catch (e) {
                 console.error("[ERROR] Error fetching or setting username:", e);
-                usernameDisplayElement.textContent = `UID: ${uid} (Error fetching username)`;
+                if (usernameDisplayElement) usernameDisplayElement.textContent = `UID: ${uid} (Error fetching username)`;
             }
             console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
         }
@@ -1069,7 +1096,7 @@
             console.log("[DEBUG] Entering renderSolveHistory.");
             // Ensure solveHistoryList is defined before accessing its properties
             if (!solveHistoryList) {
-                console.warn("[WARN] renderSolveHistory called before solveHistoryList is initialized.");
+                console.warn("[WARN] renderSolveHistory called before solveHistoryList is initialized. Skipping render.");
                 return; // Exit if DOM element is not ready
             }
 
@@ -1130,7 +1157,7 @@
             console.log("[DEBUG] Entering updateStatistics.");
             // Ensure elements are defined
             if (!bestTimeDisplay || !ao5Display || !ao12Display || !solveCountDisplay) {
-                 console.warn("[WARN] updateStatistics called before all display elements are initialized.");
+                 console.warn("[WARN] updateStatistics called before all display elements are initialized. Skipping update.");
                  return;
             }
 
@@ -1241,7 +1268,7 @@
             const apiUrl = geminiInsightFunctionUrl;
 
             // Important: Replace "YOUR_CLOUD_FUNCTION_URL_HERE" with the actual URL
-            // obtained after deploying your Firebase Cloud Function.
+            // obtained after deploying your Vercel Function.
             if (apiUrl === "YOUR_CLOUD_FUNCTION_URL_HERE" || !apiUrl) {
                 if (insightMessageElement) insightMessageElement.textContent = "Cloud Function URL not configured. Please deploy your function and update the code.";
                 if (insightSpinner) insightSpinner.style.display = 'none';
@@ -1347,7 +1374,7 @@
             console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
             // Ensure DOM elements are initialized before proceeding
             if (!solveHistoryList) {
-                console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Deferring execution. This should not happen if called from initializeUserDataAndSettings.");
+                console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Skipping setup.");
                 return;
             }
 
@@ -1384,7 +1411,7 @@
             console.log("[DEBUG] Entering loadUserSettings.");
             // Ensure DOM elements are initialized before proceeding
             if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-                 console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. This should not happen if called from initializeUserDataAndSettings.");
+                 console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Skipping load.");
                  return;
             }
 
@@ -1472,7 +1499,7 @@
             console.log("[DEBUG] Entering applySettingsToUI.");
             // Ensure UI elements are initialized before trying to apply settings to them
             if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-                 console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. This should not happen if called from initializeUserDataAndSettings.");
+                 console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. Skipping apply.");
                  return;
             }
 
@@ -1541,7 +1568,8 @@
                 console.log("[DEBUG] Username updated successfully in Firestore.");
                 
                 // Update the displayed username immediately
-                await fetchAndDisplayUsername(userId, auth.currentUser?.email, auth.currentUser?.displayName);
+                // Defensive check for auth.currentUser
+                await fetchAndDisplayUsername(userId, (auth && auth.currentUser) ? auth.currentUser.email : null, (auth && auth.currentUser) ? auth.currentUser.displayName : null);
                 console.log("[DEBUG] Displayed username refreshed after update.");
 
                 setTimeout(() => {
@@ -1735,7 +1763,7 @@
                     settingsModal.classList.add('open');
                     settingsModal.focus();
                 }
-                if (auth.currentUser && db && userId) {
+                if (auth && auth.currentUser && db && userId) { // Defensive check
                     const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
                     getDoc(userProfileRef).then(docSnap => {
                         if (docSnap.exists() && docSnap.data().username && settingsUsernameInput) {
@@ -1748,7 +1776,7 @@
                         if (settingsUsernameInput) settingsUsernameInput.value = '';
                     });
                 } else if (settingsUsernameInput) {
-                    settingsUsernameInput.value = '';
+                    settingsUsernameInput.value = ''; // Clear if not authenticated
                 }
                 if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
                 applySettingsToUI();
@@ -1940,7 +1968,7 @@
             }); else console.error("[ERROR] signUpBtn not found!");
 
             if (signOutBtn) signOutBtn.addEventListener('click', async () => {
-                if (auth) {
+                if (auth) { // Only attempt sign out if auth object is initialized
                     try {
                         await signOut(auth);
                         // The onAuthStateChanged listener will handle clearing solves, resetting timer, etc.
@@ -1953,6 +1981,12 @@
 
             if (emailAuthBtn) emailAuthBtn.addEventListener('click', handleSignIn); // Direct assignment, not dynamic
             if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
+                // Defensive check for auth before using it
+                if (!auth) {
+                    console.warn("[WARN] Google Sign-In: Firebase Auth not initialized.");
+                    showAuthError("Authentication service not ready. Please try again.");
+                    return;
+                }
                 const provider = new GoogleAuthProvider();
                 clearAuthError();
                 try {
@@ -1976,6 +2010,12 @@
 
             // Helper functions for auth
             async function handleSignIn() {
+                // Defensive check for auth before using it
+                if (!auth) {
+                    console.warn("[WARN] Email Sign-In: Firebase Auth not initialized.");
+                    showAuthError("Authentication service not ready. Please try again.");
+                    return;
+                }
                 const email = emailInput ? emailInput.value : '';
                 const password = passwordInput ? passwordInput.value : '';
                 clearAuthError();
@@ -1990,6 +2030,12 @@
             }
 
             async function handleSignUp() {
+                // Defensive check for auth before using it
+                if (!auth) {
+                    console.warn("[WARN] Email Sign-Up: Firebase Auth not initialized.");
+                    showAuthError("Authentication service not ready. Please try again.");
+                    return;
+                }
                 const email = emailInput ? emailInput.value : '';
                 const username = usernameInputField ? usernameInputField.value.trim() : '';
                 const password = passwordInput ? passwordInput.value : '';
@@ -2063,15 +2109,6 @@
             // Attempt to initialize user data and settings now that DOM is ready.
             // This function itself checks if Firebase Auth is also ready.
             initializeUserDataAndSettings();
-
-            // Perform initial state setup for signed out/anonymous user after DOM is ready
-            // (This complements the onAuthStateChanged listener, ensuring UI is correct on load)
-            if (!auth.currentUser) { // If no user is known after Firebase init attempts
-                solves = []; // Clear local solves for a clean start if no user
-                renderSolveHistory(); // Render empty history
-                resetTimer(); // Reset timer and generate new scramble
-                document.getElementById('usernameDisplay').textContent = 'Guest';
-            }
 
             console.log("[DEBUG] window.onload complete. Application should now be fully initialized.");
         };
