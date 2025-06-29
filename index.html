@@ -76,7 +76,7 @@
 
         .button-primary:active {
             transform: translateY(0);
-            box_shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
         }
 
         .button-secondary {
@@ -591,8 +591,9 @@
     <script type="module">
         console.log("[DEBUG] Script execution started.");
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // Removed signInAnonymously from imports
         import { getAuth, onAuthStateChanged,
-                 createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+                 createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         console.log("[DEBUG] Firebase imports completed.");
 
@@ -607,14 +608,10 @@
           match /databases/{database}/documents {
             // Rule for private user data: Allows read/write only if the user is authenticated
             // and the 'userId' in the path matches their authenticated UID.
+            // This now only applies to explicitly signed-in users.
             match /artifacts/{appId}/users/{userId}/{document=**} {
               allow read, write: if request.auth != null && request.auth.uid == userId;
             }
-
-            // If you later add public/shared data, you might need rules like this:
-            // match /artifacts/{appId}/public/data/{document=**} {
-            //   allow read, write: if request.auth != null; // Authenticated users can read/write public data
-            // }
           }
         }
         */
@@ -622,12 +619,12 @@
 
         // =====================================================================================================
         // --- IMPORTANT: Firebase Authentication Methods (MUST BE ENABLED IN FIREBASE CONSOLE) ---
-        // To allow users to sign in (anonymously, with email/password, or Google),
+        // To allow users to sign in (with email/password, or Google),
         // you MUST enable these sign-in providers in your Firebase project.
         // Go to Firebase Console -> Authentication -> Sign-in method tab.
-        // - Enable 'Anonymous' provider.
-        // - Enable 'Email/Password' provider.
-        // - Enable 'Google' provider (if you intend to use Google Sign-In).
+        // - Ensure 'Email/Password' provider is enabled.
+        // - Ensure 'Google' provider is enabled (if you intend to use Google Sign-In).
+        // - IMPORTANT: The 'Anonymous' provider is no longer used by this client-side code.
         // =====================================================================================================
 
 
@@ -642,18 +639,17 @@
         // =====================================================================================================
         const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
-        apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
-        authDomain: "ubically-timer.firebaseapp.com",
-        databaseURL: "https://ubically-timer-default-rtdb.firebaseio.com",
-        projectId: "ubically-timer",
-        storageBucket: "ubically-timer.firebasestorage.app",
-        messagingSenderId: "467118524389",
-        appId: "1:467118524389:web:d3455f5be5747be2cb910c",
-        measurementId: "G-6033SRP9WC"
+            apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
+            authDomain: "ubically-timer.firebaseapp.com",
+            projectId: "ubically-timer",
+            storageBucket: "ubically-timer.firebasestorage.app",
+            messagingSenderId: "467118524389",
+            appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+            measurementId: "G-6033SRP9WC"
         };
         // The URL for your deployed Vercel Serverless Function for AI insights.
         // This will be provided AFTER you deploy the function to Vercel and then updated here.
-        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
+        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/ai-insight"; // Replace with your actual function URL
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
@@ -664,42 +660,51 @@
 
 
         let app;
-        let db;
-        let auth;
-        let userId = null;
+        let db; // Firestore instance
+        let auth; // Auth instance
+        let userId = null; // Will be Firebase UID or a local UUID for guests
         let isAuthReady = false; // Flag to indicate if Firebase auth state has been determined
         let domElementsReady = false; // New flag to indicate if all DOM elements are assigned
+        let isUserAuthenticated = false; // NEW: True if user is signed in via Email/Google, false for guests/signed out
+
 
         // This function attempts to initialize user data and settings (Firestore listener, settings load).
         // It will only proceed if both `domElementsReady` AND `isAuthReady` are true.
         const initializeUserDataAndSettings = async () => {
             if (!domElementsReady) {
-                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready.");
+                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready. Waiting.");
                  return;
             }
             if (!isAuthReady) {
-                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: Auth not ready.");
+                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: Auth not ready. Waiting.");
                  return;
             }
-            // Now both DOM and Auth are ready
-            if (db && userId) {
+            
+            // NEW: Conditional initialization based on authentication status
+            if (isUserAuthenticated && db && userId) {
+                console.log("[DEBUG] Authenticated user. Proceeding with Firestore data initialization.");
                 // Use a simple attribute flag on an element to prevent duplicate initialization
-                if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized')) {
-                    console.log("[DEBUG] Both DOM and Auth ready. Proceeding with user data and settings initialization.");
+                if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized-firestore')) {
                     await loadUserSettings(); // This loads settings and calls applySettingsToUI
                     setupRealtimeSolvesListener(); // This sets up onSnapshot listener
-                    solveHistoryList.setAttribute('data-initialized', 'true'); // Mark as initialized
+                    solveHistoryList.setAttribute('data-initialized-firestore', 'true'); // Mark as initialized
                 } else {
-                    console.log("[DEBUG] User data/settings already initialized or awaiting onSnapshot update (or solveHistoryList not found).");
+                    console.log("[DEBUG] Firestore user data/settings already initialized.");
                 }
-            } else {
-                console.log("[DEBUG] Deferred initializeUserDataAndSettings: DB or userId not available after Auth Ready. Performing local-only initialization.");
-                // For signed out/anonymous user after DOM is ready:
-                solves = []; // Clear local solves for a clean start if no user
-                renderSolveHistory(); // Render empty history
-                resetTimer(); // Reset timer and generate new scramble
-                // usernameDisplay is set in onAuthStateChanged or initial offline block
+            } else { // Guest user (not authenticated via Email/Google)
+                console.log("[DEBUG] Guest user. Proceeding with Local Storage data initialization.");
+                // Use a simple attribute flag on an element to prevent duplicate initialization
+                if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized-local')) {
+                    loadLocalUserSettings(); // Load settings from local storage
+                    loadLocalSolves();       // Load solves from local storage
+                    renderSolveHistory();    // Render local solves
+                    solveHistoryList.setAttribute('data-initialized-local', 'true'); // Mark as initialized
+                } else {
+                    console.log("[DEBUG] Local user data/settings already initialized.");
+                }
             }
+            // Ensure timer/scramble are reset/generated regardless of auth state
+            resetTimer(); 
         };
 
         // Helper to check if Firebase config is valid (more robust than just checking for non-empty strings)
@@ -719,9 +724,11 @@
 
             onAuthStateChanged(auth, async (user) => {
                 console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
-                if (user) {
+                if (user && !user.isAnonymous) { // User is explicitly signed in (Email/Google)
                     userId = user.uid;
+                    isUserAuthenticated = true; // Set flag
                     isAuthReady = true;
+
                     // Update UI for authenticated user (buttons can be accessed before general app init)
                     const signInBtn = document.getElementById('signInBtn');
                     const signUpBtn = document.getElementById('signUpBtn');
@@ -735,38 +742,35 @@
                     console.log("[DEBUG] Username fetched and displayed.");
 
                     initializeUserDataAndSettings(); // Attempt to initialize user data/settings
-                } else {
-                    console.log("[DEBUG] User not authenticated (signed out or initial state). Attempting anonymous sign-in.");
-                    try {
-                        await signInAnonymously(auth);
-                        // onAuthStateChanged will be triggered again with the anonymous user, handling further init
-                        console.log("[DEBUG] Signed in anonymously.");
-                    } catch (error) {
-                        console.error("[ERROR] Anonymous sign-in failed:", error);
-                        // Fallback if anonymous sign-in also fails (e.g., Firebase not set up for it)
-                        userId = crypto.randomUUID(); // Fallback to local UUID for guest, no persistence
-                        isAuthReady = true; // Still mark as ready for local operations
-                        
-                        const usernameDisplayElement = document.getElementById('usernameDisplay');
-                        if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Limited)';
-                        const signInBtn = document.getElementById('signInBtn');
-                        const signUpBtn = document.getElementById('signUpBtn');
-                        const signOutBtn = document.getElementById('signOutBtn');
-                        if (signInBtn) signInBtn.style.display = 'inline-block';
-                        if (signUpBtn) signUpBtn.style.display = 'inline-block';
-                        if (signOutBtn) signOutBtn.style.display = 'none';
-                        initializeUserDataAndSettings(); // Attempt to initialize even if anonymous sign-in failed
-                    }
+                } else { // User is signed out (including if they were previously anonymous)
+                    console.log("[DEBUG] User not authenticated (signed out). Initializing as Guest.");
+                    userId = `guest-${crypto.randomUUID()}`; // Use a new local UUID for guest session
+                    isUserAuthenticated = false; // Set flag
+                    isAuthReady = true;
+
+                    // Update UI for guest user
+                    const usernameDisplayElement = document.getElementById('usernameDisplay');
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest'; // Simpler display for guest
+                    const signInBtn = document.getElementById('signInBtn');
+                    const signUpBtn = document.getElementById('signUpBtn');
+                    const signOutBtn = document.getElementById('signOutBtn');
+                    if (signInBtn) signInBtn.style.display = 'inline-block';
+                    if (signUpBtn) signUpBtn.style.display = 'inline-block';
+                    if (signOutBtn) signOutBtn.style.display = 'none';
+                    console.log("[DEBUG] Auth UI updated for guest user.");
+
+                    initializeUserDataAndSettings(); // Attempt to initialize in local storage mode
                 }
             });
         } else {
             // Offline/guest mode (Firebase config missing or incomplete)
-            console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved).");
-            userId = crypto.randomUUID(); // Fallback for no Firebase config/validity
-            isAuthReady = true; // Assume auth is "ready" for local operations
+            console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved beyond session).");
+            userId = `guest-${crypto.randomUUID()}`; // Fallback for no Firebase config/validity
+            isUserAuthenticated = false; // Not authenticated
+            isAuthReady = true; // Auth state determined (offline)
             
             const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline)';
+            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline Mode)'; // Distinct message for no Firebase config
             const signInBtn = document.getElementById('signInBtn');
             const signUpBtn = document.getElementById('signUpBtn');
             const signOutBtn = document.getElementById('signOutBtn');
@@ -777,61 +781,48 @@
         }
 
         /**
-         * Function to fetch and display username from Firestore
-         * Moved to global scope for accessibility
+         * Function to fetch and display username from Firestore for authenticated users,
+         * or set to "Guest" for local users.
          */
         async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
             console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
             const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (!usernameDisplayElement || !db || !uid || !isAuthReady) { // Ensure DOM element and auth are ready
-                console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement, DB, UID or Auth not available or Auth not ready. Skipping username display.");
-                if (usernameDisplayElement) usernameDisplayElement.textContent = 'Loading...'; // Default
+            if (!usernameDisplayElement) {
+                console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement not found. Skipping username display.");
                 return;
             }
 
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
-            try {
-                console.log(`[DEBUG] Attempting to get user profile from Firestore: ${userProfileRef.path}`);
-                const docSnap = await getDoc(userProfileRef);
-                let customUsername = null;
+            if (isUserAuthenticated && db && uid) { // Authenticated user, fetch from Firestore
+                const userProfileRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+                try {
+                    console.log(`[DEBUG] Attempting to get user profile from Firestore: ${userProfileRef.path}`);
+                    const docSnap = await getDoc(userProfileRef);
+                    let customUsername = null;
 
-                if (docSnap.exists() && docSnap.data().username) {
-                    customUsername = docSnap.data().username;
-                    console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
-                } else {
-                    console.log("[DEBUG] User profile not found or no username. Generating default.");
-                    let defaultUsername;
-                    if (displayName) {
-                        defaultUsername = displayName;
-                    } else if (email) {
-                        defaultUsername = email.split('@')[0];
-                    } else { // Anonymous or fallback if no email/displayName
-                        defaultUsername = 'Guest-' + uid.substring(0, 6);
-                    }
-                    if (db && userId && isAuthReady) { // Only attempt to save if Firebase is active
+                    if (docSnap.exists() && docSnap.data().username) {
+                        customUsername = docSnap.data().username;
+                        console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
+                    } else {
+                        console.log("[DEBUG] User profile not found or no username. Generating default.");
+                        let defaultUsername = displayName || (email ? email.split('@')[0] : 'User');
                         await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
                         console.log(`[DEBUG] Default username created and saved: ${defaultUsername}`);
-                    } else {
-                         console.log("[DEBUG] Firebase not active, not saving default username persistently.");
+                        customUsername = defaultUsername;
                     }
-                    customUsername = defaultUsername;
-                }
+                    usernameDisplayElement.textContent = `User: ${customUsername}`;
+                    console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
 
-                // Defensive check for auth.currentUser
-                if (auth && auth.currentUser && auth.currentUser.isAnonymous) {
-                    usernameDisplayElement.textContent = `Guest (UID: ${uid})`;
-                } else if (customUsername && customUsername !== `Guest-${uid.substring(0, 6)}`) {
-                    usernameDisplayElement.textContent = `UID: ${uid} (Username: ${customUsername})`;
-                } else {
-                    usernameDisplayElement.textContent = `UID: ${uid}`;
+                } catch (e) {
+                    console.error("[ERROR] Error fetching or setting username:", e);
+                    usernameDisplayElement.textContent = `User: ${uid} (Error fetching username)`;
                 }
-                console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
-            } catch (e) {
-                console.error("[ERROR] Error fetching or setting username:", e);
-                if (usernameDisplayElement) usernameDisplayElement.textContent = `UID: ${uid} (Error fetching username)`;
+            } else { // Guest user (local storage)
+                usernameDisplayElement.textContent = 'Guest';
+                console.log(`[DEBUG] Username display updated to: Guest (Local Mode)`);
             }
             console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
         }
+
 
         // --- Timer Variables ---
         let startTime;
@@ -842,7 +833,7 @@
         let inspectionTimeLeft = 15;
         let inspectionCountdownInterval;
         let scramble = '';
-        let solves = []; // Array to store solve objects: [{ time: ms, penalty: null|'+2'|'DNF', timestamp: date, scramble: string }]
+        let solves = []; // Array to store solve objects: [{ id: uuid, time: ms, penalty: null|'+2'|'DNF', timestamp: date, scramble: string }]
         let spaceDownTime = 0; // Initialize here, directly in the module scope.
         
         // Declare DOM element variables globally, assign them in window.onload
@@ -933,6 +924,105 @@
         let currentTheme = 'dark'; // Default theme
         let show3DCubeView = false; // New: Default to text scramble view
         console.log("[DEBUG] Initial settings variables set.");
+
+        // --- Local Storage Functions for Guest Mode ---
+        const LOCAL_STORAGE_PREFIX = `${appId}_guest_`;
+
+        /**
+         * Loads solves from local storage.
+         */
+        function loadLocalSolves() {
+            console.log("[DEBUG] Loading solves from local storage.");
+            try {
+                const storedSolves = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}solves`);
+                solves = storedSolves ? JSON.parse(storedSolves) : [];
+                // Ensure timestamps are Date objects if needed later, or numbers for sorting
+                solves.forEach(solve => {
+                    if (typeof solve.timestamp === 'string') {
+                        solve.timestamp = new Date(solve.timestamp).getTime();
+                    }
+                });
+                console.log(`[DEBUG] Loaded ${solves.length} solves from local storage.`);
+            } catch (e) {
+                console.error("[ERROR] Error loading solves from local storage:", e);
+                solves = [];
+            }
+        }
+
+        /**
+         * Saves solves to local storage.
+         */
+        function saveLocalSolves() {
+            console.log("[DEBUG] Saving solves to local storage.");
+            try {
+                localStorage.setItem(`${LOCAL_STORAGE_PREFIX}solves`, JSON.stringify(solves));
+                console.log("[DEBUG] Solves saved to local storage.");
+            } catch (e) {
+                console.error("[ERROR] Error saving solves to local storage:", e);
+            }
+        }
+
+        /**
+         * Loads user settings from local storage.
+         */
+        function loadLocalUserSettings() {
+            console.log("[DEBUG] Loading user settings from local storage.");
+            try {
+                const storedSettings = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}settings`);
+                if (storedSettings) {
+                    const settings = JSON.parse(storedSettings);
+                    enableInspection = settings.enableInspection !== undefined ? settings.enableInspection : true;
+                    enableSoundEffects = settings.soundEffects !== undefined ? settings.soundEffects : true;
+                    cubeType = settings.cubeType || '3x3';
+                    currentTheme = settings.theme || 'dark';
+                    show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false;
+                    console.log("[DEBUG] User settings loaded from local storage:", settings);
+                } else {
+                    console.log("[DEBUG] No user settings found in local storage, using defaults.");
+                    saveLocalUserSettings(); // Save defaults for next time
+                }
+            } catch (e) {
+                console.error("[ERROR] Error loading settings from local storage:", e);
+            }
+            applySettingsToUI();
+        }
+
+        /**
+         * Saves current user settings to local storage.
+         */
+        function saveLocalUserSettings() {
+            console.log("[DEBUG] Saving user settings to local storage.");
+            try {
+                const settingsToSave = {
+                    enableInspection: enableInspection,
+                    enableSoundEffects: enableSoundEffects,
+                    cubeType: cubeType,
+                    theme: currentTheme,
+                    show3DCubeView: show3DCubeView,
+                    lastUpdated: Date.now()
+                };
+                localStorage.setItem(`${LOCAL_STORAGE_PREFIX}settings`, JSON.stringify(settingsToSave));
+                console.log("[DEBUG] User settings saved to local storage.");
+            } catch (e) {
+                console.error("[ERROR] Error saving settings to local storage:", e);
+            }
+        }
+
+        /**
+         * Loads username from local storage.
+         */
+        function loadLocalUsername() {
+            console.log("[DEBUG] Loading username from local storage.");
+            return localStorage.getItem(`${LOCAL_STORAGE_PREFIX}username`) || 'Guest';
+        }
+
+        /**
+         * Saves username to local storage.
+         */
+        function saveLocalUsername(username) {
+            console.log("[DEBUG] Saving username to local storage.");
+            localStorage.setItem(`${LOCAL_STORAGE_PREFIX}username`, username);
+        }
 
         // --- Utility Functions ---
 
@@ -1202,34 +1292,40 @@
 
         /**
          * Adds a new solve to the history.
+         * Uses Firestore for authenticated users, Local Storage for guests.
          * @param {number} time - The solve time in milliseconds.
          */
         async function addSolve(time) {
             console.log(`[DEBUG] Entering addSolve with time: ${time}ms.`);
             const newSolve = {
+                id: crypto.randomUUID(), // Always generate a local ID for consistency
                 time: time,
                 penalty: null,
                 timestamp: Date.now(),
                 scramble: scramble, // Store the scramble with the solve
             };
-            if (isAuthReady && db && userId) {
+
+            if (isUserAuthenticated && db && userId) { // Authenticated user
                 console.log("[DEBUG] addSolve: Authenticated and Firestore ready. Attempting to add to Firestore.");
                 try {
                     const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
-                    const docRef = await addDoc(solvesCollectionRef, newSolve);
+                    // Firestore will generate its own ID, so we remove the local 'id' for addDoc
+                    const { id, ...solveDataToSave } = newSolve; 
+                    const docRef = await addDoc(solvesCollectionRef, solveDataToSave);
                     console.log("[DEBUG] Document written to Firestore with ID: ", docRef.id);
                     // The onSnapshot listener will update the 'solves' array and re-render
                 } catch (e) {
                     console.error("[ERROR] Error adding document to Firestore: ", e);
-                    // Fallback to local array if Firestore fails, but won't persist
-                    solves.push({ ...newSolve, id: crypto.randomUUID() });
+                    // Fallback to local array if Firestore fails, but won't persist across sessions
+                    solves.push(newSolve); // Use the locally generated ID
+                    saveLocalSolves(); // Save locally for current session
                     renderSolveHistory();
-                    console.log("[DEBUG] addSolve: Firestore failed, added to local array.");
+                    console.log("[DEBUG] addSolve: Firestore failed, added to local array (non-persistent).");
                 }
-            } else {
-                console.log("[DEBUG] addSolve: Not authenticated or Firestore not ready. Adding to local array.");
-                // If not authenticated or in offline mode, just add to local array
-                solves.push({ ...newSolve, id: crypto.randomUUID() });
+            } else { // Guest user
+                console.log("[DEBUG] addSolve: Guest user. Adding to local array and saving to local storage.");
+                solves.push(newSolve);
+                saveLocalSolves(); // Save to local storage for guest
                 renderSolveHistory();
             }
             console.log("[DEBUG] Exiting addSolve.");
@@ -1332,66 +1428,78 @@
 
         /**
          * Applies or clears a penalty for a given solve.
-         * Global function for onclick in dynamically created HTML.
+         * Uses Firestore for authenticated users, Local Storage for guests.
          * @param {string} id - The ID of the solve to update.
          * @param {string|null} penaltyType - '+2', 'DNF', or null to clear.
          */
         window.applyPenalty = async function(id, penaltyType) {
             console.log(`[DEBUG] Entering applyPenalty for ID: ${id}, Penalty: ${penaltyType}`);
-            if (!isAuthReady || !db || !userId) {
-                console.warn("[WARN] Firestore not ready or user not authenticated. Cannot apply penalty persistently.");
-                // For local fallback:
+            if (isUserAuthenticated && db && userId) { // Authenticated user
+                const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
+                try {
+                    console.log(`[DEBUG] applyPenalty: Attempting to update doc in Firestore: ${solveRef.path}`);
+                    await updateDoc(solveRef, { penalty: penaltyType });
+                    console.log(`[DEBUG] Penalty ${penaltyType} applied to solve ${id} in Firestore.`);
+                } catch (e) {
+                    console.error("[ERROR] Error updating penalty in Firestore: ", e);
+                    // Fallback to local update if Firestore fails
+                    const solveIndex = solves.findIndex(s => s.id === id);
+                    if (solveIndex !== -1) {
+                        solves[solveIndex].penalty = penaltyType;
+                        saveLocalSolves(); // Save locally for current session
+                        renderSolveHistory(); // Re-render local changes
+                        console.log("[DEBUG] applyPenalty: Firestore failed, applied locally (non-persistent).");
+                    } else {
+                        console.log("[DEBUG] applyPenalty: Solve not found in local array.");
+                    }
+                }
+            } else { // Guest user
+                console.log("[DEBUG] applyPenalty: Guest user. Applying penalty to local array and saving to local storage.");
                 const solveIndex = solves.findIndex(s => s.id === id);
                 if (solveIndex !== -1) {
                     solves[solveIndex].penalty = penaltyType;
+                    saveLocalSolves(); // Save locally for guest
                     renderSolveHistory(); // Re-render local changes
-                    console.log("[DEBUG] applyPenalty: Applied locally as Firestore is unavailable.");
                 } else {
                     console.log("[DEBUG] applyPenalty: Solve not found in local array.");
                 }
-                return;
-            }
-
-            const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
-            try {
-                console.log(`[DEBUG] applyPenalty: Attempting to update doc in Firestore: ${solveRef.path}`);
-                await updateDoc(solveRef, { penalty: penaltyType });
-                console.log(`[DEBUG] Penalty ${penaltyType} applied to solve ${id} in Firestore.`);
-            } catch (e) {
-                console.error("[ERROR] Error updating penalty in Firestore: ", e);
             }
             console.log("[DEBUG] Exiting applyPenalty.");
         };
 
         /**
          * Deletes a solve from the history.
-         * Global function for onclick in dynamically created HTML.
+         * Uses Firestore for authenticated users, Local Storage for guests.
          * @param {string} id - The ID of the solve to delete.
          */
         window.deleteSolve = async function(id) {
             console.log(`[DEBUG] Entering deleteSolve for ID: ${id}`);
-            if (!isAuthReady || !db || !userId) {
-                console.warn("[WARN] Firestore not ready or user not authenticated. Cannot delete solve persistently.");
-                // For local fallback:
+            if (isUserAuthenticated && db && userId) { // Authenticated user
+                const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
+                try {
+                    console.log(`[DEBUG] deleteSolve: Attempting to delete doc from Firestore: ${solveRef.path}`);
+                    await deleteDoc(solveRef);
+                    console.log(`[DEBUG] Solve ${id} deleted from Firestore.`);
+                } catch (e) {
+                    console.error("[ERROR] Error deleting solve from Firestore: ", e);
+                    // Fallback to local delete if Firestore fails
+                    solves = solves.filter(s => s.id !== id);
+                    saveLocalSolves(); // Save locally for current session
+                    renderSolveHistory(); // Re-render local changes
+                    console.log("[DEBUG] deleteSolve: Firestore failed, deleted locally (non-persistent).");
+                }
+            } else { // Guest user
+                console.log("[DEBUG] deleteSolve: Guest user. Deleting from local array and saving to local storage.");
                 solves = solves.filter(s => s.id !== id);
-                renderSolveHistory(); // Re-render local changes
-                console.log("[DEBUG] deleteSolve: Deleted locally as Firestore is unavailable.");
-                return;
-            }
-
-            const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
-            try {
-                console.log(`[DEBUG] deleteSolve: Attempting to delete doc from Firestore: ${solveRef.path}`);
-                await deleteDoc(solveRef);
-                console.log(`[DEBUG] Solve ${id} deleted from Firestore.`);
-            } catch (e) {
-                console.error("[ERROR] Error deleting solve from Firestore: ", e);
+                saveLocalSolves(); // Save locally for guest
+                renderSolveHistory();
             }
             console.log("[DEBUG] Exiting deleteSolve.");
         };
 
         /**
          * Sets up the real-time listener for user's solves from Firestore.
+         * This function is only called for authenticated users.
          */
         function setupRealtimeSolvesListener() {
             console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
@@ -1401,16 +1509,20 @@
                 return;
             }
 
-            if (isAuthReady && db && userId) {
+            if (isUserAuthenticated && db && userId) { // Only set up for authenticated users
                 console.log("[DEBUG] setupRealtimeSolvesListener: Authenticated and Firestore ready. Setting up onSnapshot.");
                 const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
                 // Note: orderBy is commented out due to potential index issues,
                 // and data will be sorted in JavaScript.
                 const q = query(solvesCollectionRef /*, orderBy('timestamp', 'desc')*/);
 
+                // Clear previous local data if any from guest mode
+                solves = []; 
+                renderSolveHistory(); // Render empty list while Firestore data loads
+
                 onSnapshot(q, (snapshot) => {
                     console.log("[DEBUG] onSnapshot callback triggered. Processing snapshot changes.");
-                    solves = [];
+                    solves = []; // Clear current solves to repopulate from snapshot
                     snapshot.forEach((doc) => {
                         solves.push({ id: doc.id, ...doc.data() });
                     });
@@ -1419,16 +1531,24 @@
                 }, (error) => {
                     console.error("[ERROR] Error listening to solves: ", error);
                     // Handle error, maybe display a message to the user
+                    // Fallback to local if permissions error occurs on a previously working connection
+                    if (error.code === 'permission-denied') {
+                         console.warn("[WARN] Firestore permission denied for solves listener. Falling back to local storage for solves.");
+                         isUserAuthenticated = false; // Treat as signed out if permissions fail
+                         // Re-init with local storage for solves to ensure functionality
+                         loadLocalSolves();
+                         renderSolveHistory();
+                    }
                 });
             } else {
-                console.log("[DEBUG] setupRealtimeSolvesListener: Firestore not available or not authenticated, will use local solves array.");
-                renderSolveHistory(); // Render any existing local solves (if user was previously anonymous)
+                console.log("[DEBUG] setupRealtimeSolvesListener: Not authenticated, Firestore listener not setup.");
+                // For guests, local solves are handled by loadLocalSolves in initializeUserDataAndSettings
             }
             console.log("[DEBUG] Exiting setupRealtimeSolvesListener.");
         }
 
         /**
-         * Loads user settings from Firestore or defaults.
+         * Loads user settings. Uses Firestore for authenticated users, Local Storage for guests.
          */
         async function loadUserSettings() {
             console.log("[DEBUG] Entering loadUserSettings.");
@@ -1438,7 +1558,7 @@
                  return;
             }
 
-            if (isAuthReady && db && userId) {
+            if (isUserAuthenticated && db && userId) { // Authenticated user
                 console.log("[DEBUG] loadUserSettings: Authenticated and Firestore ready. Attempting to load settings.");
                 const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
                 try {
@@ -1450,30 +1570,33 @@
                         cubeType = settings.cubeType || '3x3';
                         currentTheme = settings.theme || 'dark';
                         show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // Load new setting
-                        console.log("[DEBUG] User settings loaded:", settings);
+                        console.log("[DEBUG] User settings loaded from Firestore:", settings);
                     } else {
-                        console.log("[DEBUG] No user settings found in Firestore, using defaults.");
-                        // Save default settings if none exist
-                        if (db && userId && isAuthReady) { // Only attempt to save if Firebase is active
-                           saveUserSettings();
-                        }
+                        console.log("[DEBUG] No user settings found in Firestore, using defaults and saving.");
+                        saveUserSettings(); // Save default settings to Firestore
                     }
                 } catch (e) {
                     console.error("[ERROR] Error loading user settings from Firestore: ", e);
+                    if (e.code === 'permission-denied') {
+                         console.warn("[WARN] Firestore permission denied for settings. Falling back to local storage for settings.");
+                         // Fallback to local if permissions fail
+                         loadLocalUserSettings();
+                    }
                 }
-            } else {
-                 console.log("[DEBUG] loadUserSettings: Firestore not available or not authenticated, using local settings.");
+            } else { // Guest user
+                 console.log("[DEBUG] loadUserSettings: Guest user. Loading settings from local storage.");
+                 loadLocalUserSettings(); // Load from local storage
             }
             applySettingsToUI();
             console.log("[DEBUG] Exiting loadUserSettings.");
         }
 
         /**
-         * Saves current user settings to Firestore.
+         * Saves current user settings. Uses Firestore for authenticated users, Local Storage for guests.
          */
         async function saveUserSettings() {
             console.log("[DEBUG] Entering saveUserSettings.");
-            if (isAuthReady && db && userId) {
+            if (isUserAuthenticated && db && userId) { // Authenticated user
                 console.log("[DEBUG] saveUserSettings: Authenticated and Firestore ready. Attempting to save settings.");
                 const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
                 const settingsToSave = {
@@ -1490,9 +1613,13 @@
                     console.log("[DEBUG] User settings saved to Firestore.");
                 } catch (e) {
                     console.error("[ERROR] Error saving user settings to Firestore: ", e);
+                    // Fallback to local save if Firestore fails
+                    saveLocalUserSettings();
+                    console.warn("[WARN] Firestore failed to save settings, saved to local storage (non-persistent).");
                 }
-            } else {
-                 console.log("[WARN] Firestore not available or not authenticated. Settings will not be saved persistently.");
+            } else { // Guest user
+                 console.log("[DEBUG] saveUserSettings: Guest user. Saving settings to local storage.");
+                 saveLocalUserSettings(); // Save to local storage
             }
             console.log("[DEBUG] Exiting saveUserSettings.");
         }
@@ -1554,20 +1681,10 @@
         }
 
         /**
-         * Updates the username in Firestore.
+         * Updates the username in Firestore for authenticated users, or local storage for guests.
          */
         async function updateUsername() {
             console.log("[DEBUG] Entering updateUsername.");
-            if (!isAuthReady || !db || !userId) {
-                if (usernameUpdateMessage) {
-                    usernameUpdateMessage.textContent = "Please sign in to change your username.";
-                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                    usernameUpdateMessage.style.display = 'block';
-                }
-                console.warn("[WARN] Not authenticated or Firestore not ready. Cannot update username.");
-                return;
-            }
-
             const newUsername = settingsUsernameInput.value.trim();
             if (!newUsername) {
                 if (usernameUpdateMessage) {
@@ -1579,34 +1696,52 @@
                 return;
             }
 
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            try {
-                console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
-                await updateDoc(userProfileRef, { username: newUsername });
+            if (isUserAuthenticated && db && userId) { // Authenticated user
+                const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+                try {
+                    console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
+                    await updateDoc(userProfileRef, { username: newUsername });
+                    if (usernameUpdateMessage) {
+                        usernameUpdateMessage.textContent = "Username updated successfully!";
+                        usernameUpdateMessage.style.color = "#22c55e"; // Green for success
+                        usernameUpdateMessage.style.display = 'block';
+                    }
+                    console.log("[DEBUG] Username updated successfully in Firestore.");
+                    
+                    // Update the displayed username immediately
+                    await fetchAndDisplayUsername(userId, (auth && auth.currentUser) ? auth.currentUser.email : null, (auth && auth.currentUser) ? auth.currentUser.displayName : null);
+                    console.log("[DEBUG] Displayed username refreshed after update.");
+
+                    setTimeout(() => {
+                        if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
+                        console.log("[DEBUG] Username update message hidden.");
+                    }, 3000); // Hide message after 3 seconds
+
+                } catch (e) { 
+                    console.error("[ERROR] Error updating username in Firestore: ", e);
+                    if (usernameUpdateMessage) {
+                        usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
+                        usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                        usernameUpdateMessage.style.display = 'block';
+                    }
+                    // Fallback to local save if Firestore fails
+                    saveLocalUsername(newUsername);
+                    usernameDisplayElement.textContent = `User: ${newUsername}`; // Update UI immediately
+                    console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
+                }
+            } else { // Guest user
+                console.log("[DEBUG] updateUsername: Guest user. Updating username in local storage.");
+                saveLocalUsername(newUsername);
                 if (usernameUpdateMessage) {
-                    usernameUpdateMessage.textContent = "Username updated successfully!";
-                    usernameUpdateMessage.style.color = "#22c55e"; // Green for success
+                    usernameUpdateMessage.textContent = "Username updated locally (not saved online).";
+                    usernameUpdateMessage.style.color = "#fbbf24"; // Amber for warning
                     usernameUpdateMessage.style.display = 'block';
                 }
-                console.log("[DEBUG] Username updated successfully in Firestore.");
-                
-                // Update the displayed username immediately
-                // Defensive check for auth.currentUser
-                await fetchAndDisplayUsername(userId, (auth && auth.currentUser) ? auth.currentUser.email : null, (auth && auth.currentUser) ? auth.currentUser.displayName : null);
-                console.log("[DEBUG] Displayed username refreshed after update.");
-
+                usernameDisplayElement.textContent = `Guest: ${newUsername}`; // Update UI immediately
                 setTimeout(() => {
                     if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
                     console.log("[DEBUG] Username update message hidden.");
-                }, 3000); // Hide message after 3 seconds
-
-            } catch (e) { 
-                console.error("[ERROR] Error updating username in Firestore: ", e);
-                if (usernameUpdateMessage) {
-                    usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
-                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                    usernameUpdateMessage.style.display = 'block';
-                }
+                }, 3000);
             }
             console.log("[DEBUG] Exiting updateUsername.");
         }
@@ -1636,7 +1771,7 @@
                     console.log("[DEBUG] Playing stop sound.");
                     stopSound.triggerAttackRelease("C2", "8n");
                 }
-                addSolve(elapsedTime); // Add solve to history
+                addSolve(elapsedTime); // Add solve to history (will handle Firestore/Local Storage)
                 scramble = generateScramble(); // Generate new scramble for next solve
                 if (timerDisplay) timerDisplay.textContent = formatTime(0); // Reset display to 0 for next solve
                 elapsedTime = 0; // Reset elapsedTime
@@ -1786,23 +1921,25 @@
                     settingsModal.classList.add('open');
                     settingsModal.focus();
                 }
-                if (auth && auth.currentUser && db && userId) { // Defensive check
+                // Pre-fill username input based on current user type
+                if (isUserAuthenticated && auth && auth.currentUser && db && userId) {
                     const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
                     getDoc(userProfileRef).then(docSnap => {
                         if (docSnap.exists() && docSnap.data().username && settingsUsernameInput) {
                             settingsUsernameInput.value = docSnap.data().username;
                         } else if (settingsUsernameInput) {
-                            settingsUsernameInput.value = '';
+                            settingsUsernameInput.value = ''; // Clear if no username found
                         }
                     }).catch(e => {
                         console.error("Error loading username for settings:", e);
                         if (settingsUsernameInput) settingsUsernameInput.value = '';
                     });
                 } else if (settingsUsernameInput) {
-                    settingsUsernameInput.value = ''; // Clear if not authenticated
+                    settingsUsernameInput.value = loadLocalUsername(); // Load from local storage for guests
                 }
+
                 if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-                applySettingsToUI();
+                applySettingsToUI(); // Apply settings to ensure all toggles/selects reflect current values
             }); else console.error("[ERROR] settingsBtn not found!");
 
             const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
@@ -1810,7 +1947,7 @@
                 const settingsModal = document.getElementById('settingsModal');
                 if (settingsModal) settingsModal.classList.remove('open');
                 console.log("[DEBUG] Settings modal closed by button.");
-                saveUserSettings();
+                saveUserSettings(); // Save settings when modal is closed
             }); else console.error("[ERROR] closeSettingsModal not found!");
 
             const closeAuthModalBtn = document.getElementById('closeAuthModal');
@@ -1994,14 +2131,8 @@
                 if (auth) { // Only attempt sign out if auth object is initialized
                     try {
                         await signOut(auth);
-                        // The onAuthStateChanged listener will handle clearing solves, resetting timer, etc.
-                        // Reset local data immediately upon successful sign out
-                        solves = [];
-                        renderSolveHistory();
-                        resetTimer(); // Also generates new scramble
-                        const usernameDisplayElement = document.getElementById('usernameDisplay');
-                        if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest';
-                        console.log("User signed out successfully. Local data reset.");
+                        // onAuthStateChanged will handle UI and data loading for the now-guest user.
+                        console.log("User signed out successfully.");
                     } catch (error) {
                         console.error("Error signing out:", error);
                     }
@@ -2021,12 +2152,14 @@
                 try {
                     const userCredential = await signInWithPopup(auth, provider);
                     const user = userCredential.user;
-                    if (db) {
+                    
+                    if (db) { // Ensure db is initialized
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
                         const docSnap = await getDoc(userProfileRef);
                         if (!docSnap.exists() || !docSnap.data().username) {
                             const defaultUsername = user.displayName || (user.email ? user.email.split('@')[0] : 'GoogleUser');
                             await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                            console.log(`[DEBUG] Default username saved for new Google user: ${defaultUsername}`);
                         }
                     }
                     if (authModal) authModal.classList.remove('open');
@@ -2079,9 +2212,10 @@
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
                     
-                    if (db) {
+                    if (db) { // Ensure db is initialized
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
                         await setDoc(userProfileRef, { username: username }, { merge: true });
+                        console.log(`[DEBUG] Username saved for new email user: ${username}`);
                     }
                     if (authModal) authModal.classList.remove('open');
                     console.log("Signed up with email:", email, "Username:", username);
