@@ -627,22 +627,24 @@
         // =====================================================================================================
         const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
-        apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
-        authDomain: "ubically-timer.firebaseapp.com",
-        projectId: "ubically-timer",
-        storageBucket: "ubically-timer.firebasestorage.app",
-        messagingSenderId: "467118524389",
-        appId: "1:467118524389:web:d3455f5be5747be2cb910c",
-        measurementId: "G-6033SRP9WC"
+            apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+            authDomain: "ubically-timer.firebaseapp.com",
+            projectId: "ubically-timer",
+            storageBucket: "ubically-timer.firebasestorage.app",
+            messagingSenderId: "467118524389",
+            appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+            measurementId: "G-6033SRP9WC"
         };
         // The URL for your deployed Vercel Serverless Function for AI insights.
         // This will be provided AFTER you deploy the function to Vercel and then updated here.
-        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
+        const geminiInsightFunctionUrl = "YOUR_CLOUD_FUNCTION_URL_HERE"; 
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
 
-        console.log(`[DEBUG] App ID: ${appId}, Firebase Config Loaded: ${Object.keys(firebaseConfig).length > 0}`);
+        console.log(`[DEBUG] App ID: ${appId}`);
+        // ADDED: Log the actual firebaseConfig object for debugging
+        console.log("[DEBUG] firebaseConfig received:", JSON.stringify(firebaseConfig, null, 2));
 
 
         let app;
@@ -675,7 +677,7 @@
                     console.log("[DEBUG] User data/settings already initialized or awaiting onSnapshot update (or solveHistoryList not found).");
                 }
             } else {
-                console.log("[DEBUG] Deferred initializeUserDataAndSettings: DB or userId not available after Auth Ready.");
+                console.log("[DEBUG] Deferred initializeUserDataAndSettings: DB or userId not available after Auth Ready. Performing local-only initialization.");
                 // For signed out/anonymous user after DOM is ready:
                 solves = []; // Clear local solves for a clean start if no user
                 renderSolveHistory(); // Render empty history
@@ -684,11 +686,17 @@
             }
         };
 
+        // Helper to check if Firebase config is valid (more robust than just checking API key placeholder)
+        function isFirebaseConfigValid(config) {
+            return config && config.apiKey && config.apiKey.length > 20 && // API key should be long enough
+                   config.authDomain && config.authDomain.includes('.') &&
+                   config.projectId && config.projectId.length > 0;
+        }
 
         // --- Firebase Initialization and Auth Listener ---
         // This block runs immediately when the script loads.
         // It sets up Firebase and the authentication listener.
-        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId && firebaseConfig.apiKey !== "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M") {
+        if (isFirebaseConfigValid(firebaseConfig)) { // Use the robust check here
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
@@ -1972,7 +1980,13 @@
                     try {
                         await signOut(auth);
                         // The onAuthStateChanged listener will handle clearing solves, resetting timer, etc.
-                        console.log("User signed out successfully.");
+                        // Reset local data immediately upon successful sign out
+                        solves = [];
+                        renderSolveHistory();
+                        resetTimer(); // Also generates new scramble
+                        const usernameDisplayElement = document.getElementById('usernameDisplay');
+                        if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest';
+                        console.log("User signed out successfully. Local data reset.");
                     } catch (error) {
                         console.error("Error signing out:", error);
                     }
@@ -2116,4 +2130,3 @@
     </script>
 </body>
 </html>
-
