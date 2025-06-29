@@ -433,7 +433,7 @@
                 background="#0f172a"           <!-- Set a default background color that matches dark theme -->
             ></twisty-player>
             <!-- Custom Toolbar -->
-            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
+            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
                 <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
                 </button>
@@ -623,7 +623,7 @@
         // You can find these in your Firebase project settings -> Project settings -> General -> Your apps -> Firebase SDK snippet (Config).
         //
         // NOTE: The geminiApiKey is now handled by a serverless function for security.
-        // You will need to deploy a Firebase Cloud Function for AI Insight.
+        // You will need to deploy a Vercel Serverless Function for AI Insight.
         // =====================================================================================================
         const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
@@ -636,7 +636,7 @@
             measurementId: "G-6033SRP9WC"
         };
         // The URL for your deployed Vercel Serverless Function for AI insights.
-        // This will be provided AFTER you deploy the function to Vercel.
+        // This will be provided AFTER you deploy the function to Vercel and then updated here.
         const geminiInsightFunctionUrl = "YOUR_CLOUD_FUNCTION_URL_HERE"; 
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
@@ -649,26 +649,44 @@
         let db;
         let auth;
         let userId = null;
-        let isAuthReady = false;
+        let isAuthReady = false; // Flag to indicate if Firebase auth state has been determined
+        let domElementsReady = false; // New flag to indicate if all DOM elements are assigned
 
-        // Initialize Firebase
-        console.log("[DEBUG] Attempting Firebase initialization.");
-        // Validate if Firebase config is properly set before initializing
-        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId && firebaseConfig.apiKey !== "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M") { // Check if default API key placeholder is replaced
+        // This function attempts to initialize user data and settings (Firestore listener, settings load).
+        // It will only proceed if both `domElementsReady` AND `isAuthReady` are true.
+        const initializeUserDataAndSettings = async () => {
+            // console.log("[DEBUG] Attempting initializeUserDataAndSettings. DOM Ready:", domElementsReady, "Auth Ready:", isAuthReady, "DB:", !!db, "userId:", userId);
+            if (domElementsReady && isAuthReady && db && userId) {
+                // Use a simple attribute flag on an element to prevent duplicate initialization
+                if (!solveHistoryList.hasAttribute('data-initialized')) {
+                    console.log("[DEBUG] Both DOM and Auth ready. Proceeding with user data and settings initialization.");
+                    await loadUserSettings(); // This loads settings and calls applySettingsToUI
+                    setupRealtimeSolvesListener(); // This sets up onSnapshot listener
+                    solveHistoryList.setAttribute('data-initialized', 'true'); // Mark as initialized
+                } else {
+                    console.log("[DEBUG] User data/settings already initialized or awaiting onSnapshot update.");
+                }
+            } else {
+                console.log("[DEBUG] Deferred initializeUserDataAndSettings: Waiting for both DOM and Auth to be ready.");
+            }
+        };
+
+
+        // --- Firebase Initialization and Auth Listener ---
+        // This block runs immediately when the script loads.
+        // It sets up Firebase and the authentication listener.
+        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId && firebaseConfig.apiKey !== "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M") {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             console.log("[DEBUG] Firebase initialized. Setting up auth state listener.");
 
-            // Listen for authentication state changes
             onAuthStateChanged(auth, async (user) => {
                 console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
                 if (user) {
                     userId = user.uid;
                     isAuthReady = true;
-                    console.log(`[DEBUG] User authenticated. UID: ${userId}`);
-
-                    // Update UI for authenticated user
+                    // Update UI for authenticated user (buttons can be accessed before general app init)
                     document.getElementById('signInBtn').style.display = 'none';
                     document.getElementById('signUpBtn').style.display = 'none';
                     document.getElementById('signOutBtn').style.display = 'inline-block';
@@ -677,51 +695,36 @@
                     await fetchAndDisplayUsername(user.uid, user.email, user.displayName);
                     console.log("[DEBUG] Username fetched and displayed.");
 
-                    loadUserSettings(); // Load user settings
-                    setupRealtimeSolvesListener(); // Setup listener for solves
-                    console.log("[DEBUG] User settings and solve listener setup complete.");
-
+                    initializeUserDataAndSettings(); // Attempt to initialize user data/settings
                 } else {
                     console.log("[DEBUG] User not authenticated (signed out or initial state). Attempting anonymous sign-in.");
-                    // User is signed out or initially not authenticated
-                    // Attempt anonymous sign-in to allow data storage for guests
                     try {
                         await signInAnonymously(auth);
-                        // onAuthStateChanged will be triggered again with the anonymous user
+                        // onAuthStateChanged will be triggered again with the anonymous user, handling further init
                         console.log("[DEBUG] Signed in anonymously.");
                     } catch (error) {
                         console.error("[ERROR] Anonymous sign-in failed:", error);
                         // Fallback if anonymous sign-in also fails (e.g., Firebase not set up for it)
                         userId = crypto.randomUUID(); // Fallback to local UUID for guest, no persistence
-                        isAuthReady = true; // Ready for local operations
+                        isAuthReady = true; // Still mark as ready for local operations
                         document.getElementById('usernameDisplay').textContent = 'Guest (Limited)';
+                        document.getElementById('signInBtn').style.display = 'inline-block';
+                        document.getElementById('signUpBtn').style.display = 'inline-block';
+                        document.getElementById('signOutBtn').style.display = 'none';
+                        initializeUserDataAndSettings(); // Attempt to initialize even if anonymous sign-in failed
                     }
-
-                    // Update UI for unauthenticated/anonymous user
-                    document.getElementById('signInBtn').style.display = 'inline-block';
-                    document.getElementById('signUpBtn').style.display = 'inline-block';
-                    document.getElementById('signOutBtn').style.display = 'none';
-                    document.getElementById('usernameDisplay').textContent = 'Guest'; // Display Guest by default
-                    console.log("[DEBUG] Auth UI updated for unauthenticated/anonymous user.");
-                    
-                    // Clear solves and reset timer for signed out state
-                    solves = [];
-                    // Removed direct call to renderSolveHistory and resetTimer here, will be done in window.onload
                 }
             });
         } else {
+            // Offline/guest mode (Firebase config missing or incomplete)
             console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved).");
             userId = crypto.randomUUID(); // Fallback for no Firebase config/validity
+            isAuthReady = true; // Assume auth is "ready" for local operations
             document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
-            isAuthReady = true; // Assume ready for local operations
-            // No Firestore operations without config, but the app can still function locally
-            // Removed direct calls to setupRealtimeSolvesListener(), renderSolveHistory(), resetTimer() here
-            // These will now be called within window.onload to ensure DOM elements are ready.
-            // Update UI for unauthenticated user (offline mode)
             document.getElementById('signInBtn').style.display = 'inline-block';
             document.getElementById('signUpBtn').style.display = 'inline-block';
             document.getElementById('signOutBtn').style.display = 'none';
-            console.log("[DEBUG] Offline/Guest mode activated.");
+            initializeUserDataAndSettings(); // Attempt to initialize in offline mode
         }
 
         /**
@@ -731,9 +734,9 @@
         async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
             console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
             const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (!db || !uid || !isAuthReady) { // Ensure auth is ready before trying Firestore
-                usernameDisplayElement.textContent = 'Guest (Offline)'; // Fallback if no DB or UID
-                console.log("[DEBUG] fetchAndDisplayUsername: DB or UID not available or Auth not ready. Displaying Guest (Offline).");
+            if (!usernameDisplayElement || !db || !uid || !isAuthReady) { // Ensure DOM element and auth are ready
+                console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement, DB, UID or Auth not available or Auth not ready. Skipping username display.");
+                usernameDisplayElement.textContent = 'Loading...'; // Default
                 return;
             }
 
@@ -748,7 +751,6 @@
                     console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
                 } else {
                     console.log("[DEBUG] User profile not found or no username. Generating default.");
-                    // No custom username set, create a default one and save it
                     let defaultUsername;
                     if (displayName) {
                         defaultUsername = displayName;
@@ -757,12 +759,15 @@
                     } else { // Anonymous or fallback if no email/displayName
                         defaultUsername = 'Guest-' + uid.substring(0, 6);
                     }
-                    await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                    if (db && userId && isAuthReady) { // Only attempt to save if Firebase is active
+                        await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                        console.log(`[DEBUG] Default username created and saved: ${defaultUsername}`);
+                    } else {
+                         console.log("[DEBUG] Firebase not active, not saving default username persistently.");
+                    }
                     customUsername = defaultUsername;
-                    console.log(`[DEBUG] Default username created and saved: ${customUsername}`);
                 }
 
-                // Display User ID, and custom username if available
                 if (auth.currentUser && auth.currentUser.isAnonymous) {
                     usernameDisplayElement.textContent = `Guest (UID: ${uid})`;
                 } else if (customUsername && customUsername !== `Guest-${uid.substring(0, 6)}`) {
@@ -773,7 +778,6 @@
                 console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
             } catch (e) {
                 console.error("[ERROR] Error fetching or setting username:", e);
-                // Fallback in case of Firestore error, use UID only
                 usernameDisplayElement.textContent = `UID: ${uid} (Error fetching username)`;
             }
             console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
@@ -968,7 +972,9 @@
             console.log(`[DEBUG] generateScramble: Generated for ${cubeType}: ${generated}`);
 
             // Update both displays regardless of current view setting
-            scrambleTextDisplay.textContent = generated;
+            if (scrambleTextDisplay) { // Defensive check
+                scrambleTextDisplay.textContent = generated;
+            }
             if (scramble3DViewer) { // Ensure the element is available
                 // Always set puzzle type explicitly.
                 scramble3DViewer.puzzle = twistyPlayerPuzzleType; 
@@ -1069,15 +1075,15 @@
 
             solveHistoryList.innerHTML = '';
             if (solves.length === 0) {
-                noSolvesMessage.style.display = 'block';
-                bestTimeDisplay.textContent = '--:--.--';
-                ao5Display.textContent = '--:--.--';
-                ao12Display.textContent = '--:--.--';
-                solveCountDisplay.textContent = '0';
+                if (noSolvesMessage) noSolvesMessage.style.display = 'block';
+                if (bestTimeDisplay) bestTimeDisplay.textContent = '--:--.--';
+                if (ao5Display) ao5Display.textContent = '--:--.--';
+                if (ao12Display) ao12Display.textContent = '--:--.--';
+                if (solveCountDisplay) solveCountDisplay.textContent = '0';
                 console.log("[DEBUG] renderSolveHistory: No solves, displaying empty stats.");
                 return;
             } else {
-                noSolvesMessage.style.display = 'none';
+                if (noSolvesMessage) noSolvesMessage.style.display = 'none';
             }
 
             // Sort solves by timestamp (descending) for display
@@ -1208,18 +1214,20 @@
             const solve = solves.find(s => s.id === solveId);
 
             if (!solve) {
-                insightMessageElement.textContent = "Error: Solve not found.";
-                insightSpinner.style.display = 'none';
-                aiInsightModal.classList.add('open');
+                if (insightMessageElement) insightMessageElement.textContent = "Error: Solve not found.";
+                if (insightSpinner) insightSpinner.style.display = 'none';
+                if (aiInsightModal) aiInsightModal.classList.add('open');
                 console.error(`[ERROR] Solve with ID ${solveId} not found.`);
                 return;
             }
 
             // Display loading state
-            insightMessageElement.textContent = "Generating insight...";
-            insightSpinner.style.display = 'block';
-            aiInsightModal.classList.add('open');
-            aiInsightModal.focus(); // Focus the modal for accessibility
+            if (insightMessageElement) insightMessageElement.textContent = "Generating insight...";
+            if (insightSpinner) insightSpinner.style.display = 'block';
+            if (aiInsightModal) {
+                aiInsightModal.classList.add('open');
+                aiInsightModal.focus(); // Focus the modal for accessibility
+            }
 
             // Prepare the data to send to the Cloud Function
             const requestData = {
@@ -1235,8 +1243,8 @@
             // Important: Replace "YOUR_CLOUD_FUNCTION_URL_HERE" with the actual URL
             // obtained after deploying your Firebase Cloud Function.
             if (apiUrl === "YOUR_CLOUD_FUNCTION_URL_HERE" || !apiUrl) {
-                insightMessageElement.textContent = "Cloud Function URL not configured. Please deploy your function and update the code.";
-                insightSpinner.style.display = 'none';
+                if (insightMessageElement) insightMessageElement.textContent = "Cloud Function URL not configured. Please deploy your function and update the code.";
+                if (insightSpinner) insightSpinner.style.display = 'none';
                 console.error("[ERROR] Gemini Insight Cloud Function URL is not set.");
                 return;
             }
@@ -1257,17 +1265,17 @@
                 const result = await response.json();
 
                 if (result.insight) {
-                    insightMessageElement.textContent = result.insight;
+                    if (insightMessageElement) insightMessageElement.textContent = result.insight;
                     console.log("[DEBUG] Cloud Function response received and displayed.");
                 } else {
-                    insightMessageElement.textContent = "Could not generate insight. Please try again.";
+                    if (insightMessageElement) insightMessageElement.textContent = "Could not generate insight. Please try again.";
                     console.warn("[WARN] Cloud Function response structure unexpected:", result);
                 }
             } catch (e) {
-                insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
+                if (insightMessageElement) insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
                 console.error("[ERROR] Error calling Cloud Function:", e);
             } finally {
-                insightSpinner.style.display = 'none'; // Hide spinner
+                if (insightSpinner) insightSpinner.style.display = 'none'; // Hide spinner
                 console.log("[DEBUG] AI Insight generation process completed.");
             }
         };
@@ -1339,8 +1347,8 @@
             console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
             // Ensure DOM elements are initialized before proceeding
             if (!solveHistoryList) {
-                console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Deferring execution.");
-                return; // Exit and wait for window.onload to re-call
+                console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Deferring execution. This should not happen if called from initializeUserDataAndSettings.");
+                return;
             }
 
             if (isAuthReady && db && userId) {
@@ -1364,8 +1372,7 @@
                 });
             } else {
                 console.log("[DEBUG] setupRealtimeSolvesListener: Firestore not available or not authenticated, will use local solves array.");
-                // Render any existing local solves (if user was previously anonymous)
-                renderSolveHistory();
+                renderSolveHistory(); // Render any existing local solves (if user was previously anonymous)
             }
             console.log("[DEBUG] Exiting setupRealtimeSolvesListener.");
         }
@@ -1377,8 +1384,8 @@
             console.log("[DEBUG] Entering loadUserSettings.");
             // Ensure DOM elements are initialized before proceeding
             if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-                 console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Deferring execution.");
-                 return; // Exit and wait for window.onload to re-call
+                 console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. This should not happen if called from initializeUserDataAndSettings.");
+                 return;
             }
 
             if (isAuthReady && db && userId) {
@@ -1397,7 +1404,9 @@
                     } else {
                         console.log("[DEBUG] No user settings found in Firestore, using defaults.");
                         // Save default settings if none exist
-                        saveUserSettings();
+                        if (db && userId && isAuthReady) { // Only attempt to save if Firebase is active
+                           saveUserSettings();
+                        }
                     }
                 } catch (e) {
                     console.error("[ERROR] Error loading user settings from Firestore: ", e);
@@ -1463,7 +1472,7 @@
             console.log("[DEBUG] Entering applySettingsToUI.");
             // Ensure UI elements are initialized before trying to apply settings to them
             if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-                 console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized.");
+                 console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. This should not happen if called from initializeUserDataAndSettings.");
                  return;
             }
 
@@ -1477,15 +1486,15 @@
 
             // Toggle visibility of scramble displays
             if (show3DCubeView) {
-                scrambleTextDisplay.style.display = 'none';
-                cube3DContainer.style.display = 'flex'; // Use flex for centering
+                if (scrambleTextDisplay) scrambleTextDisplay.style.display = 'none';
+                if (cube3DContainer) cube3DContainer.style.display = 'flex'; // Use flex for centering
                 if (scramble3DViewer) {
                     // Set the 3D viewer background directly using the hex color for the chosen theme
                     scramble3DViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
                 }
             } else {
-                scrambleTextDisplay.style.display = 'block';
-                cube3DContainer.style.display = 'none';
+                if (scrambleTextDisplay) scrambleTextDisplay.style.display = 'block';
+                if (cube3DContainer) cube3DContainer.style.display = 'none';
             }
 
             // Ensure scramble is generated/updated for the correct display
@@ -1500,18 +1509,22 @@
         async function updateUsername() {
             console.log("[DEBUG] Entering updateUsername.");
             if (!isAuthReady || !db || !userId) {
-                usernameUpdateMessage.textContent = "Please sign in to change your username.";
-                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                usernameUpdateMessage.style.display = 'block';
+                if (usernameUpdateMessage) {
+                    usernameUpdateMessage.textContent = "Please sign in to change your username.";
+                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                    usernameUpdateMessage.style.display = 'block';
+                }
                 console.warn("[WARN] Not authenticated or Firestore not ready. Cannot update username.");
                 return;
             }
 
             const newUsername = settingsUsernameInput.value.trim();
             if (!newUsername) {
-                usernameUpdateMessage.textContent = "Username cannot be empty.";
-                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                usernameUpdateMessage.style.display = 'block';
+                if (usernameUpdateMessage) {
+                    usernameUpdateMessage.textContent = "Username cannot be empty.";
+                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                    usernameUpdateMessage.style.display = 'block';
+                }
                 console.warn("[WARN] New username is empty.");
                 return;
             }
@@ -1520,9 +1533,11 @@
             try {
                 console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
                 await updateDoc(userProfileRef, { username: newUsername });
-                usernameUpdateMessage.textContent = "Username updated successfully!";
-                usernameUpdateMessage.style.color = "#22c55e"; // Green for success
-                usernameUpdateMessage.style.display = 'block';
+                if (usernameUpdateMessage) {
+                    usernameUpdateMessage.textContent = "Username updated successfully!";
+                    usernameUpdateMessage.style.color = "#22c55e"; // Green for success
+                    usernameUpdateMessage.style.display = 'block';
+                }
                 console.log("[DEBUG] Username updated successfully in Firestore.");
                 
                 // Update the displayed username immediately
@@ -1530,15 +1545,17 @@
                 console.log("[DEBUG] Displayed username refreshed after update.");
 
                 setTimeout(() => {
-                    usernameUpdateMessage.style.display = 'none';
+                    if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
                     console.log("[DEBUG] Username update message hidden.");
                 }, 3000); // Hide message after 3 seconds
 
             } catch (e) { 
                 console.error("[ERROR] Error updating username in Firestore: ", e);
-                usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
-                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                usernameUpdateMessage.style.display = 'block';
+                if (usernameUpdateMessage) {
+                    usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
+                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                    usernameUpdateMessage.style.display = 'block';
+                }
             }
             console.log("[DEBUG] Exiting updateUsername.");
         }
@@ -1562,15 +1579,15 @@
                 // Stop the timer
                 clearInterval(timerInterval);
                 isTiming = false;
-                startStopBtn.textContent = 'Start / Stop (Space)';
-                timerDisplay.classList.remove('ready');
+                if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
+                if (timerDisplay) timerDisplay.classList.remove('ready');
                 if (enableSoundEffects) {
                     console.log("[DEBUG] Playing stop sound.");
                     stopSound.triggerAttackRelease("C2", "8n");
                 }
                 addSolve(elapsedTime); // Add solve to history
                 scramble = generateScramble(); // Generate new scramble for next solve
-                timerDisplay.textContent = formatTime(0); // Reset display to 0 for next solve
+                if (timerDisplay) timerDisplay.textContent = formatTime(0); // Reset display to 0 for next solve
                 elapsedTime = 0; // Reset elapsedTime
                 console.log("[DEBUG] New scramble generated and timer reset for next solve.");
             } else if (isInspecting) {
@@ -1579,10 +1596,12 @@
                 clearInterval(inspectionCountdownInterval);
                 isInspecting = false;
                 isTiming = true;
-                timerDisplay.classList.remove('inspection');
-                timerDisplay.classList.remove('ready'); // Remove ready state if it was there
-                timerDisplay.textContent = formatTime(0);
-                startStopBtn.textContent = 'Stop (Space)';
+                if (timerDisplay) {
+                    timerDisplay.classList.remove('inspection');
+                    timerDisplay.classList.remove('ready'); // Remove ready state if it was there
+                    timerDisplay.textContent = formatTime(0);
+                }
+                if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
                 startTime = Date.now();
                 timerInterval = setInterval(updateTimer, 10); // Update every 10ms for millisecond precision
                 if (enableSoundEffects) {
@@ -1595,17 +1614,19 @@
                 if (enableInspection) {
                     isInspecting = true;
                     inspectionTimeLeft = 15;
-                    timerDisplay.classList.add('inspection');
-                    timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
-                    startStopBtn.textContent = 'Start (Space)'; // Change button text for inspection phase
+                    if (timerDisplay) {
+                        timerDisplay.classList.add('inspection');
+                        timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
+                    }
+                    if (startStopBtn) startStopBtn.textContent = 'Start (Space)'; // Change button text for inspection phase
                     console.log("[DEBUG] Starting 15s inspection countdown.");
 
                     // Start inspection countdown and beeps
                     inspectionCountdownInterval = setInterval(() => {
                         inspectionTimeLeft--;
                         console.log(`[DEBUG] Inspection countdown: ${inspectionTimeLeft}s remaining.`);
+                        if (timerDisplay) timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
                         if (inspectionTimeLeft >= 0) {
-                            timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
                             if (enableSoundEffects) {
                                 // Play beep at 10 seconds and from 5 seconds down to 1
                                 if (inspectionTimeLeft === 10 || (inspectionTimeLeft <= 5 && inspectionTimeLeft > 0)) {
@@ -1621,9 +1642,9 @@
                                     clearInterval(inspectionCountdownInterval); // Stop inspection countdown
                                     isInspecting = false;
                                     isTiming = true;
-                                    timerDisplay.classList.remove('inspection', 'ready');
-                                    timerDisplay.textContent = formatTime(0);
-                                    startStopBtn.textContent = 'Stop (Space)';
+                                    if (timerDisplay) timerDisplay.classList.remove('inspection', 'ready');
+                                    if (timerDisplay) timerDisplay.textContent = formatTime(0);
+                                    if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
                                     startTime = Date.now();
                                     timerInterval = setInterval(updateTimer, 10); // Start actual timer
                                     console.log("[DEBUG] Inspection ended. Auto-starting timer.");
@@ -1631,35 +1652,31 @@
                             }
 
                             if (inspectionTimeLeft <= 8) { // After 8 seconds, ready to start
-                                timerDisplay.classList.add('ready');
+                                if (timerDisplay) timerDisplay.classList.add('ready');
                             }
                         } else {
                             console.log("[DEBUG] Inspection time ran out. Forcing stop.");
-                            // This block handles the case where inspection time completely runs out without auto-start
-                            // (which means user didn't have sound enabled, or the auto-start failed for some reason)
-                            // or if they had auto-start, but the penalty logic still needs to catch cases.
-                            // For simplicity, if it auto-starts, the solve time will reflect any delay in stopping.
                             clearInterval(inspectionCountdownInterval);
                             isTiming = false; // Ensure timer isn't running without user input
                             isInspecting = false;
-                            timerDisplay.classList.remove('inspection', 'ready');
-                            timerDisplay.textContent = formatTime(0);
+                            if (timerDisplay) timerDisplay.classList.remove('inspection', 'ready');
+                            if (timerDisplay) timerDisplay.textContent = formatTime(0);
                             scramble = generateScramble();
-                            startStopBtn.textContent = 'Start / Stop (Space)';
+                            if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
                             if (enableSoundEffects) {
                                 console.log("Playing forced stop sound due to inspection timeout.");
                                 stopSound.triggerAttackRelease("F2", "8n"); // A different sound for forced stop
                             }
-                            addSolve(elapsedTime + 2000); // Adding +2 if it went past 0 without manual start (shouldn't happen with auto-start if sounds are on)
+                            addSolve(elapsedTime + 2000); // Adding +2 if it went past 0 without manual start
                         }
                     }, 1000);
                 } else {
                     console.log("[DEBUG] No inspection enabled. Starting timer immediately.");
                     // No inspection, start timer immediately
                     isTiming = true;
-                    timerDisplay.classList.remove('inspection', 'ready');
-                    timerDisplay.textContent = formatTime(0);
-                    startStopBtn.textContent = 'Stop (Space)';
+                    if (timerDisplay) timerDisplay.classList.remove('inspection', 'ready');
+                    if (timerDisplay) timerDisplay.textContent = formatTime(0);
+                    if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
                     startTime = Date.now();
                     timerInterval = setInterval(updateTimer, 10);
                     if (enableSoundEffects) {
@@ -1677,7 +1694,7 @@
          */
         function updateTimer() {
             elapsedTime = Date.now() - startTime;
-            timerDisplay.textContent = formatTime(elapsedTime);
+            if (timerDisplay) timerDisplay.textContent = formatTime(elapsedTime);
         }
 
         /**
@@ -1690,9 +1707,11 @@
             isInspecting = false;
             elapsedTime = 0;
             inspectionTimeLeft = 15;
-            timerDisplay.textContent = formatTime(0);
-            timerDisplay.classList.remove('inspection', 'ready');
-            startStopBtn.textContent = 'Start / Stop (Space)';
+            if (timerDisplay) {
+                timerDisplay.textContent = formatTime(0);
+                timerDisplay.classList.remove('inspection', 'ready');
+            }
+            if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
             scramble = generateScramble(); // Updates both text and 3D
         }
 
@@ -1712,31 +1731,33 @@
             }); else console.error("[ERROR] scrambleBtn not found!");
             if (settingsBtn) settingsBtn.addEventListener('click', () => {
                 const settingsModal = document.getElementById('settingsModal');
-                settingsModal.classList.add('open');
-                settingsModal.focus();
+                if (settingsModal) {
+                    settingsModal.classList.add('open');
+                    settingsModal.focus();
+                }
                 if (auth.currentUser && db && userId) {
                     const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
                     getDoc(userProfileRef).then(docSnap => {
-                        if (docSnap.exists() && docSnap.data().username) {
+                        if (docSnap.exists() && docSnap.data().username && settingsUsernameInput) {
                             settingsUsernameInput.value = docSnap.data().username;
-                        } else {
+                        } else if (settingsUsernameInput) {
                             settingsUsernameInput.value = '';
                         }
                     }).catch(e => {
                         console.error("Error loading username for settings:", e);
-                        settingsUsernameInput.value = '';
+                        if (settingsUsernameInput) settingsUsernameInput.value = '';
                     });
-                } else {
+                } else if (settingsUsernameInput) {
                     settingsUsernameInput.value = '';
                 }
-                usernameUpdateMessage.style.display = 'none';
+                if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
                 applySettingsToUI();
             }); else console.error("[ERROR] settingsBtn not found!");
 
             const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
             if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', () => {
                 const settingsModal = document.getElementById('settingsModal');
-                settingsModal.classList.remove('open');
+                if (settingsModal) settingsModal.classList.remove('open');
                 console.log("[DEBUG] Settings modal closed by button.");
                 saveUserSettings();
             }); else console.error("[ERROR] closeSettingsModal not found!");
@@ -1744,13 +1765,13 @@
             const closeAuthModalBtn = document.getElementById('closeAuthModal');
             if (closeAuthModalBtn) closeAuthModalBtn.addEventListener('click', () => {
                 const authModal = document.getElementById('authModal');
-                authModal.classList.remove('open');
+                if (authModal) authModal.classList.remove('open');
                 clearAuthError();
                 console.log("[DEBUG] Auth modal closed by button.");
             }); else console.error("[ERROR] closeAuthModal not found!");
 
             if (closeAiInsightModalBtn) closeAiInsightModalBtn.addEventListener('click', () => {
-                aiInsightModal.classList.remove('open');
+                if (aiInsightModal) aiInsightModal.classList.remove('open');
                 console.log("[DEBUG] AI Insight modal closed by button.");
             }); else console.error("[ERROR] closeAiInsightModalBtn not found!");
 
@@ -1811,18 +1832,18 @@
             document.addEventListener('keydown', (e) => {
                 if (e.code === 'Escape') {
                     const settingsModal = document.getElementById('settingsModal');
-                    if (settingsModal.classList.contains('open')) {
+                    if (settingsModal && settingsModal.classList.contains('open')) {
                         settingsModal.classList.remove('open');
                         saveUserSettings();
                         console.log("[DEBUG] Settings modal closed by Escape key.");
                     }
                     const authModal = document.getElementById('authModal');
-                    if (authModal.classList.contains('open')) {
+                    if (authModal && authModal.classList.contains('open')) {
                         authModal.classList.remove('open');
                         clearAuthError();
                         console.log("[DEBUG] Auth modal closed by Escape key.");
                     }
-                    if (aiInsightModal.classList.contains('open')) {
+                    if (aiInsightModal && aiInsightModal.classList.contains('open')) {
                         aiInsightModal.classList.remove('open');
                         console.log("[DEBUG] AI Insight modal closed by Escape key.");
                     }
@@ -1835,7 +1856,7 @@
                     }
                     if (e.repeat) return;
                     spaceDownTime = Date.now();
-                    timerDisplay.classList.add('ready');
+                    if (timerDisplay) timerDisplay.classList.add('ready');
                 }
             });
 
@@ -1844,7 +1865,7 @@
                     e.preventDefault();
                     const spaceUpTime = Date.now();
                     const holdDuration = spaceUpTime - spaceDownTime;
-                    timerDisplay.classList.remove('ready');
+                    if (timerDisplay) timerDisplay.classList.remove('ready');
 
                     if (holdDuration < 500 && !isTiming && !isInspecting) {
                         toggleTimer();
@@ -1872,48 +1893,57 @@
             const signOutBtn = document.getElementById('signOutBtn');
 
             function showAuthError(message) {
-                authError.textContent = message;
-                authError.style.display = 'block';
+                if (authError) {
+                    authError.textContent = message;
+                    authError.style.display = 'block';
+                }
             }
 
             function clearAuthError() {
-                authError.textContent = '';
-                authError.style.display = 'none';
+                if (authError) {
+                    authError.textContent = '';
+                    authError.style.display = 'none';
+                }
             }
 
             if (signInBtn) signInBtn.addEventListener('click', () => {
-                authModal.classList.add('open');
-                authModalTitle.textContent = 'Sign In';
-                emailAuthBtn.textContent = 'Sign In';
-                emailAuthBtn.onclick = handleSignIn;
-                emailInput.value = '';
-                passwordInput.value = '';
+                if (authModal) {
+                    authModal.classList.add('open');
+                    authModal.focus();
+                }
+                if (authModalTitle) authModalTitle.textContent = 'Sign In';
+                if (emailAuthBtn) {
+                    emailAuthBtn.textContent = 'Sign In';
+                    emailAuthBtn.onclick = handleSignIn;
+                }
+                if (emailInput) emailInput.value = '';
+                if (passwordInput) passwordInput.value = '';
                 if(usernameFieldGroup) usernameFieldGroup.style.display = 'none';
                 clearAuthError();
-                authModal.focus();
             }); else console.error("[ERROR] signInBtn not found!");
 
             if (signUpBtn) signUpBtn.addEventListener('click', () => {
-                authModal.classList.add('open');
-                authModalTitle.textContent = 'Sign Up';
-                emailAuthBtn.textContent = 'Sign Up';
-                emailAuthBtn.onclick = handleSignUp;
-                emailInput.value = '';
-                passwordInput.value = '';
+                if (authModal) {
+                    authModal.classList.add('open');
+                    authModal.focus();
+                }
+                if (authModalTitle) authModalTitle.textContent = 'Sign Up';
+                if (emailAuthBtn) {
+                    emailAuthBtn.textContent = 'Sign Up';
+                    emailAuthBtn.onclick = handleSignUp;
+                }
+                if (emailInput) emailInput.value = '';
+                if (passwordInput) passwordInput.value = '';
                 if(usernameInputField) usernameInputField.value = '';
                 if(usernameFieldGroup) usernameFieldGroup.style.display = 'block';
                 clearAuthError();
-                authModal.focus();
             }); else console.error("[ERROR] signUpBtn not found!");
 
             if (signOutBtn) signOutBtn.addEventListener('click', async () => {
                 if (auth) {
                     try {
                         await signOut(auth);
-                        solves = [];
-                        renderSolveHistory(); // Re-render after sign out to clear history
-                        resetTimer(); // Reset timer after sign out
-                        document.getElementById('usernameDisplay').textContent = 'Guest';
+                        // The onAuthStateChanged listener will handle clearing solves, resetting timer, etc.
                         console.log("User signed out successfully.");
                     } catch (error) {
                         console.error("Error signing out:", error);
@@ -1932,11 +1962,11 @@
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
                         const docSnap = await getDoc(userProfileRef);
                         if (!docSnap.exists() || !docSnap.data().username) {
-                            const defaultUsername = user.displayName || user.email.split('@')[0];
+                            const defaultUsername = user.displayName || (user.email ? user.email.split('@')[0] : 'GoogleUser');
                             await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
                         }
                     }
-                    authModal.classList.remove('open');
+                    if (authModal) authModal.classList.remove('open');
                     console.log("Signed in with Google.");
                 } catch (error) {
                     showAuthError(error.message);
@@ -1946,12 +1976,12 @@
 
             // Helper functions for auth
             async function handleSignIn() {
-                const email = emailInput.value;
-                const password = passwordInput.value;
+                const email = emailInput ? emailInput.value : '';
+                const password = passwordInput ? passwordInput.value : '';
                 clearAuthError();
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
-                    authModal.classList.remove('open');
+                    if (authModal) authModal.classList.remove('open');
                     console.log("Signed in with email:", email);
                 } catch (error) {
                     showAuthError(error.message);
@@ -1960,9 +1990,9 @@
             }
 
             async function handleSignUp() {
-                const email = emailInput.value;
-                const username = usernameInputField.value.trim();
-                const password = passwordInput.value;
+                const email = emailInput ? emailInput.value : '';
+                const username = usernameInputField ? usernameInputField.value.trim() : '';
+                const password = passwordInput ? passwordInput.value : '';
                 clearAuthError();
 
                 if (!username) {
@@ -1978,7 +2008,7 @@
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
                         await setDoc(userProfileRef, { username: username }, { merge: true });
                     }
-                    authModal.classList.remove('open');
+                    if (authModal) authModal.classList.remove('open');
                     console.log("Signed up with email:", email, "Username:", username);
                 } catch (error) {
                     showAuthError(error.message);
@@ -1988,13 +2018,13 @@
         }
 
         // --- Initialization on Window Load ---
+        // This callback runs only after the entire DOM is loaded.
         window.onload = function() {
             console.log("[DEBUG] window.onload triggered. Initializing DOM elements and listeners.");
             // Assign DOM elements to variables after the document is loaded
             timerDisplay = document.getElementById('timerDisplay');
             scrambleTextDisplay = document.getElementById('scrambleTextDisplay');
             cube3DContainer = document.getElementById('cube3DContainer');
-            // scramble3DViewer is now directly in HTML, so we just get it
             scramble3DViewer = document.getElementById('scramble3DViewer');
             startStopBtn = document.getElementById('startStopBtn');
             resetBtn = document.getElementById('resetBtn');
@@ -2019,22 +2049,31 @@
             aiInsightContentDisplay = document.getElementById('aiInsightContent');
             insightMessageElement = document.getElementById('insightMessage');
             insightSpinner = aiInsightContentDisplay.querySelector('.spinner');
-            // New: Get references for custom toolbar buttons
             playPreviewBtn = document.getElementById('playPreviewBtn');
             pausePreviewBtn = document.getElementById('pausePreviewBtn');
             restartPreviewBtn = document.getElementById('restartPreviewBtn');
 
-            // Now that all DOM elements are assigned, call functions that depend on them
-            // Initial scramble generation and display update
-            scramble = generateScramble();
-            // Set up all event listeners
-            setupEventListeners();
-            // Initial load of settings and solves is handled here or by onAuthStateChanged
-            loadUserSettings();
-            setupRealtimeSolvesListener(); // Call it after DOM is ready
-            console.log("[DEBUG] Event listeners setup complete.");
-            
-            console.log("[DEBUG] window.onload complete. Awaiting Firebase authentication state change (if not already handled).");
+            // Set the flag to indicate DOM elements are ready
+            domElementsReady = true; 
+
+            // Initialize core features that need DOM elements ready
+            scramble = generateScramble(); // Generates initial scramble and updates displays
+            setupEventListeners(); // Attaches all event listeners to DOM elements
+
+            // Attempt to initialize user data and settings now that DOM is ready.
+            // This function itself checks if Firebase Auth is also ready.
+            initializeUserDataAndSettings();
+
+            // Perform initial state setup for signed out/anonymous user after DOM is ready
+            // (This complements the onAuthStateChanged listener, ensuring UI is correct on load)
+            if (!auth.currentUser) { // If no user is known after Firebase init attempts
+                solves = []; // Clear local solves for a clean start if no user
+                renderSolveHistory(); // Render empty history
+                resetTimer(); // Reset timer and generate new scramble
+                document.getElementById('usernameDisplay').textContent = 'Guest';
+            }
+
+            console.log("[DEBUG] window.onload complete. Application should now be fully initialized.");
         };
 
     </script>
