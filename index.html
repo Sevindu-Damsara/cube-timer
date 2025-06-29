@@ -627,7 +627,7 @@
         // =====================================================================================================
         const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
-            apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+            apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
             authDomain: "ubically-timer.firebaseapp.com",
             projectId: "ubically-timer",
             storageBucket: "ubically-timer.firebasestorage.app",
@@ -688,7 +688,9 @@
 
         // Helper to check if Firebase config is valid (more robust than just checking API key placeholder)
         function isFirebaseConfigValid(config) {
-            return config && config.apiKey && config.apiKey.length > 20 && // API key should be long enough
+            // REMOVED THE apiKey.length > 20 CHECK HERE.
+            // Firebase SDK will now perform its own validation on the key.
+            return config && config.apiKey &&
                    config.authDomain && config.authDomain.includes('.') &&
                    config.projectId && config.projectId.length > 0;
         }
