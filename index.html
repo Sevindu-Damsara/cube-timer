@@ -35,6 +35,7 @@
             display: flex;
             flex-direction: column;
             gap: 2rem;
+            position: relative; /* Ensure relative positioning for inner absolute elements if needed */
         }
 
         .timer-display {
@@ -290,11 +291,14 @@
             .solve-history-item .time {
                 font-size: 1rem;
             }
+            /* Adjusted for buttons inside container */
             .auth-corner-buttons {
-                top: 10px;
-                right: 10px;
-                flex-direction: column;
-                gap: 0.5rem;
+                position: static; /* No longer absolute to body */
+                margin-left: auto; /* Push to right */
+                margin-top: -1.5rem; /* Adjust based on padding/gap */
+                margin-bottom: 1rem; /* Space below if needed */
+                flex-direction: row; /* Keep row layout */
+                justify-content: flex-end; /* Align right within its parent flex */
             }
         }
 
@@ -319,27 +323,15 @@
             .solve-history-item .penalty-buttons button {
                 margin-left: 0.25rem;
             }
+            /* Further adjust for smaller screens if needed, keeping it responsive */
             .auth-corner-buttons {
-                top: 5px;
-                right: 5px;
+                flex-direction: column; /* Stack vertically on very small screens */
+                align-items: flex-end; /* Align stacked buttons to the right */
                 gap: 0.25rem;
+                margin-top: -1rem; /* Adjust margin if buttons stack */
             }
         }
-        .auth-controls {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .auth-corner-buttons {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-            z-index: 10; /* Ensure it's above other content */
-        }
+        /* Removed .auth-controls as it's no longer necessary with new button placement */
 
         /* Theme specific variables */
         body.theme-dark {
@@ -397,14 +389,14 @@
     </style>
 </head>
 <body>
-    <!-- Authentication Controls in Corner -->
-    <div class="auth-corner-buttons">
-        <button id="signInBtn" class="button-primary">Sign In</button>
-        <button id="signUpBtn" class="button-secondary">Sign Up</button>
-        <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
-    </div>
-
     <div class="container">
+        <!-- Authentication Controls - Moved Inside Container -->
+        <div class="flex justify-end gap-2 text-sm auth-corner-buttons">
+            <button id="signInBtn" class="button-primary">Sign In</button>
+            <button id="signUpBtn" class="button-secondary">Sign Up</button>
+            <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
+        </div>
+
         <h1 class="text-4xl font-bold text-center text-gradient mb-6">Rubik's Cube Timer</h1>
 
         <!-- Username Display -->
@@ -649,7 +641,7 @@
         };
         // The URL for your deployed Vercel Serverless Function for AI insights.
         // This will be provided AFTER you deploy the function to Vercel and then updated here.
-        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; // Replace with your actual function URL
+        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
@@ -713,195 +705,122 @@
             return config && config.apiKey && config.authDomain && config.projectId;
         }
 
-     // --- Firebase Initialization and Auth Listener ---
-    // This block runs immediately when the script loads.
-    // It sets up Firebase and the authentication listener.
-    if (isFirebaseConfigValid(firebaseConfig)) { // Use the robust check here
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        console.log("[DEBUG] Firebase initialized. Setting up auth state listener.");
+        // --- Firebase Initialization and Auth Listener ---
+        // This block runs immediately when the script loads.
+        // It sets up Firebase and the authentication listener.
+        if (isFirebaseConfigValid(firebaseConfig)) { // Use the robust check here
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            console.log("[DEBUG] Firebase initialized. Setting up auth state listener.");
 
-        onAuthStateChanged(auth, async (user) => {
-            console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
-            if (user && !user.isAnonymous) { // User is explicitly signed in (Email/Google)
-                userId = user.uid;
-                isUserAuthenticated = true; // Set flag
-                isAuthReady = true;
+            onAuthStateChanged(auth, async (user) => {
+                console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
+                if (user && !user.isAnonymous) { // User is explicitly signed in (Email/Google)
+                    userId = user.uid;
+                    isUserAuthenticated = true; // Set flag
+                    isAuthReady = true;
 
-                // Update UI for authenticated user (buttons can be accessed before general app init)
-                const signInBtn = document.getElementById('signInBtn');
-                const signUpBtn = document.getElementById('signUpBtn');
-                const signOutBtn = document.getElementById('signOutBtn');
-                if (signInBtn) signInBtn.style.display = 'none';
-                if (signUpBtn) signUpBtn.style.display = 'none';
-                if (signOutBtn) signOutBtn.style.display = 'inline-block';
-                console.log("[DEBUG] Auth UI updated for signed in user.");
+                    // Update UI for authenticated user (buttons can be accessed before general app init)
+                    const signInBtn = document.getElementById('signInBtn');
+                    const signUpBtn = document.getElementById('signUpBtn');
+                    const signOutBtn = document.getElementById('signOutBtn');
+                    if (signInBtn) signInBtn.style.display = 'none';
+                    if (signUpBtn) signUpBtn.style.display = 'none';
+                    if (signOutBtn) signOutBtn.style.display = 'inline-block';
+                    console.log("[DEBUG] Auth UI updated for signed in user.");
 
-                await fetchAndDisplayUsername(user.uid, user.email, user.displayName);
-                console.log("[DEBUG] Username fetched and displayed.");
+                    await fetchAndDisplayUsername(user.uid, user.email, user.displayName);
+                    console.log("[DEBUG] Username fetched and displayed.");
 
-                initializeUserDataAndSettings(); // Attempt to initialize user data/settings
-            } else { // User is signed out (including if they were previously anonymous)
-                console.log("[DEBUG] User not authenticated (signed out). Initializing as Guest.");
-                userId = `guest-${crypto.randomUUID()}`; // Use a new local UUID for guest session
-                isUserAuthenticated = false; // Set flag
-                isAuthReady = true;
+                    initializeUserDataAndSettings(); // Attempt to initialize user data/settings
+                } else { // User is signed out (including if they were previously anonymous)
+                    console.log("[DEBUG] User not authenticated (signed out). Initializing as Guest.");
+                    userId = `guest-${crypto.randomUUID()}`; // Use a new local UUID for guest session
+                    isUserAuthenticated = false; // Set flag
+                    isAuthReady = true;
 
-                // Update UI for guest user
-                const usernameDisplayElement = document.getElementById('usernameDisplay');
-                // MODIFIED: Simplified Guest display
-                if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest'; 
-                const signInBtn = document.getElementById('signInBtn');
-                const signUpBtn = document.getElementById('signUpBtn');
-                const signOutBtn = document.getElementById('signOutBtn');
-                if (signInBtn) signInBtn.style.display = 'inline-block';
-                if (signUpBtn) signUpBtn.style.display = 'inline-block';
-                if (signOutBtn) signOutBtn.style.display = 'none';
-                console.log("[DEBUG] Auth UI updated for guest user.");
+                    // Update UI for guest user
+                    const usernameDisplayElement = document.getElementById('usernameDisplay');
+                    // MODIFIED: Simplified Guest display
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest'; 
+                    const signInBtn = document.getElementById('signInBtn');
+                    const signUpBtn = document.getElementById('signUpBtn');
+                    const signOutBtn = document.getElementById('signOutBtn');
+                    if (signInBtn) signInBtn.style.display = 'inline-block';
+                    if (signUpBtn) signUpBtn.style.display = 'inline-block';
+                    if (signOutBtn) signOutBtn.style.display = 'none';
+                    console.log("[DEBUG] Auth UI updated for guest user.");
 
-                initializeUserDataAndSettings(); // Attempt to initialize in local storage mode
-            }
-        });
-    } else {
-        // Offline/guest mode (Firebase config missing or incomplete)
-        console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved beyond session).");
-        userId = `guest-${crypto.randomUUID()}`; // Fallback for no Firebase config/validity
-        isUserAuthenticated = false; // Not authenticated
-        isAuthReady = true; // Auth state determined (offline)
-        
-        const usernameDisplayElement = document.getElementById('usernameDisplay');
-        // MODIFIED: Simplified Offline Guest display
-        if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline Mode)'; 
-        const signInBtn = document.getElementById('signInBtn');
-        const signUpBtn = document.getElementById('signUpBtn');
-        const signOutBtn = document.getElementById('signOutBtn');
-        if (signInBtn) signInBtn.style.display = 'inline-block';
-        if (signUpBtn) signUpBtn.style.display = 'inline-block';
-        if (signOutBtn) signOutBtn.style.display = 'none';
-        initializeUserDataAndSettings(); // Attempt to initialize in offline mode
-    }
-
-    /**
-     * Function to fetch and display username from Firestore for authenticated users,
-     * or set to "Guest" for local users.
-     */
-    async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
-        console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
-        const usernameDisplayElement = document.getElementById('usernameDisplay');
-        if (!usernameDisplayElement) {
-            console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement not found. Skipping username display.");
-            return;
-        }
-
-        if (isUserAuthenticated && db && uid) { // Authenticated user, fetch from Firestore
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
-            try {
-                console.log(`[DEBUG] Attempting to get user profile from Firestore: ${userProfileRef.path}`);
-                const docSnap = await getDoc(userProfileRef);
-                let customUsername = null;
-
-                if (docSnap.exists() && docSnap.data().username) {
-                    customUsername = docSnap.data().username;
-                    console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
-                } else {
-                    console.log("[DEBUG] User profile not found or no username. Generating default.");
-                    let defaultUsername = displayName || (email ? email.split('@')[0] : 'User');
-                    await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
-                    console.log(`[DEBUG] Default username created and saved: ${defaultUsername}`);
-                    customUsername = defaultUsername;
+                    initializeUserDataAndSettings(); // Attempt to initialize in local storage mode
                 }
-                // MODIFIED: Removed "User: " prefix from authenticated display
-                usernameDisplayElement.textContent = `${customUsername}`; 
-                console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
-
-            } catch (e) {
-                console.error("[ERROR] Error fetching or setting username:", e);
-                // MODIFIED: Removed "User: " prefix from error fallback
-                usernameDisplayElement.textContent = `${uid} (Error fetching username)`; 
-            }
-        } else { // Guest user (local storage)
-            // MODIFIED: Ensured it only sets 'Guest' directly
-            usernameDisplayElement.textContent = 'Guest'; 
-            console.log(`[DEBUG] Username display updated to: Guest (Local Mode)`);
-        }
-        console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
-    }
-
-    // ... (rest of your script below, specifically updateUsername function)
-
-    /**
-     * Updates the username in Firestore for authenticated users, or local storage for guests.
-     */
-    async function updateUsername() {
-        console.log("[DEBUG] Entering updateUsername.");
-        const newUsername = settingsUsernameInput.value.trim();
-        if (!newUsername) {
-            if (usernameUpdateMessage) {
-                usernameUpdateMessage.textContent = "Username cannot be empty.";
-                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                usernameUpdateMessage.style.display = 'block';
-            }
-            console.warn("[WARN] New username is empty.");
-            return;
-        }
-
-        if (isUserAuthenticated && db && userId) { // Authenticated user
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            try {
-                console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
-                await updateDoc(userProfileRef, { username: newUsername });
-                if (usernameUpdateMessage) {
-                    usernameUpdateMessage.textContent = "Username updated successfully!";
-                    usernameUpdateMessage.style.color = "#22c55e"; // Green for success
-                    usernameUpdateMessage.style.display = 'block';
-                }
-                console.log("[DEBUG] Username updated successfully in Firestore.");
-                
-                // Update the displayed username immediately
-                // MODIFIED: Direct assignment of username without "User:" prefix
-                const usernameDisplayElement = document.getElementById('usernameDisplay'); // Ensure this is defined
-                if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`; 
-                console.log("[DEBUG] Displayed username refreshed after update.");
-
-                setTimeout(() => {
-                    if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-                    console.log("[DEBUG] Username update message hidden.");
-                }, 3000); // Hide message after 3 seconds
-
-            } catch (e) { 
-                console.error("[ERROR] Error updating username in Firestore: ", e);
-                if (usernameUpdateMessage) {
-                    usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
-                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                    usernameUpdateMessage.style.display = 'block';
-                }
-                // Fallback to local save if Firestore fails
-                saveLocalUsername(newUsername);
-                // MODIFIED: Direct assignment for fallback
-                const usernameDisplayElement = document.getElementById('usernameDisplay');
-                if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`; 
-                console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
-            }
-        } else { // Guest user
-            console.log("[DEBUG] updateUsername: Guest user. Updating username in local storage.");
-            saveLocalUsername(newUsername);
-            if (usernameUpdateMessage) {
-                usernameUpdateMessage.textContent = "Username updated locally (not saved online).";
-                usernameUpdateMessage.style.color = "#fbbf24"; // Amber for warning
-                usernameUpdateMessage.style.display = 'block';
-            }
-            // MODIFIED: Direct assignment for guest username
+            });
+        } else {
+            // Offline/guest mode (Firebase config missing or incomplete)
+            console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved beyond session).");
+            userId = `guest-${crypto.randomUUID()}`; // Fallback for no Firebase config/validity
+            isUserAuthenticated = false; // Not authenticated
+            isAuthReady = true; // Auth state determined (offline)
+            
             const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (usernameDisplayElement) usernameDisplayElement.textContent = `Guest: ${newUsername}`; 
-            setTimeout(() => {
-                if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-                console.log("[DEBUG] Username update message hidden.");
-            }, 3000);
+            // MODIFIED: Simplified Offline Guest display
+            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline Mode)'; 
+            const signInBtn = document.getElementById('signInBtn');
+            const signUpBtn = document.getElementById('signUpBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
+            if (signInBtn) signInBtn.style.display = 'inline-block';
+            if (signUpBtn) signUpBtn.style.display = 'inline-block';
+            if (signOutBtn) signOutBtn.style.display = 'none';
+            initializeUserDataAndSettings(); // Attempt to initialize in offline mode
         }
-        console.log("[DEBUG] Exiting updateUsername.");
-    }
-        
+
+        /**
+         * Function to fetch and display username from Firestore for authenticated users,
+         * or set to "Guest" for local users.
+         */
+        async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
+            console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
+            const usernameDisplayElement = document.getElementById('usernameDisplay');
+            if (!usernameDisplayElement) {
+                console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement not found. Skipping username display.");
+                return;
+            }
+
+            if (isUserAuthenticated && db && uid) { // Authenticated user, fetch from Firestore
+                const userProfileRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+                try {
+                    console.log(`[DEBUG] Attempting to get user profile from Firestore: ${userProfileRef.path}`);
+                    const docSnap = await getDoc(userProfileRef);
+                    let customUsername = null;
+
+                    if (docSnap.exists() && docSnap.data().username) {
+                        customUsername = docSnap.data().username;
+                        console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
+                    } else {
+                        console.log("[DEBUG] User profile not found or no username. Generating default.");
+                        let defaultUsername = displayName || (email ? email.split('@')[0] : 'User');
+                        await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                        console.log(`[DEBUG] Default username created and saved: ${defaultUsername}`);
+                        customUsername = defaultUsername;
+                    }
+                    // MODIFIED: Removed "User: " prefix from authenticated display
+                    usernameDisplayElement.textContent = `${customUsername}`; 
+                    console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
+
+                } catch (e) {
+                    console.error("[ERROR] Error fetching or setting username:", e);
+                    // MODIFIED: Removed "User: " prefix from error fallback
+                    usernameDisplayElement.textContent = `${uid} (Error fetching username)`; 
+                }
+            } else { // Guest user (local storage)
+                // MODIFIED: Ensured it only sets 'Guest' directly
+                usernameDisplayElement.textContent = 'Guest'; 
+                console.log(`[DEBUG] Username display updated to: Guest (Local Mode)`);
+            }
+            console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
+        }
+
+
         // --- Timer Variables ---
         let startTime;
         let elapsedTime = 0;
@@ -1758,6 +1677,78 @@
             console.log("[DEBUG] Exiting applySettingsToUI.");
         }
 
+        /**
+         * Updates the username in Firestore for authenticated users, or local storage for guests.
+         */
+        async function updateUsername() {
+            console.log("[DEBUG] Entering updateUsername.");
+            const newUsername = settingsUsernameInput.value.trim();
+            if (!newUsername) {
+                if (usernameUpdateMessage) {
+                    usernameUpdateMessage.textContent = "Username cannot be empty.";
+                    usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                    usernameUpdateMessage.style.display = 'block';
+                }
+                console.warn("[WARN] New username is empty.");
+                return;
+            }
+
+            if (isUserAuthenticated && db && userId) { // Authenticated user
+                const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
+                try {
+                    console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
+                    await updateDoc(userProfileRef, { username: newUsername });
+                    if (usernameUpdateMessage) {
+                        usernameUpdateMessage.textContent = "Username updated successfully!";
+                        usernameUpdateMessage.style.color = "#22c55e"; // Green for success
+                        usernameUpdateMessage.style.display = 'block';
+                    }
+                    console.log("[DEBUG] Username updated successfully in Firestore.");
+                    
+                    // Update the displayed username immediately
+                    // MODIFIED: Direct assignment of username without "User:" prefix
+                    const usernameDisplayElement = document.getElementById('usernameDisplay'); // Ensure this is defined
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`; 
+                    console.log("[DEBUG] Displayed username refreshed after update.");
+
+                    setTimeout(() => {
+                        if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
+                        console.log("[DEBUG] Username update message hidden.");
+                    }, 3000); // Hide message after 3 seconds
+
+                } catch (e) { 
+                    console.error("[ERROR] Error updating username in Firestore: ", e);
+                    if (usernameUpdateMessage) {
+                        usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
+                        usernameUpdateMessage.style.color = "#ef4444"; // Red for error
+                        usernameUpdateMessage.style.display = 'block';
+                    }
+                    // Fallback to local save if Firestore fails
+                    saveLocalUsername(newUsername);
+                    // MODIFIED: Direct assignment for fallback
+                    const usernameDisplayElement = document.getElementById('usernameDisplay');
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`; 
+                    console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
+                }
+            } else { // Guest user
+                console.log("[DEBUG] updateUsername: Guest user. Updating username in local storage.");
+                saveLocalUsername(newUsername);
+                if (usernameUpdateMessage) {
+                    usernameUpdateMessage.textContent = "Username updated locally (not saved online).";
+                    usernameUpdateMessage.style.color = "#fbbf24"; // Amber for warning
+                    usernameUpdateMessage.style.display = 'block';
+                }
+                // MODIFIED: Direct assignment for guest username
+                const usernameDisplayElement = document.getElementById('usernameDisplay');
+                if (usernameDisplayElement) usernameDisplayElement.textContent = `Guest: ${newUsername}`; 
+                setTimeout(() => {
+                    if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
+                    console.log("[DEBUG] Username update message hidden.");
+                }, 3000);
+            }
+            console.log("[DEBUG] Exiting updateUsername.");
+        }
+
         // --- Timer Logic ---
 
         /**
@@ -1765,8 +1756,7 @@
          */
         async function toggleTimer() {
             console.log("[DEBUG] Entering toggleTimer.");
-            // This ensures the audio context is running on user interaction,
-            // though it's also called in the event listeners. It acts as a safeguard.
+            // Ensure audio context is running on user interaction
             if (enableSoundEffects && Tone.context.state !== 'running') {
                 await Tone.start();
                 console.log("AudioContext ensured to be running (Tone.start() called).");
@@ -1927,7 +1917,13 @@
                 scramble = generateScramble();
                 resetTimer();
             }); else console.error("[ERROR] scrambleBtn not found!");
-            if (settingsBtn) settingsBtn.addEventListener('click', () => {
+            if (settingsBtn) settingsBtn.addEventListener('click', async () => { // Added async for Tone.start()
+                // Ensure audio context is running on settings button click
+                if (enableSoundEffects && Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log("AudioContext ensured to be running (Tone.start() called on settingsBtn click).");
+                }
+
                 const settingsModal = document.getElementById('settingsModal');
                 if (settingsModal) {
                     settingsModal.classList.add('open');
@@ -2051,8 +2047,10 @@
 
                 if (e.code === 'Space') {
                     e.preventDefault();
+                    // Ensure audio context is started on Spacebar press as well
                     if (enableSoundEffects && Tone.context.state !== 'running') {
-                         Tone.start(); // No await needed for Tone.start in keydown
+                         Tone.start(); 
+                         console.log("AudioContext ensured to be running (Tone.start() called on Spacebar keydown).");
                     }
                     if (e.repeat) return;
                     spaceDownTime = Date.now();
@@ -2106,7 +2104,13 @@
                 }
             }
 
-            if (signInBtn) signInBtn.addEventListener('click', () => {
+            if (signInBtn) signInBtn.addEventListener('click', async () => { // Added async for Tone.start()
+                // Ensure audio context is running on auth button click
+                if (enableSoundEffects && Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log("AudioContext ensured to be running (Tone.start() called on signInBtn click).");
+                }
+
                 if (authModal) {
                     authModal.classList.add('open');
                     authModal.focus();
@@ -2122,7 +2126,13 @@
                 clearAuthError();
             }); else console.error("[ERROR] signInBtn not found!");
 
-            if (signUpBtn) signUpBtn.addEventListener('click', () => {
+            if (signUpBtn) signUpBtn.addEventListener('click', async () => { // Added async for Tone.start()
+                // Ensure audio context is running on auth button click
+                if (enableSoundEffects && Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log("AudioContext ensured to be running (Tone.start() called on signUpBtn click).");
+                }
+
                 if (authModal) {
                     authModal.classList.add('open');
                     authModal.focus();
@@ -2139,7 +2149,13 @@
                 clearAuthError();
             }); else console.error("[ERROR] signUpBtn not found!");
 
-            if (signOutBtn) signOutBtn.addEventListener('click', async () => {
+            if (signOutBtn) signOutBtn.addEventListener('click', async () => { // Added async for Tone.start()
+                // Ensure audio context is running on auth button click
+                if (enableSoundEffects && Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log("AudioContext ensured to be running (Tone.start() called on signOutBtn click).");
+                }
+
                 if (auth) { // Only attempt sign out if auth object is initialized
                     try {
                         await signOut(auth);
@@ -2153,6 +2169,12 @@
 
             if (emailAuthBtn) emailAuthBtn.addEventListener('click', handleSignIn); // Direct assignment, not dynamic
             if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
+                // Ensure audio context is running on Google Sign-In button click
+                if (enableSoundEffects && Tone.context.state !== 'running') {
+                    await Tone.start();
+                    console.log("AudioContext ensured to be running (Tone.start() called on googleSignInBtn click).");
+                }
+
                 // Defensive check for auth before using it
                 if (!auth) {
                     console.warn("[WARN] Google Sign-In: Firebase Auth not initialized.");
