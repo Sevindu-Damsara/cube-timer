@@ -25,51 +25,6 @@
             position: relative; /* Needed for positioning absolute children */
         }
 
-        /* Force twisty-player and its internal canvas backgrounds to none */
-        twisty-player, 
-        twisty-player::part(canvas),
-        twisty-player canvas {
-            background: none !important;
-            background-color: none !important;
-        }
-
-        /* Hide default twisty-player control panel */
-        twisty-player::part(control-panel) {
-            display: none !important;
-        }
-
-        /* Custom styles for twisty-player control panel toolbar */
-        twisty-player::part(control-panel) {
-            background-color: var(--bg-color-secondary, #1e293b);
-            border-radius: 0.5rem;
-            padding: 0.5rem 1rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            align-items: center;
-        }
-
-        twisty-player::part(control-button) {
-            background-color: var(--button-secondary-bg, #475569);
-            color: var(--button-secondary-text, #e2e8f0);
-            border: none;
-            border-radius: 0.375rem;
-            padding: 0.4rem 0.8rem;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-        }
-
-        twisty-player::part(control-button):hover {
-            background-color: var(--button-secondary-hover-bg, #64748b);
-        }
-
-        twisty-player::part(control-button):active {
-            background-color: var(--button-secondary-bg, #475569);
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
-        }
-
         .container {
             background-color: var(--bg-color-secondary, #1e293b); /* Slightly lighter dark blue-gray */
             border-radius: 1.5rem; /* Large rounded corners */
@@ -159,102 +114,29 @@
 
         /* 3D Cube Container Styling */
         #cube3DContainer {
-            background-color: var(--bg-color-primary, #0f172a) !important; /* Match app background color */
+            background-color: var(--bg-color-primary); /* Changed to match app background */
             border-radius: 0.75rem;
-            padding: 0;
+            padding: 1rem;
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Changed to column to stack player and toolbar */
+            justify-content: center;
+            align-items: center;
             height: 300px; /* Explicit height for the container to ensure 3D viewer renders */
             width: 100%;
             overflow: hidden; /* Prevent overflow of the viewer */
-            position: relative;
+            position: relative; /* Needed for positioning the toolbar absolutely */
         }
 
-        /* Add a solid background div behind twisty-player */
-        #cube3DContainer::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--bg-color-primary, #0f172a);
-            border-radius: 0.75rem;
-            z-index: 0;
-        }
-
-        /* Override twisty-player internal canvas background */
+        /* Twisty player needs a height */
         #scramble3DViewer {
-            background-color: transparent !important;
-            position: relative;
-            z-index: 1;
-            flex-grow: 1;
+            height: calc(100% - 60px); /* Adjust height to make space for toolbar */
             width: 100%;
         }
-        #scramble3DViewer canvas {
-            background-color: transparent !important;
-            width: 100% !important;
-            height: 100% !important;
-        }
-
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1rem;
-        }
-
-        /* Custom 3D Toolbar Styling */
-        #custom3DToolbar {
-            background-color: var(--bg-color-secondary, #1e293b);
-            padding: 0.5rem 1rem;
-            border-radius: 0 0 0.75rem 0.75rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        /* 3D Cube Container Styling */
-        #cube3DContainer {
-            background-color: var(--bg-color-primary, #0f172a) !important; /* Match app background color */
-            border-radius: 0.75rem;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 300px; /* Explicit height for the container to ensure 3D viewer renders */
-            width: 100%;
-            overflow: hidden; /* Prevent overflow of the viewer */
-            position: relative;
-        }
-
-        /* Override twisty-player internal canvas background */
-        #scramble3DViewer {
-            background-color: transparent !important;
-            position: relative;
-            z-index: 1;
-            flex-grow: 1;
-            width: 100%;
-        }
-        #scramble3DViewer canvas {
-            background-color: transparent !important;
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* Custom 3D Toolbar Styling */
-        #custom3DToolbar {
-            background-color: var(--bg-color-secondary, #1e293b);
-            padding: 0.5rem 1rem;
-            border-radius: 0 0 0.75rem 0.75rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            width: 100%;
-            box-sizing: border-box;
         }
 
         .stat-card {
@@ -542,20 +424,25 @@
                 visualization="3D"
                 alg=""
                 puzzle="3x3x3"
-                style="width: 100%; height: 100%; background: none !important;"
-                background="none"
+                style="width: 100%; height: 100%;"
                 face-letters="false"
-                control-panel="none"           <!-- Hide default control panel -->
+                control-panel="none" <!-- Important: Disable default controls for custom toolbar -->
                 hint-arrows="none"             <!-- Added to hide hint arrows -->
                 camera-latitude="15"           <!-- Set default camera angle -->
                 camera-longitude="-45"         <!-- Set default camera angle -->
+                background="#0f172a"           <!-- Set a default background color that matches dark theme -->
             ></twisty-player>
-
-            <!-- Custom Toolbar for 3D Preview -->
-            <div id="custom3DToolbar" class="flex justify-center gap-4 mt-2 p-2 rounded bg-gray-800 shadow-lg">
-                <button id="btnPlayPause" class="button-secondary px-4 py-2 rounded">Play</button>
-                <button id="btnRestart" class="button-secondary px-4 py-2 rounded">Restart</button>
-                <button id="btnResetCamera" class="button-secondary px-4 py-2 rounded">Reset Camera</button>
+            <!-- Custom Toolbar -->
+            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
+                <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                </button>
+                <button id="pausePreviewBtn" class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                </button>
+                <button id="restartPreviewBtn" class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.188A7.001 7.001 0 0110 3a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7c0-.203.011-.403.032-.601A1.505 1.505 0 003 9.5a.5.5 0 01-.5-.5.5.5 0 00-.5-.5A1.505 1.505 0 002 8.42V7a1 1 0 011-1V3a1 1 0 011-1zm6 13a5 5 0 100-10 5 5 0 000 10z" clip-rule="evenodd"></path></svg>
+                </button>
             </div>
         </div>
 
@@ -710,7 +597,7 @@
         console.log("[DEBUG] Firebase imports completed.");
 
         // IMPORTANT: FIREBASE FIRESTORE SECURITY RULES
-        // To fix "Missing or insufficient permissions" errors, you MUST add these rules
+        // To prevent "Missing or insufficient permissions" errors, you MUST add these rules
         // to your Firebase project's Firestore database rules.
         // Go to Firebase Console -> Firestore Database -> Rules tab, and replace the content with this:
         /*
@@ -730,21 +617,33 @@
         }
         */
 
-        // --- Firebase Configuration for a Standard Hosting Environment ---
-        // IMPORTANT: Replace these with your actual Firebase project configuration.
-        // You can find this in your Firebase Project Settings -> General -> Your apps -> Firebase SDK snippet -> Config.
+        // =====================================================================================================
+        // --- IMPORTANT: Firebase Configuration for Hosting ---
+        // REPLACE THE PLACEHOLDER VALUES BELOW WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
+        // You can find these in your Firebase project settings -> Project settings -> General -> Your apps -> Firebase SDK snippet (Config).
+        //
+        // NOTE: The geminiApiKey is now handled by a serverless function for security.
+        // You will need to deploy a Firebase Cloud Function for AI Insight.
+        // =====================================================================================================
+        const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+            authDomain: "ubically-timer.firebaseapp.com",
+            projectId: "ubically-timer",
+            storageBucket: "ubically-timer.firebasestorage.app",
+            messagingSenderId: "467118524389",
+            appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+            measurementId: "G-6033SRP9WC"
         };
-        // Define a static application ID for data storage paths in Firestore.
-        // You can change this to any string that uniquely identifies your app's data.
-        const appId = 'rubik-timer-app-v1';
-        console.log(`[DEBUG] App ID: ${appId}, Firebase Config Defined.`);
+        // The URL for your deployed Firebase Cloud Function for AI insights.
+        // This will be provided AFTER you deploy the function.
+        const geminiInsightFunctionUrl = "YOUR_CLOUD_FUNCTION_URL_HERE"; 
+        // =====================================================================================================
+        // --- END IMPORTANT CONFIGURATION ---
+        // =====================================================================================================
+
+        console.log(`[DEBUG] App ID: ${appId}, Firebase Config Loaded: ${Object.keys(firebaseConfig).length > 0}`);
+
 
         let app;
         let db;
@@ -754,7 +653,8 @@
 
         // Initialize Firebase
         console.log("[DEBUG] Attempting Firebase initialization.");
-        if (firebaseConfig.apiKey && firebaseConfig.projectId) { // Check if config is provided
+        // Validate if Firebase config is properly set before initializing
+        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.projectId && firebaseConfig.apiKey !== "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M") { // Check if default API key placeholder is replaced
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
@@ -782,32 +682,27 @@
                     console.log("[DEBUG] User settings and solve listener setup complete.");
 
                 } else {
-                    console.log("[DEBUG] User not authenticated (signed out or initial state). Attempting anonymous sign-in if not already ready.");
+                    console.log("[DEBUG] User not authenticated (signed out or initial state). Attempting anonymous sign-in.");
                     // User is signed out or initially not authenticated
-                    userId = null; // Clear userId when signed out
-                    isAuthReady = false; // Not ready for Firestore ops as no authenticated user
-
-                    // Try to sign in anonymously if no user and not already marked as ready (e.g., from a previous anonymous session)
-                    if (auth && !auth.currentUser) {
-                        try {
-                            await signInAnonymously(auth);
-                            console.log("[DEBUG] Signed in anonymously.");
-                        } catch (anonError) {
-                            console.error("[ERROR] Anonymous sign-in failed:", anonError);
-                            // If anonymous sign-in also fails, then operate in a truly offline/guest mode
-                            document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
-                            console.log("[DEBUG] Fallback to purely local/offline mode due to anonymous sign-in failure.");
-                        }
+                    // Attempt anonymous sign-in to allow data storage for guests
+                    try {
+                        await signInAnonymously(auth);
+                        // onAuthStateChanged will be triggered again with the anonymous user
+                        console.log("[DEBUG] Signed in anonymously.");
+                    } catch (error) {
+                        console.error("[ERROR] Anonymous sign-in failed:", error);
+                        // Fallback if anonymous sign-in also fails (e.g., Firebase not set up for it)
+                        userId = crypto.randomUUID(); // Fallback to local UUID for guest, no persistence
+                        isAuthReady = true; // Ready for local operations
+                        document.getElementById('usernameDisplay').textContent = 'Guest (Limited)';
                     }
-                    
-                    // Update UI for unauthenticated user
+
+                    // Update UI for unauthenticated/anonymous user
                     document.getElementById('signInBtn').style.display = 'inline-block';
                     document.getElementById('signUpBtn').style.display = 'inline-block';
                     document.getElementById('signOutBtn').style.display = 'none';
-                    if (!auth.currentUser) { // Ensure it still says Guest if anonymous sign-in failed
-                        document.getElementById('usernameDisplay').textContent = 'Guest';
-                    }
-                    console.log("[DEBUG] Auth UI updated for unauthenticated user.");
+                    document.getElementById('usernameDisplay').textContent = 'Guest'; // Display Guest by default
+                    console.log("[DEBUG] Auth UI updated for unauthenticated/anonymous user.");
                     
                     // Clear solves and reset timer for signed out state
                     solves = [];
@@ -817,8 +712,8 @@
                 }
             });
         } else {
-            console.warn("[DEBUG] Firebase config not completely provided. Running in offline/guest mode.");
-            userId = crypto.randomUUID(); // Fallback for no Firebase config
+            console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved).");
+            userId = crypto.randomUUID(); // Fallback for no Firebase config/validity
             document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
             isAuthReady = true; // Assume ready for local operations
             // No Firestore operations without config, but the app can still function locally
@@ -837,9 +732,9 @@
         async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
             console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
             const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (!db || !uid) {
+            if (!db || !uid || !isAuthReady) { // Ensure auth is ready before trying Firestore
                 usernameDisplayElement.textContent = 'Guest (Offline)'; // Fallback if no DB or UID
-                console.log("[DEBUG] fetchAndDisplayUsername: DB or UID not available. Displaying Guest (Offline).");
+                console.log("[DEBUG] fetchAndDisplayUsername: DB or UID not available or Auth not ready. Displaying Guest (Offline).");
                 return;
             }
 
@@ -869,7 +764,9 @@
                 }
 
                 // Display User ID, and custom username if available
-                if (customUsername && customUsername !== `Guest-${uid.substring(0, 6)}`) {
+                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                    usernameDisplayElement.textContent = `Guest (UID: ${uid})`;
+                } else if (customUsername && customUsername !== `Guest-${uid.substring(0, 6)}`) {
                     usernameDisplayElement.textContent = `UID: ${uid} (Username: ${customUsername})`;
                 } else {
                     usernameDisplayElement.textContent = `UID: ${uid}`;
@@ -923,6 +820,10 @@
         let aiInsightContentDisplay;
         let insightMessageElement;
         let insightSpinner;
+        // New variables for toolbar buttons
+        let playPreviewBtn;
+        let pausePreviewBtn;
+        let restartPreviewBtn;
 
         // Sound effects
         // Initialize Tone.js synths. These are global to avoid re-creating them on every play.
@@ -1071,22 +972,22 @@
             scrambleTextDisplay.textContent = generated;
             if (scramble3DViewer) { // Ensure the element is available
                 // Always set puzzle type explicitly.
-            scramble3DViewer.setAttribute('puzzle', twistyPlayerPuzzleType);
-            // Set algorithm after a very short delay if puzzle type is pyraminx
-            // to give the component a moment to fully reconfigure its parser.
-            // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
-            // due to timing sensitivities with twisty-player's internal parsing.
-            if (cubeType === 'pyraminx') {
-                // Clear alg first to ensure a fresh parse.
-                scramble3DViewer.setAttribute('alg', '');
-                setTimeout(() => {
-                    scramble3DViewer.setAttribute('alg', generated);
-                    console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
-                }, 50); // A small delay (50ms) to ensure internal parser is ready.
-            } else {
-                scramble3DViewer.setAttribute('alg', generated);
-                console.log(`[DEBUG] 3D Viewer updated with alg: ${generated} and puzzle: ${twistyPlayerPuzzleType}`);
-            }
+                scramble3DViewer.puzzle = twistyPlayerPuzzleType; 
+                // Set algorithm after a very short delay if puzzle type is pyraminx
+                // to give the component a moment to fully reconfigure its parser.
+                // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
+                // due to timing sensitivities with twisty-player's internal parsing.
+                if (cubeType === 'pyraminx') {
+                    // Clear alg first to ensure a fresh parse.
+                    scramble3DViewer.alg = ''; 
+                    setTimeout(() => {
+                        scramble3DViewer.alg = generated;
+                        console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
+                    }, 50); // A small delay (50ms) to ensure internal parser is ready.
+                } else {
+                    scramble3DViewer.alg = generated;
+                    console.log(`[DEBUG] 3D Viewer updated with alg: ${generated} and puzzle: ${twistyPlayerPuzzleType}`);
+                }
             } else {
                 console.warn("[WARN] scramble3DViewer is not yet available during generateScramble. This is expected on initial load if 3D view is off.");
             }
@@ -1288,7 +1189,7 @@
         }
 
         /**
-         * Fetches an AI-generated insight for a specific solve.
+         * Fetches an AI-generated insight for a specific solve from the Cloud Function.
          * @param {string} solveId - The ID of the solve for which to generate an insight.
          */
         window.getSolveInsight = async function(solveId) {
@@ -1309,39 +1210,51 @@
             aiInsightModal.classList.add('open');
             aiInsightModal.focus(); // Focus the modal for accessibility
 
-            // The prompt focuses solely on the scramble's inherent properties for an opening strategy.
-            const prompt = `Analyze the ${cubeType} scramble: '${solve.scramble}'. Provide a detailed observation (2-3 sentences) focused on the initial cross or first F2L pair. The observation should identify a specific beneficial feature as if visually inspecting the cube, such as an already solved or easily solvable cross edge/corner, or an intuitive first F2L pair. For example: "You might notice the White-Orange edge is already placed, requiring only an F2 move to join the cross." or "Observe that the Green-Red edge and corner are paired up and ready for insertion." Deliver the insight directly, using simple and clear language, without conversational intros or concluding remarks. Focus solely on a valuable setup observation.`;
+            // Prepare the data to send to the Cloud Function
+            const requestData = {
+                scramble: solve.scramble,
+                cubeType: cubeType,
+                // You might also send auth token if your function requires authenticated calls
+                // idToken: await auth.currentUser.getIdToken() // Example
+            };
 
+            // Use the Cloud Function URL
+            const apiUrl = geminiInsightFunctionUrl;
 
-            let chatHistory = [];
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            const payload = { contents: chatHistory };
-            const apiKey = ""; // You will need to provide your Gemini API key here for a normal hosting environment.
-            // For testing locally without an API key, you can comment out the API call and provide a dummy response.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            // Important: Replace "YOUR_CLOUD_FUNCTION_URL_HERE" with the actual URL
+            // obtained after deploying your Firebase Cloud Function.
+            if (apiUrl === "YOUR_CLOUD_FUNCTION_URL_HERE" || !apiUrl) {
+                insightMessageElement.textContent = "Cloud Function URL not configured. Please deploy your function and update the code.";
+                insightSpinner.style.display = 'none';
+                console.error("[ERROR] Gemini Insight Cloud Function URL is not set.");
+                return;
+            }
 
             try {
-                console.log("[DEBUG] Making Gemini API call for insight with refined prompt.");
+                console.log("[DEBUG] Making Cloud Function call for insight.");
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(requestData)
                 });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+                }
+
                 const result = await response.json();
 
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const insightText = result.candidates[0].content.parts[0].text;
-                    insightMessageElement.textContent = insightText;
-                    console.log("[DEBUG] Gemini API response received and displayed.");
+                if (result.insight) {
+                    insightMessageElement.textContent = result.insight;
+                    console.log("[DEBUG] Cloud Function response received and displayed.");
                 } else {
                     insightMessageElement.textContent = "Could not generate insight. Please try again.";
-                    console.warn("[WARN] Gemini API response structure unexpected:", result);
+                    console.warn("[WARN] Cloud Function response structure unexpected:", result);
                 }
             } catch (e) {
-                insightMessageElement.textContent = "Failed to connect to AI. Please check your network or ensure your API key is correct.";
-                console.error("[ERROR] Error calling Gemini API:", e);
+                insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
+                console.error("[ERROR] Error calling Cloud Function:", e);
             } finally {
                 insightSpinner.style.display = 'none'; // Hide spinner
                 console.log("[DEBUG] AI Insight generation process completed.");
@@ -1502,6 +1415,24 @@
         }
 
         /**
+         * Retrieves the hexadecimal color code for the primary background based on the current theme.
+         * @param {string} theme - The name of the current theme ('dark', 'light', 'vibrant').
+         * @returns {string} The hexadecimal color code.
+         */
+        function getThemeBackgroundColorHex(theme) {
+            switch (theme) {
+                case 'dark':
+                    return '#0f172a';
+                case 'light':
+                    return '#f0f2f5';
+                case 'vibrant':
+                    return '#2d0b57';
+                default:
+                    return '#0f172a'; // Default to dark theme's primary background
+            }
+        }
+
+        /**
          * Applies loaded/default settings to the UI elements.
          */
         function applySettingsToUI() {
@@ -1510,44 +1441,28 @@
             if (soundEffectsToggle) soundEffectsToggle.checked = enableSoundEffects;
             if (cubeTypeSelect) cubeTypeSelect.value = cubeType;
             if (themeSelect) themeSelect.value = currentTheme;
-            if (cubeViewToggle) cubeViewToggle.checked = show3DCubeView; // Apply 3D view toggle setting
+            if (cubeViewToggle) cubeViewToggle.checked = show3DCubeView; // Apply new setting to UI
 
-            // Update visibility of scramble displays based on 'show3DCubeView'
+            document.body.className = `theme-${currentTheme}`; // Apply theme class
+
+            // Toggle visibility of scramble displays
             if (show3DCubeView) {
                 scrambleTextDisplay.style.display = 'none';
-                cube3DContainer.style.display = 'flex'; // Use flex to center the player
+                cube3DContainer.style.display = 'flex'; // Use flex for centering
                 if (scramble3DViewer) {
-                scramble3DViewer.setAttribute('alg', scramble); // Ensure 3D viewer shows current scramble
-                scramble3DViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(cubeType)); // Set correct puzzle type for 3D viewer
-                console.log(`[DEBUG] 3D view enabled. Scramble: ${scramble}, Puzzle: ${getTwistyPlayerPuzzleType(cubeType)}`);
+                    // Set the 3D viewer background directly using the hex color for the chosen theme
+                    scramble3DViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
                 }
             } else {
                 scrambleTextDisplay.style.display = 'block';
                 cube3DContainer.style.display = 'none';
-                console.log("[DEBUG] Text view enabled.");
             }
 
-            document.body.className = `theme-${currentTheme}`; // Apply theme class
-            scramble = generateScramble(); // Regenerate scramble based on new cube type
+            // Ensure scramble is generated/updated for the correct display
+            scramble = generateScramble();
             console.log("[DEBUG] UI settings applied and scramble regenerated.");
             console.log("[DEBUG] Exiting applySettingsToUI.");
         }
-
-        /**
-         * Helper to map cubeType to twisty-player puzzle type.
-         * @param {string} type - The cube type string (e.g., '3x3').
-         * @returns {string} The corresponding twisty-player puzzle type.
-         */
-        function getTwistyPlayerPuzzleType(type) {
-            switch (type) {
-                case '2x2': return '2x2x2';
-                case '3x3': return '3x3x3';
-                case '4x4': return '4x4x4';
-                case 'pyraminx': return 'pyraminx';
-                default: return '3x3x3'; // Default to 3x3 if unknown
-            }
-        }
-
 
         /**
          * Updates the username in Firestore.
@@ -1598,7 +1513,6 @@
             console.log("[DEBUG] Exiting updateUsername.");
         }
 
-
         // --- Timer Logic ---
 
         /**
@@ -1608,9 +1522,9 @@
             console.log("[DEBUG] Entering toggleTimer.");
             // This ensures the audio context is running on user interaction,
             // though it's also called in the event listeners. It acts as a safeguard.
-            if (Tone.context.state !== 'running') {
+            if (enableSoundEffects && Tone.context.state !== 'running') {
                 await Tone.start();
-                console.log("[DEBUG] AudioContext ensured to be running (Tone.start() called).");
+                console.log("AudioContext ensured to be running (Tone.start() called).");
             }
 
             if (isTiming) {
@@ -1626,7 +1540,6 @@
                 }
                 addSolve(elapsedTime); // Add solve to history
                 scramble = generateScramble(); // Generate new scramble for next solve
-                // The scramble display update (text or 3D) is handled internally by generateScramble
                 timerDisplay.textContent = formatTime(0); // Reset display to 0 for next solve
                 elapsedTime = 0; // Reset elapsedTime
                 console.log("[DEBUG] New scramble generated and timer reset for next solve.");
@@ -1702,7 +1615,6 @@
                             timerDisplay.classList.remove('inspection', 'ready');
                             timerDisplay.textContent = formatTime(0);
                             scramble = generateScramble();
-                            // The scramble display update (text or 3D) is handled internally by generateScramble
                             startStopBtn.textContent = 'Start / Stop (Space)';
                             if (enableSoundEffects) {
                                 console.log("Playing forced stop sound due to inspection timeout.");
@@ -1751,9 +1663,7 @@
             timerDisplay.textContent = formatTime(0);
             timerDisplay.classList.remove('inspection', 'ready');
             startStopBtn.textContent = 'Start / Stop (Space)';
-            scramble = generateScramble();
-            // Note: scrambleDisplay is now handled internally by generateScramble
-            // to update either text or 3D viewer based on `show3DCubeView`
+            scramble = generateScramble(); // Updates both text and 3D
         }
 
         // --- Event Listeners ---
@@ -1762,29 +1672,18 @@
          * Sets up all event listeners for buttons and keyboard input.
          */
         function setupEventListeners() {
-            startStopBtn.addEventListener('click', async () => {
-                if (enableSoundEffects) {
-                    // Ensure audio context is running on user interaction
-                    if (Tone.context.state !== 'running') {
-                        await Tone.start();
-                        console.log("AudioContext started by button click.");
-                    }
-                }
-                toggleTimer();
-            });
-
-            resetBtn.addEventListener('click', resetTimer);
-
-            scrambleBtn.addEventListener('click', () => {
+            console.log("[DEBUG] setupEventListeners: Assigning event listeners.");
+            // Defensive checks for element existence before adding listeners
+            if (startStopBtn) startStopBtn.addEventListener('click', toggleTimer); else console.error("[ERROR] startStopBtn not found!");
+            if (resetBtn) resetBtn.addEventListener('click', resetTimer); else console.error("[ERROR] resetBtn not found!");
+            if (scrambleBtn) scrambleBtn.addEventListener('click', () => {
                 scramble = generateScramble();
-                // scrambleDisplay.textContent is now handled inside generateScramble
-                resetTimer(); // Reset timer when generating new scramble
-            });
-
-            settingsBtn.addEventListener('click', () => {
+                resetTimer();
+            }); else console.error("[ERROR] scrambleBtn not found!");
+            if (settingsBtn) settingsBtn.addEventListener('click', () => {
                 const settingsModal = document.getElementById('settingsModal');
                 settingsModal.classList.add('open');
-                // Pre-fill username input if user is signed in and has a username
+                settingsModal.focus();
                 if (auth.currentUser && db && userId) {
                     const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
                     getDoc(userProfileRef).then(docSnap => {
@@ -1795,124 +1694,136 @@
                         }
                     }).catch(e => {
                         console.error("Error loading username for settings:", e);
-                        settingsUsernameInput.value = ''; // Clear on error
+                        settingsUsernameInput.value = '';
                     });
                 } else {
                     settingsUsernameInput.value = '';
                 }
-                usernameUpdateMessage.style.display = 'none'; // Hide previous messages
-                // Ensure UI reflects current settings when modal opens
+                usernameUpdateMessage.style.display = 'none';
                 applySettingsToUI();
-            });
+            }); else console.error("[ERROR] settingsBtn not found!");
 
-            document.getElementById('closeSettingsModal').addEventListener('click', () => {
-                document.getElementById('settingsModal').classList.remove('open');
-                saveUserSettings(); // Save settings when modal closes
-            });
+            const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
+            if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', () => {
+                const settingsModal = document.getElementById('settingsModal');
+                settingsModal.classList.remove('open');
+                console.log("[DEBUG] Settings modal closed by button.");
+                saveUserSettings();
+            }); else console.error("[ERROR] closeSettingsModal not found!");
 
-            // AI Insight Modal close button listener
-            closeAiInsightModalBtn.addEventListener('click', () => {
+            const closeAuthModalBtn = document.getElementById('closeAuthModal');
+            if (closeAuthModalBtn) closeAuthModalBtn.addEventListener('click', () => {
+                const authModal = document.getElementById('authModal');
+                authModal.classList.remove('open');
+                clearAuthError();
+                console.log("[DEBUG] Auth modal closed by button.");
+            }); else console.error("[ERROR] closeAuthModal not found!");
+
+            if (closeAiInsightModalBtn) closeAiInsightModalBtn.addEventListener('click', () => {
                 aiInsightModal.classList.remove('open');
-            });
+                console.log("[DEBUG] AI Insight modal closed by button.");
+            }); else console.error("[ERROR] closeAiInsightModalBtn not found!");
 
-            // New: Close settings modal with Escape key
+
+            if (inspectionToggle) inspectionToggle.addEventListener('change', (e) => {
+                enableInspection = e.target.checked;
+                saveUserSettings();
+            }); else console.error("[ERROR] inspectionToggle not found!");
+
+            if (soundEffectsToggle) soundEffectsToggle.addEventListener('change', (e) => {
+                enableSoundEffects = e.target.checked;
+                saveUserSettings();
+            }); else console.error("[ERROR] soundEffectsToggle not found!");
+
+            if (cubeTypeSelect) cubeTypeSelect.addEventListener('change', (e) => {
+                cubeType = e.target.value;
+                saveUserSettings();
+                scramble = generateScramble();
+                resetTimer();
+            }); else console.error("[ERROR] cubeTypeSelect not found!");
+
+            if (themeSelect) themeSelect.addEventListener('change', (e) => {
+                currentTheme = e.target.value;
+                document.body.className = `theme-${currentTheme}`;
+                saveUserSettings();
+            }); else console.error("[ERROR] themeSelect not found!");
+
+            if (cubeViewToggle) cubeViewToggle.addEventListener('change', (e) => {
+                show3DCubeView = e.target.checked;
+                applySettingsToUI();
+                saveUserSettings();
+            }); else console.error("[ERROR] cubeViewToggle not found!");
+
+            if (saveUsernameBtn) saveUsernameBtn.addEventListener('click', updateUsername); else console.error("[ERROR] saveUsernameBtn not found!");
+
+            // New: Event listeners for custom preview toolbar
+            if (playPreviewBtn) playPreviewBtn.addEventListener('click', () => {
+                if (scramble3DViewer) scramble3DViewer.play();
+                console.log("[DEBUG] Play preview button clicked.");
+            }); else console.error("[ERROR] playPreviewBtn not found!");
+
+            if (pausePreviewBtn) pausePreviewBtn.addEventListener('click', () => {
+                if (scramble3DViewer) scramble3DViewer.pause();
+                console.log("[DEBUG] Pause preview button clicked.");
+            }); else console.error("[ERROR] pausePreviewBtn not found!");
+
+            if (restartPreviewBtn) restartPreviewBtn.addEventListener('click', () => {
+                if (scramble3DViewer && scramble) {
+                    // Jump to the start of the animation (effectively rewinds)
+                    scramble3DViewer.jumpToStart();
+                    // Play from the beginning
+                    scramble3DViewer.play(); 
+                    console.log("[DEBUG] Restart preview button clicked. Cube animation restarted from beginning.");
+                }
+            }); else console.error("[ERROR] restartPreviewBtn not found!");
+
+
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
+                if (e.code === 'Escape') {
                     const settingsModal = document.getElementById('settingsModal');
                     if (settingsModal.classList.contains('open')) {
                         settingsModal.classList.remove('open');
-                        saveUserSettings(); // Save settings when modal closes
-                        console.log("[DEBUG] Settings modal closed via Escape key.");
+                        saveUserSettings();
+                        console.log("[DEBUG] Settings modal closed by Escape key.");
                     }
                     const authModal = document.getElementById('authModal');
                     if (authModal.classList.contains('open')) {
                         authModal.classList.remove('open');
-                        console.log("[DEBUG] Auth modal closed via Escape key.");
+                        clearAuthError();
+                        console.log("[DEBUG] Auth modal closed by Escape key.");
                     }
-                    const aiInsightModal = document.getElementById('aiInsightModal');
                     if (aiInsightModal.classList.contains('open')) {
                         aiInsightModal.classList.remove('open');
-                        console.log("[DEBUG] AI Insight modal closed via Escape key.");
+                        console.log("[DEBUG] AI Insight modal closed by Escape key.");
                     }
                 }
-            });
 
-
-            inspectionToggle.addEventListener('change', (e) => {
-                enableInspection = e.target.checked;
-                saveUserSettings();
-            });
-
-            soundEffectsToggle.addEventListener('change', (e) => {
-                enableSoundEffects = e.target.checked;
-                saveUserSettings();
-            });
-
-            cubeTypeSelect.addEventListener('change', (e) => {
-                cubeType = e.target.value;
-                saveUserSettings();
-                // Scramble generation and display update handled by applySettingsToUI
-                // (which is called after saveUserSettings in loadUserSettings, or can be called explicitly here)
-                scramble = generateScramble(); // Generate new scramble with new type
-                resetTimer(); // Reset timer when cube type changes
-            });
-
-            themeSelect.addEventListener('change', (e) => {
-                currentTheme = e.target.value;
-                document.body.className = `theme-${currentTheme}`; // Apply new theme
-                saveUserSettings();
-            });
-
-            // New: 3D Cube View Toggle Listener
-            cubeViewToggle.addEventListener('change', (e) => {
-                show3DCubeView = e.target.checked;
-                saveUserSettings();
-                applySettingsToUI(); // Re-apply settings to update display
-            });
-
-
-            saveUsernameBtn.addEventListener('click', updateUsername); // New event listener for save username
-
-            // Keyboard input for timer
-            document.addEventListener('keydown', async (e) => {
                 if (e.code === 'Space') {
-                    e.preventDefault(); // Prevent scrolling
-                    if (enableSoundEffects) {
-                        // Ensure audio context is running on user interaction via keyboard
-                        if (Tone.context.state !== 'running') {
-                            await Tone.start();
-                            console.log("AudioContext started by keydown.");
-                        }
+                    e.preventDefault();
+                    if (enableSoundEffects && Tone.context.state !== 'running') {
+                         Tone.start(); // No await needed for Tone.start in keydown
                     }
-
-                    if (e.repeat) return; // Ignore key repeat
-
-                    spaceDownTime = Date.now(); // Record when spacebar was pressed down
-                    timerDisplay.classList.add('ready'); // Indicate ready state visually
+                    if (e.repeat) return;
+                    spaceDownTime = Date.now();
+                    timerDisplay.classList.add('ready');
                 }
             });
 
             document.addEventListener('keyup', (e) => {
                 if (e.code === 'Space') {
                     e.preventDefault();
-
                     const spaceUpTime = Date.now();
                     const holdDuration = spaceUpTime - spaceDownTime;
-
                     timerDisplay.classList.remove('ready');
 
-                    // If held for a short duration (e.g., < 500ms) and timer not running, it's a tap to toggle
                     if (holdDuration < 500 && !isTiming && !isInspecting) {
-                         // This is the initial tap to start inspection or timer
                         toggleTimer();
                     } else if (isInspecting && holdDuration >= 500) {
-                        // If in inspection and space held, start actual timing
                         toggleTimer();
                     } else if (isTiming) {
-                        // If timing, stop the timer regardless of hold duration
                         toggleTimer();
                     }
-                    spaceDownTime = 0; // Reset spaceDownTime
+                    spaceDownTime = 0;
                 }
             });
 
@@ -1920,8 +1831,8 @@
             const authModal = document.getElementById('authModal');
             const authModalTitle = document.getElementById('authModalTitle');
             const emailInput = document.getElementById('email');
-            const usernameInputField = document.getElementById('usernameInput'); // Get new username input field
-            const usernameFieldGroup = document.getElementById('usernameFieldGroup'); // Get its container
+            const usernameInputField = document.getElementById('usernameInput');
+            const usernameFieldGroup = document.getElementById('usernameFieldGroup');
             const passwordInput = document.getElementById('password');
             const authError = document.getElementById('authError');
             const emailAuthBtn = document.getElementById('emailAuthBtn');
@@ -1940,44 +1851,70 @@
                 authError.style.display = 'none';
             }
 
-            signInBtn.addEventListener('click', () => {
+            if (signInBtn) signInBtn.addEventListener('click', () => {
                 authModal.classList.add('open');
                 authModalTitle.textContent = 'Sign In';
                 emailAuthBtn.textContent = 'Sign In';
                 emailAuthBtn.onclick = handleSignIn;
-                usernameFieldGroup.style.display = 'none'; // Hide username field for sign-in
+                emailInput.value = '';
+                passwordInput.value = '';
+                if(usernameFieldGroup) usernameFieldGroup.style.display = 'none';
                 clearAuthError();
-            });
+                authModal.focus();
+            }); else console.error("[ERROR] signInBtn not found!");
 
-            signUpBtn.addEventListener('click', () => {
+            if (signUpBtn) signUpBtn.addEventListener('click', () => {
                 authModal.classList.add('open');
                 authModalTitle.textContent = 'Sign Up';
                 emailAuthBtn.textContent = 'Sign Up';
                 emailAuthBtn.onclick = handleSignUp;
-                usernameFieldGroup.style.display = 'block'; // Show username field for sign-up
+                emailInput.value = '';
+                passwordInput.value = '';
+                if(usernameInputField) usernameInputField.value = '';
+                if(usernameFieldGroup) usernameFieldGroup.style.display = 'block';
                 clearAuthError();
-            });
+                authModal.focus();
+            }); else console.error("[ERROR] signUpBtn not found!");
 
-            document.getElementById('closeAuthModal').addEventListener('click', () => {
-                authModal.classList.remove('open');
-                clearAuthError();
-            });
-
-            signOutBtn.addEventListener('click', async () => {
+            if (signOutBtn) signOutBtn.addEventListener('click', async () => {
                 if (auth) {
                     try {
                         await signOut(auth);
-                        solves = []; // Clear local solves on sign out
-                        renderSolveHistory(); // Update UI
-                        resetTimer(); // Reset timer state
-                        document.getElementById('usernameDisplay').textContent = 'Guest'; // Reset display to Guest
+                        solves = [];
+                        renderSolveHistory();
+                        resetTimer();
+                        document.getElementById('usernameDisplay').textContent = 'Guest';
                         console.log("User signed out successfully.");
                     } catch (error) {
                         console.error("Error signing out:", error);
                     }
                 }
-            });
+            }); else console.error("[ERROR] signOutBtn not found!");
 
+            if (emailAuthBtn) emailAuthBtn.addEventListener('click', handleSignIn); // Direct assignment, not dynamic
+            if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
+                const provider = new GoogleAuthProvider();
+                clearAuthError();
+                try {
+                    const userCredential = await signInWithPopup(auth, provider);
+                    const user = userCredential.user;
+                    if (db) {
+                        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
+                        const docSnap = await getDoc(userProfileRef);
+                        if (!docSnap.exists() || !docSnap.data().username) {
+                            const defaultUsername = user.displayName || user.email.split('@')[0];
+                            await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                        }
+                    }
+                    authModal.classList.remove('open');
+                    console.log("Signed in with Google.");
+                } catch (error) {
+                    showAuthError(error.message);
+                    console.error("Google sign-in error:", error);
+                }
+            }); else console.error("[ERROR] googleSignInBtn not found!");
+
+            // Helper functions for auth
             async function handleSignIn() {
                 const email = emailInput.value;
                 const password = passwordInput.value;
@@ -1986,7 +1923,6 @@
                     await signInWithEmailAndPassword(auth, email, password);
                     authModal.classList.remove('open');
                     console.log("Signed in with email:", email);
-                    // Username display will be handled by onAuthStateChanged
                 } catch (error) {
                     showAuthError(error.message);
                     console.error("Email sign-in error:", error);
@@ -1995,7 +1931,7 @@
 
             async function handleSignUp() {
                 const email = emailInput.value;
-                const username = usernameInputField.value.trim(); // Get username from input
+                const username = usernameInputField.value.trim();
                 const password = passwordInput.value;
                 clearAuthError();
 
@@ -2010,62 +1946,26 @@
                     
                     if (db) {
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
-                        await setDoc(userProfileRef, { username: username }, { merge: true }); // Save custom username
+                        await setDoc(userProfileRef, { username: username }, { merge: true });
                     }
                     authModal.classList.remove('open');
                     console.log("Signed up with email:", email, "Username:", username);
-                    // Username display will be handled by onAuthStateChanged
                 } catch (error) {
                     showAuthError(error.message);
                     console.error("Email sign-up error:", error);
                 }
             }
-
-            googleSignInBtn.addEventListener('click', async () => {
-                const provider = new GoogleAuthProvider();
-                clearAuthError();
-                try {
-                    const userCredential = await signInWithPopup(auth, provider);
-                    const user = userCredential.user;
-                    if (db) {
-                        const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
-                        const docSnap = await getDoc(userProfileRef);
-                        if (!docSnap.exists() || !docSnap.data().username) {
-                            // Only set if no username exists, or is empty
-                            const defaultUsername = user.displayName || user.email.split('@')[0];
-                            await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
-                        }
-                    }
-                    authModal.classList.remove('open');
-                    console.log("Signed in with Google.");
-                    // Username display will be handled by onAuthStateChanged
-                } catch (error) {
-                    showAuthError(error.message);
-                    console.error("Google sign-in error:", error);
-                }
-            });
         }
 
         // --- Initialization on Window Load ---
         window.onload = function() {
+            console.log("[DEBUG] window.onload triggered. Initializing DOM elements and listeners.");
             // Assign DOM elements to variables after the document is loaded
             timerDisplay = document.getElementById('timerDisplay');
-            scrambleTextDisplay = document.getElementById('scrambleTextDisplay'); // Updated ID
-            cube3DContainer = document.getElementById('cube3DContainer');     // New
-            scramble3DViewer = document.getElementById('scramble3DViewer');    // New
-
-            // Fix transparency by setting internal canvas background color inside shadow DOM
-            if (scramble3DViewer) {
-                const shadowRoot = scramble3DViewer.shadowRoot;
-                if (shadowRoot) {
-                    const canvas = shadowRoot.querySelector('canvas');
-                    if (canvas) {
-                        // Remove solid background color to allow transparency
-                        canvas.style.backgroundColor = 'transparent';
-                    }
-                }
-            }
-
+            scrambleTextDisplay = document.getElementById('scrambleTextDisplay');
+            cube3DContainer = document.getElementById('cube3DContainer');
+            // scramble3DViewer is now directly in HTML, so we just get it
+            scramble3DViewer = document.getElementById('scramble3DViewer');
             startStopBtn = document.getElementById('startStopBtn');
             resetBtn = document.getElementById('resetBtn');
             scrambleBtn = document.getElementById('scrambleBtn');
@@ -2080,7 +1980,7 @@
             soundEffectsToggle = document.getElementById('soundEffectsToggle');
             cubeTypeSelect = document.getElementById('cubeTypeSelect');
             themeSelect = document.getElementById('themeSelect');
-            cubeViewToggle = document.getElementById('cubeViewToggle'); // New
+            cubeViewToggle = document.getElementById('cubeViewToggle');
             settingsUsernameInput = document.getElementById('settingsUsernameInput');
             saveUsernameBtn = document.getElementById('saveUsernameBtn');
             usernameUpdateMessage = document.getElementById('usernameUpdateMessage');
@@ -2089,131 +1989,23 @@
             aiInsightContentDisplay = document.getElementById('aiInsightContent');
             insightMessageElement = document.getElementById('insightMessage');
             insightSpinner = aiInsightContentDisplay.querySelector('.spinner');
+            // New: Get references for custom toolbar buttons
+            playPreviewBtn = document.getElementById('playPreviewBtn');
+            pausePreviewBtn = document.getElementById('pausePreviewBtn');
+            restartPreviewBtn = document.getElementById('restartPreviewBtn');
 
+
+            // Initial scramble generation and display update
             scramble = generateScramble();
-            // scrambleTextDisplay.textContent is now handled within generateScramble
 
-            setupEventListeners(); // Set up all event listeners
-            // Initial load of settings and solves is handled by onAuthStateChanged
-
-            // Additional fix: forcibly set WebGL clear color to app background to remove checkerboard
-            if (scramble3DViewer) {
-                const shadowRoot = scramble3DViewer.shadowRoot;
-                if (shadowRoot) {
-                    const canvas = shadowRoot.querySelector('canvas');
-                    if (canvas) {
-                        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                        if (gl) {
-                            // Set clear color to app background color (dark blue-gray)
-                            gl.clearColor(0.06, 0.09, 0.16, 1.0); // RGB normalized for #0f172a
-                            gl.clear(gl.COLOR_BUFFER_BIT);
-                            console.log("[DEBUG] WebGL clear color set to app background color to remove checkerboard.");
-                        }
-                    }
-                    // Inject CSS into shadow DOM to style control panel and buttons
-                    const style = document.createElement('style');
-                    style.textContent = `
-                        .control-panel {
-                            background-color: var(--bg-color-secondary, #1e293b) !important;
-                            border-radius: 0.5rem !important;
-                            padding: 0.5rem 1rem !important;
-                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
-                            display: flex !important;
-                            gap: 1rem !important;
-                            justify-content: center !important;
-                            align-items: center !important;
-                        }
-                        .control-button {
-                            background-color: var(--button-secondary-bg, #475569) !important;
-                            color: var(--button-secondary-text, #e2e8f0) !important;
-                            border: none !important;
-                            border-radius: 0.375rem !important;
-                            padding: 0.4rem 0.8rem !important;
-                            cursor: pointer !important;
-                            font-weight: 600 !important;
-                            transition: background-color 0.3s ease !important;
-                        }
-                        .control-button:hover {
-                            background-color: var(--button-secondary-hover-bg, #64748b) !important;
-                        }
-                        .control-button:active {
-                            background-color: var(--button-secondary-bg, #475569) !important;
-                            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
-                        }
-                    `;
-                    shadowRoot.appendChild(style);
-
-                    // Directly style control panel and buttons inline
-                    const controlPanel = shadowRoot.querySelector('.control-panel');
-                    if (controlPanel) {
-                        controlPanel.style.backgroundColor = 'var(--bg-color-secondary, #1e293b)';
-                        controlPanel.style.borderRadius = '0.5rem';
-                        controlPanel.style.padding = '0.5rem 1rem';
-                        controlPanel.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.3)';
-                        controlPanel.style.display = 'flex';
-                        controlPanel.style.gap = '1rem';
-                        controlPanel.style.justifyContent = 'center';
-                        controlPanel.style.alignItems = 'center';
-                    }
-                    const controlButtons = shadowRoot.querySelectorAll('.control-button');
-                    controlButtons.forEach(button => {
-                        button.style.backgroundColor = 'var(--button-secondary-bg, #475569)';
-                        button.style.color = 'var(--button-secondary-text, #e2e8f0)';
-                        button.style.border = 'none';
-                        button.style.borderRadius = '0.375rem';
-                        button.style.padding = '0.4rem 0.8rem';
-                        button.style.cursor = 'pointer';
-                        button.style.fontWeight = '600';
-                        button.style.transition = 'background-color 0.3s ease';
-                        button.addEventListener('mouseenter', () => {
-                            button.style.backgroundColor = 'var(--button-secondary-hover-bg, #64748b)';
-                        });
-                        button.addEventListener('mouseleave', () => {
-                            button.style.backgroundColor = 'var(--button-secondary-bg, #475569)';
-                        });
-                        button.addEventListener('mousedown', () => {
-                            button.style.backgroundColor = 'var(--button-secondary-bg, #475569)';
-                            button.style.boxShadow = 'inset 0 2px 4px rgba(0, 0, 0, 0.4)';
-                        });
-                        button.addEventListener('mouseup', () => {
-                            button.style.boxShadow = 'none';
-                        });
-                    });
-                }
-            }
+            // Set up all event listeners
+            setupEventListeners();
+            console.log("[DEBUG] Event listeners setup complete.");
+            
+            // Initial load of settings and solves is handled by onAuthStateChanged Firebase listener
+            console.log("[DEBUG] window.onload complete. Awaiting Firebase authentication state change.");
         };
 
-    </script>
-    <script>
-        // Standalone script to initialize and handle custom 3D toolbar buttons
-        window.addEventListener('DOMContentLoaded', () => {
-            const scramble3DViewer = document.getElementById('scramble3DViewer');
-            const btnPlayPause = document.getElementById('btnPlayPause');
-            const btnRestart = document.getElementById('btnRestart');
-            const btnResetCamera = document.getElementById('btnResetCamera');
-
-            if (btnPlayPause && btnRestart && btnResetCamera && scramble3DViewer) {
-                btnPlayPause.addEventListener('click', () => {
-                    if (scramble3DViewer.isPlaying) {
-                        scramble3DViewer.pause();
-                        btnPlayPause.textContent = 'Play';
-                    } else {
-                        scramble3DViewer.play();
-                        btnPlayPause.textContent = 'Pause';
-                    }
-                });
-
-                btnRestart.addEventListener('click', () => {
-                    scramble3DViewer.restart();
-                });
-
-                btnResetCamera.addEventListener('click', () => {
-                    scramble3DViewer.resetCamera();
-                });
-            } else {
-                console.warn('Custom 3D toolbar buttons or viewer not found.');
-            }
-        });
     </script>
 </body>
 </html>
