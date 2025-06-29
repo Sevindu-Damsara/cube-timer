@@ -635,8 +635,8 @@
             appId: "1:467118524389:web:d3455f5be5747be2cb910c",
             measurementId: "G-6033SRP9WC"
         };
-        // The URL for your deployed Firebase Cloud Function for AI insights.
-        // This will be provided AFTER you deploy the function.
+        // The URL for your deployed Vercel Serverless Function for AI insights.
+        // This will be provided AFTER you deploy the function to Vercel.
         const geminiInsightFunctionUrl = "YOUR_CLOUD_FUNCTION_URL_HERE"; 
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
@@ -706,9 +706,7 @@
                     
                     // Clear solves and reset timer for signed out state
                     solves = [];
-                    renderSolveHistory();
-                    resetTimer();
-                    console.log("[DEBUG] Local solves cleared and timer reset due to sign out.");
+                    // Removed direct call to renderSolveHistory and resetTimer here, will be done in window.onload
                 }
             });
         } else {
@@ -717,7 +715,8 @@
             document.getElementById('usernameDisplay').textContent = 'Guest (Offline)';
             isAuthReady = true; // Assume ready for local operations
             // No Firestore operations without config, but the app can still function locally
-            setupRealtimeSolvesListener(); // This will not fetch data but will setup the local data array
+            // Removed direct calls to setupRealtimeSolvesListener(), renderSolveHistory(), resetTimer() here
+            // These will now be called within window.onload to ensure DOM elements are ready.
             // Update UI for unauthenticated user (offline mode)
             document.getElementById('signInBtn').style.display = 'inline-block';
             document.getElementById('signUpBtn').style.display = 'inline-block';
@@ -1062,6 +1061,12 @@
          */
         function renderSolveHistory() {
             console.log("[DEBUG] Entering renderSolveHistory.");
+            // Ensure solveHistoryList is defined before accessing its properties
+            if (!solveHistoryList) {
+                console.warn("[WARN] renderSolveHistory called before solveHistoryList is initialized.");
+                return; // Exit if DOM element is not ready
+            }
+
             solveHistoryList.innerHTML = '';
             if (solves.length === 0) {
                 noSolvesMessage.style.display = 'block';
@@ -1117,6 +1122,12 @@
          */
         function updateStatistics() {
             console.log("[DEBUG] Entering updateStatistics.");
+            // Ensure elements are defined
+            if (!bestTimeDisplay || !ao5Display || !ao12Display || !solveCountDisplay) {
+                 console.warn("[WARN] updateStatistics called before all display elements are initialized.");
+                 return;
+            }
+
             const validSolves = solves.filter(s => s.penalty !== 'DNF');
             let actualTimes = validSolves.map(s => s.time + (s.penalty === '+2' ? 2000 : 0));
 
@@ -1326,6 +1337,12 @@
          */
         function setupRealtimeSolvesListener() {
             console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
+            // Ensure DOM elements are initialized before proceeding
+            if (!solveHistoryList) {
+                console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Deferring execution.");
+                return; // Exit and wait for window.onload to re-call
+            }
+
             if (isAuthReady && db && userId) {
                 console.log("[DEBUG] setupRealtimeSolvesListener: Authenticated and Firestore ready. Setting up onSnapshot.");
                 const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
@@ -1347,7 +1364,8 @@
                 });
             } else {
                 console.log("[DEBUG] setupRealtimeSolvesListener: Firestore not available or not authenticated, will use local solves array.");
-                renderSolveHistory(); // Render any existing local solves (if user was previously anonymous)
+                // Render any existing local solves (if user was previously anonymous)
+                renderSolveHistory();
             }
             console.log("[DEBUG] Exiting setupRealtimeSolvesListener.");
         }
@@ -1357,6 +1375,12 @@
          */
         async function loadUserSettings() {
             console.log("[DEBUG] Entering loadUserSettings.");
+            // Ensure DOM elements are initialized before proceeding
+            if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
+                 console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Deferring execution.");
+                 return; // Exit and wait for window.onload to re-call
+            }
+
             if (isAuthReady && db && userId) {
                 console.log("[DEBUG] loadUserSettings: Authenticated and Firestore ready. Attempting to load settings.");
                 const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
@@ -1437,6 +1461,12 @@
          */
         function applySettingsToUI() {
             console.log("[DEBUG] Entering applySettingsToUI.");
+            // Ensure UI elements are initialized before trying to apply settings to them
+            if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
+                 console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized.");
+                 return;
+            }
+
             if (inspectionToggle) inspectionToggle.checked = enableInspection;
             if (soundEffectsToggle) soundEffectsToggle.checked = enableSoundEffects;
             if (cubeTypeSelect) cubeTypeSelect.value = cubeType;
@@ -1881,8 +1911,8 @@
                     try {
                         await signOut(auth);
                         solves = [];
-                        renderSolveHistory();
-                        resetTimer();
+                        renderSolveHistory(); // Re-render after sign out to clear history
+                        resetTimer(); // Reset timer after sign out
                         document.getElementById('usernameDisplay').textContent = 'Guest';
                         console.log("User signed out successfully.");
                     } catch (error) {
@@ -1994,18 +2024,20 @@
             pausePreviewBtn = document.getElementById('pausePreviewBtn');
             restartPreviewBtn = document.getElementById('restartPreviewBtn');
 
-
+            // Now that all DOM elements are assigned, call functions that depend on them
             // Initial scramble generation and display update
             scramble = generateScramble();
-
             // Set up all event listeners
             setupEventListeners();
+            // Initial load of settings and solves is handled here or by onAuthStateChanged
+            loadUserSettings();
+            setupRealtimeSolvesListener(); // Call it after DOM is ready
             console.log("[DEBUG] Event listeners setup complete.");
             
-            // Initial load of settings and solves is handled by onAuthStateChanged Firebase listener
-            console.log("[DEBUG] window.onload complete. Awaiting Firebase authentication state change.");
+            console.log("[DEBUG] window.onload complete. Awaiting Firebase authentication state change (if not already handled).");
         };
 
     </script>
 </body>
 </html>
+
