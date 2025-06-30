@@ -15,7 +15,7 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 @app.route('/api/gemini-nlu', methods=['POST', 'OPTIONS'])
 def gemini_nlu_handler():
     """HTTP endpoint that uses Gemini to interpret natural language voice commands.
-    It expects a 'transcript' in the JSON body and returns a 'canonicalCommand'.
+    It expects a 'transcript' in the JSON body and returns a 'canonicalCommand' and optionally 'commandValue'.
     Handles both preflight (OPTIONS) and actual (POST) requests.
     """
     print("DEBUG: gemini_nlu_handler received a request.")
@@ -38,14 +38,12 @@ def gemini_nlu_handler():
 
         # Your Gemini API Key - This should be set as an environment variable in Vercel.
         # For development, you might hardcode it here temporarily, but REMOVE for production.
-        # It's safer to ensure it's picked up from environment variables.
         gemini_api_key = os.environ.get("GEMINI_API_KEY") 
         if not gemini_api_key:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
             return jsonify({"error": "Server configuration error: Gemini API Key is not set."}), 500
 
-        # Define the set of canonical commands the front-end understands.
-        # This list should match the commands handled in handleVoiceCommand on the client side.
+        # Define the set of canonical commands the front-end understands, including new settings commands.
         canonical_commands = [
             "start_timer",
             "stop_timer",
@@ -54,22 +52,37 @@ def gemini_nlu_handler():
             "open_settings",
             "close_settings",
             "get_insight",
+            "toggle_inspection",
+            "toggle_sound_effects",
+            "set_cube_type", # Requires a value
+            "set_theme",     # Requires a value
+            "toggle_3d_cube_view",
             "unknown" # Fallback for commands not understood
         ]
+        
+        # Define valid values for parameters, important for Gemini's output
+        valid_cube_types = ["3x3", "2x2", "4x4", "pyraminx"]
+        valid_themes = ["dark", "light", "vibrant"]
 
         # Construct the prompt for Gemini.
-        # We explicitly ask for a JSON response with a 'canonicalCommand' field.
+        # We explicitly ask for a JSON response with a 'canonicalCommand' and optionally 'commandValue'.
         prompt = f"""
         Analyze the following user command and determine its primary intent.
         Map the user's intent to one of the following canonical commands:
         {", ".join(canonical_commands)}.
-        If the intent does not clearly match any of the canonical commands, return "unknown".
+        
+        If the command is 'set_cube_type', identify the cube type from {", ".join(valid_cube_types)}.
+        If the command is 'set_theme', identify the theme from {", ".join(valid_themes)}.
+        If a value is identified, return it in the 'commandValue' field.
+        If the intent does not clearly match any of the canonical commands, return "unknown" for 'canonicalCommand'.
 
         User command: "{user_transcript}"
 
-        Respond ONLY with a JSON object containing a single key "canonicalCommand"
-        and its corresponding canonical command string.
-        Example: {{"canonicalCommand": "start_timer"}}
+        Respond ONLY with a JSON object.
+        Example 1: {{"canonicalCommand": "start_timer"}}
+        Example 2: {{"canonicalCommand": "set_cube_type", "commandValue": "2x2"}}
+        Example 3: {{"canonicalCommand": "set_theme", "commandValue": "light"}}
+        Example 4: {{"canonicalCommand": "unknown"}}
         """
 
         gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
@@ -92,9 +105,10 @@ def gemini_nlu_handler():
                 "responseSchema": {
                     "type": "OBJECT",
                     "properties": {
-                        "canonicalCommand": { "type": "STRING", "enum": canonical_commands }
+                        "canonicalCommand": { "type": "STRING", "enum": canonical_commands },
+                        "commandValue": { "type": "STRING" } # Allow any string for commandValue, validation is client-side
                     },
-                    "required": ["canonicalCommand"]
+                    "required": ["canonicalCommand"] # Ensure canonicalCommand is always present
                 }
             }
         }
@@ -106,18 +120,20 @@ def gemini_nlu_handler():
         gemini_result = gemini_response.json()
         print(f"DEBUG: Raw Gemini response: {json.dumps(gemini_result, indent=2)}")
 
-        # Extract the canonical command from Gemini's structured response
+        # Extract the canonical command and optional value from Gemini's structured response
         if gemini_result and gemini_result.get('candidates') and len(gemini_result['candidates']) > 0:
             if gemini_result['candidates'][0].get('content') and gemini_result['candidates'][0]['content'].get('parts'):
                 try:
                     # Gemini's structured response comes as a string, parse it
                     gemini_content_str = gemini_result['candidates'][0]['content']['parts'][0]['text']
                     parsed_gemini_content = json.loads(gemini_content_str)
+                    
                     canonical_command = parsed_gemini_content.get('canonicalCommand')
+                    command_value = parsed_gemini_content.get('commandValue') # Get optional value
 
                     if canonical_command in canonical_commands:
-                        print(f"DEBUG: Canonical command identified: {canonical_command}")
-                        return jsonify({"canonicalCommand": canonical_command}), 200
+                        print(f"DEBUG: Canonical command identified: {canonical_command}, Value: {command_value}")
+                        return jsonify({"canonicalCommand": canonical_command, "commandValue": command_value}), 200
                     else:
                         print(f"WARN: Gemini returned an unrecognised canonical command: {canonical_command}. Falling back to 'unknown'.")
                         return jsonify({"canonicalCommand": "unknown"}), 200
