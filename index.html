@@ -570,7 +570,8 @@
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
                 </button>
                 <button id="restartPreviewBtn" class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.188A7.001 7.001 0 0110 3a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7c0-.203.011-.403.032-.601A1.505 0 003 9.5a.5.5 0 01-.5-.5.5.5 0 00-.5-.5A1.505 0 002 8.42V7a1 1 0 011-1V3a1 1 0 011-1zm6 13a5 5 0 100-10 5 5 0 000 10z" clip-rule="evenodd"></path></svg>
+                    <!-- Corrected SVG path for restart icon -->
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                 </button>
             </div>
         </div>
@@ -1204,6 +1205,7 @@
             }
 
             // If already actively listening or in the process of starting, exit.
+            // Check recognition.listening directly and our custom flag.
             if (recognition.listening || isStartingRecognition) {
                 console.log("[DEBUG] Recognition already listening or starting. Aborting redundant restart.");
                 isListeningForVoice = true; // Ensure our flag is consistent
@@ -1220,22 +1222,26 @@
             recognitionRestartTimeoutId = setTimeout(() => {
                 try {
                     // Abort any active or pending recognition to ensure a clean state
-                    if (recognition.listening || recognition.readyState === 'starting') {
+                    // Check if recognition is not already idle or closed before aborting.
+                    if (recognition.readyState !== 'idle' && recognition.readyState !== 'closed') {
                         recognition.abort(); // Force stop any ongoing recognition
                         console.log("[DEBUG] Forced abort before attempting restart.");
                     }
                     
                     // Only start if it's truly idle or closed after abort
-                    if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
-                        recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped
-                        recognition.start();
-                        console.log("[DEBUG] SpeechRecognition.start() called after delay and state check.");
-                    } else {
-                        console.log(`[DEBUG] Recognition not in 'idle', 'closed', or 'undefined' state after delay (current state: ${recognition.readyState}). Will not call start().`);
-                        if (recognition.readyState === 'listening') {
-                            isListeningForVoice = true; // Correct our flag if it started independently
+                    // Add a small microtask delay to allow abort to fully process before starting.
+                    Promise.resolve().then(() => {
+                        if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
+                            recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped
+                            recognition.start();
+                            console.log("[DEBUG] SpeechRecognition.start() called after delay and state check.");
+                        } else {
+                            console.log(`[DEBUG] Recognition not in 'idle', 'closed', or 'undefined' state after delay (current state: ${recognition.readyState}). Will not call start().`);
+                            if (recognition.readyState === 'listening') {
+                                isListeningForVoice = true; // Correct our flag if it started independently
+                            }
                         }
-                    }
+                    });
                 } catch (e) {
                     console.error("[ERROR] Failed to start recognition after delay:", e);
                     speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
@@ -1282,7 +1288,8 @@
                     recognition.manuallyStopped = true; // Mark as manually stopped for `onend` handler
                     recognition.stop(); 
                     awaitingActualCommand = false; // Reset immediately
-                    processVoiceCommandWithGemini(transcript); // Process command after stopping recognition
+                    // Process command after a short delay to allow `onend` to fire if it needs to.
+                    setTimeout(() => processVoiceCommandWithGemini(transcript), 50); 
                     console.log("[DEBUG] Recognition stopped and awaitingActualCommand set to FALSE after command processing.");
                 } else if (transcript.includes('jarvis')) { // Check for wake word
                     console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
