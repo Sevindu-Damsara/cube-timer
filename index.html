@@ -562,7 +562,7 @@
                 background="#0f172a"           <!-- Set a default background color that matches dark theme -->
             ></twisty-player>
             <!-- Custom Toolbar -->
-            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
+            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
                 <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
                 </button>
@@ -1072,13 +1072,32 @@
                     console.log("[DEBUG] Recognition stopped and awaitingActualCommand set to FALSE after command processing.");
                 } else if (transcript.includes('jarvis')) { // Check for wake word
                     console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
-                    speakAsJarvis("At your service, Sir Sevindu. Your command?");
+                    
+                    // Ensure audio context is running before Jarvis speaks, especially if this is the very first audio
+                    if (enableSoundEffects && Tone.context.state !== 'running') {
+                        Tone.start().then(() => {
+                            speakAsJarvis("At your service, Sir Sevindu. Your command?");
+                        }).catch(e => console.error("Failed to start AudioContext before speaking:", e));
+                    } else {
+                        speakAsJarvis("At your service, Sir Sevindu. Your command?");
+                    }
+
                     awaitingActualCommand = true; // Enter command mode
                     // Set a timeout to exit command mode if no command follows quickly
                     commandTimeoutId = setTimeout(() => {
                         awaitingActualCommand = false;
-                        speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                        if (enableSoundEffects && Tone.context.state !== 'running') {
+                             Tone.start().then(() => {
+                                speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                            }).catch(e => console.error("Failed to start AudioContext before speaking (timeout):", e));
+                        } else {
+                            speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                        }
+                        
                         console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
+                        // Force a restart of recognition to ensure continuous listening resumes
+                        recognition.manuallyStopped = false; // Mark as not manually stopped so onend will restart
+                        recognition.stop(); // Stop current recognition, onend will handle restart
                     }, 5000); // 5 seconds to give a command
                 } else {
                     console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
@@ -1235,6 +1254,23 @@
             } catch (e) {
                 speakAsJarvis(`Sir Sevindu, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
                 console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
+            } finally {
+                // After processing command, ensure recognition restarts to listen for wake word
+                // Use a slight delay to prevent race conditions with recognition.onend
+                console.log("[DEBUG] processVoiceCommandWithGemini: Scheduling recognition restart after command processing.");
+                setTimeout(() => {
+                    if (!isListeningForVoice) { // Only restart if not already listening (e.g. if onend already started it)
+                        try {
+                            recognition.manuallyStopped = false; // Reset manual stop flag
+                            recognition.start();
+                            console.log("[DEBUG] Recognition restarted after command processing.");
+                        } catch (restartError) {
+                            console.error("[ERROR] Failed to restart recognition after command processing:", restartError);
+                        }
+                    } else {
+                        console.log("[DEBUG] Recognition already active after command processing (likely from onend). No need to restart.");
+                    }
+                }, 500); // Short delay before restarting recognition
             }
         }
 
@@ -1922,7 +1958,8 @@
                 if (result.personalizedTip && personalizedTipText && personalizedTipDisplay) {
                     personalizedTipText.textContent = result.personalizedTip;
                     personalizedTipDisplay.style.display = 'block';
-                    speakAsJarvis(`Sir Sevindu, my analysis suggests: ${result.personalizedTip}`);
+                    // We only speak the tip, as the overall Jarvis persona handles the greeting
+                    // speakAsJarvis(`Sir Sevindu, my analysis suggests: ${result.personalizedTip}`);
                 } else {
                     if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
                 }
