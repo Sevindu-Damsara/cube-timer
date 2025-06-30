@@ -562,7 +562,7 @@
                 background="#0f172a"           <!-- Set a default background color that matches dark theme -->
             ></twisty-player>
             <!-- Custom Toolbar -->
-            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
+            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
                 <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
                 </button>
@@ -1024,7 +1024,10 @@
         let restartPreviewBtn;
         // Voice command button
         let voiceCommandBtn; // New
-        let isListeningForVoice = false; // New state for voice recognition
+        let isListeningForVoice = false; // New state for voice recognition (global continuous listening)
+        let awaitingActualCommand = false; // New state: true after wake word, waiting for command
+        let commandTimeoutId = null; // To clear timeout for awaitingActualCommand
+
 
         // Web Speech API
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1033,40 +1036,89 @@
         const synth = window.speechSynthesis;
 
         if (recognition) {
-            recognition.continuous = false; // Stop after first utterance
+            recognition.continuous = true; // IMPORTANT: Enable continuous listening for wake word
             recognition.interimResults = false; // Only return final results
             recognition.lang = 'en-US'; // Set language
 
             recognition.onstart = () => {
                 console.log("[DEBUG] Voice recognition started.");
-                isListeningForVoice = true;
-                if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
-                speakAsJarvis("Listening, Sir.");
+                isListeningForVoice = true; // System is now listening continuously
+                if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Visual feedback
+                // Jarvis doesn't need to speak "Listening" here, as it's continuous background
             };
 
             recognition.onresult = (event) => {
-                const command = event.results[0][0].transcript; // Keep raw transcript for Gemini
-                console.log(`[DEBUG] Raw voice command received: "${command}"`);
-                processVoiceCommandWithGemini(command); // Send to Gemini for NLU
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
+
+                if (commandTimeoutId) {
+                    clearTimeout(commandTimeoutId); // Clear any pending command timeout
+                    commandTimeoutId = null;
+                }
+
+                if (awaitingActualCommand) {
+                    // We are in command mode, process this as a direct command
+                    console.log("[DEBUG] Awaiting command mode: Processing transcript as command.");
+                    processVoiceCommandWithGemini(transcript);
+                    awaitingActualCommand = false; // Reset after processing command
+                    // Optionally, set a short delay before allowing next wake word detection
+                    // setTimeout(() => { awaitingActualCommand = false; }, 1000); 
+                } else if (transcript.includes('jarvis')) { // Check for wake word
+                    console.log("[DEBUG] Wake word 'Jarvis' detected.");
+                    speakAsJarvis("At your service, Sir. Your command?");
+                    awaitingActualCommand = true; // Enter command mode
+                    // Set a timeout to exit command mode if no command follows quickly
+                    commandTimeoutId = setTimeout(() => {
+                        awaitingActualCommand = false;
+                        speakAsJarvis("No command received, Sir. I shall continue to listen for your instructions.");
+                        console.log("[DEBUG] Command mode timed out.");
+                    }, 5000); // 5 seconds to give a command
+                }
             };
 
             recognition.onend = () => {
-                console.log("[DEBUG] Voice recognition ended.");
-                isListeningForVoice = false;
+                console.log("[DEBUG] Voice recognition ended (usually due to explicit stop()).");
+                isListeningForVoice = false; // No longer continuously listening
+                awaitingActualCommand = false; // Reset command mode
                 if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
+                if (commandTimeoutId) {
+                    clearTimeout(commandTimeoutId);
+                    commandTimeoutId = null;
+                }
             };
 
             recognition.onerror = (event) => {
                 console.error(`[ERROR] Voice recognition error: ${event.error}`);
-                isListeningForVoice = false;
-                if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-                // Only speak error if it's not a common "no-speech" or "not-allowed"
-                if (event.error !== 'no-speech' && event.error !== 'not-allowed') {
+                // 'no-speech' is common if no audio is detected, don't speak an error for it.
+                // 'not-allowed' happens if mic permission is denied or continuous listening is problematic.
+                if (event.error !== 'no-speech') {
                     speakAsJarvis(`Pardon me, Sir. An error occurred with voice input: ${event.error}.`);
+                }
+                isListeningForVoice = false;
+                awaitingActualCommand = false;
+                if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
+                if (commandTimeoutId) {
+                    clearTimeout(commandTimeoutId);
+                    commandTimeoutId = null;
+                }
+                // Attempt to restart recognition if it stopped due to an error, but with a delay
+                // to prevent rapid restarts if the error is persistent.
+                if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed') {
+                    console.log("[DEBUG] Attempting to restart voice recognition after error.");
+                    setTimeout(() => {
+                        if (!isListeningForVoice && voiceCommandBtn.classList.contains('active')) { // Check button state
+                             // Only restart if the user implicitly wants it to be active
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.error("[ERROR] Failed to restart recognition:", e);
+                            }
+                        }
+                    }, 1000); // Wait 1 second before attempting restart
                 }
             };
         } else {
-            console.warn("[WARN] Web Speech API not supported in this browser.");
+            console.warn("[WARN] Web Speech API not supported in this browser. Voice commands will be disabled.");
         }
 
         /**
@@ -1076,9 +1128,13 @@
         function speakAsJarvis(text) {
             if (enableSoundEffects && synth && SpeechSynthesis) {
                 const utterance = new SpeechSynthesis(text);
-                utterance.voice = synth.getVoices().find(voice => voice.name.includes('Google US English')); // Try to find a good voice
+                // Try to find a specific voice for Jarvis if available (e.g., a male, US English voice)
+                const voices = synth.getVoices();
+                utterance.voice = voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
+                                  voices.find(voice => voice.lang === 'en-US') ||
+                                  voices[0]; // Fallback to first available voice
                 utterance.pitch = 1;
-                utterance.rate = 1;
+                utterance.rate = 1; // Normal speed
                 synth.speak(utterance);
                 console.log(`[DEBUG] Jarvis speaking: "${text}"`);
             } else {
@@ -1099,7 +1155,7 @@
                 return;
             }
 
-            speakAsJarvis("Processing command, Sir.");
+            speakAsJarvis("Interpreting command, Sir.");
 
             try {
                 const response = await fetch(geminiNluFunctionUrl, {
@@ -1117,8 +1173,9 @@
                 console.log("[DEBUG] Gemini NLU response:", result);
 
                 const canonicalCommand = result.canonicalCommand;
+                const commandValue = result.commandValue; // May be present for settings
                 if (canonicalCommand) {
-                    handleCanonicalCommand(canonicalCommand);
+                    handleCanonicalCommand(canonicalCommand, commandValue);
                 } else {
                     speakAsJarvis("Pardon me, Sir. I could not determine a clear command from your request.");
                     console.warn("[WARN] Gemini NLU did not return a canonical command.");
@@ -1133,9 +1190,10 @@
         /**
          * Handles the canonical command received from Gemini NLU.
          * @param {string} canonicalCommand - The simplified, standardized command (e.g., "start_timer").
+         * @param {string} [value] - Optional value for commands like setting cube type or theme.
          */
-        function handleCanonicalCommand(canonicalCommand) {
-            console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}"`);
+        function handleCanonicalCommand(canonicalCommand, value = null) {
+            console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}" with value: "${value}"`);
 
             switch (canonicalCommand) {
                 case 'start_timer':
@@ -1169,7 +1227,13 @@
                     break;
                 case 'close_settings':
                     speakAsJarvis("Closing settings, Sir.");
-                    if (closeSettingsModalBtn) closeSettingsModalBtn.click();
+                    // Check if settings modal is open before attempting to close
+                    const settingsModal = document.getElementById('settingsModal');
+                    if (settingsModal && settingsModal.classList.contains('open')) {
+                        closeSettingsModalBtn.click();
+                    } else {
+                        speakAsJarvis("The settings panel is not currently open, Sir.");
+                    }
                     break;
                 case 'get_insight':
                     if (solves.length > 0) {
@@ -1178,6 +1242,49 @@
                     } else {
                         speakAsJarvis("There are no solves recorded to analyze, Sir.");
                     }
+                    break;
+                // NEW: Voice commands for settings
+                case 'toggle_inspection':
+                    enableInspection = !enableInspection;
+                    speakAsJarvis(`Inspection mode is now ${enableInspection ? 'enabled' : 'disabled'}, Sir.`);
+                    saveUserSettings();
+                    applySettingsToUI(); // Re-apply to update UI
+                    break;
+                case 'toggle_sound_effects':
+                    enableSoundEffects = !enableSoundEffects;
+                    speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}, Sir.`);
+                    saveUserSettings();
+                    // applySettingsToUI is not strictly needed for this, but consistent
+                    break;
+                case 'set_cube_type':
+                    const validCubeTypes = ['3x3', '2x2', '4x4', 'pyraminx'];
+                    if (value && validCubeTypes.includes(value.toLowerCase())) {
+                        cubeType = value.toLowerCase();
+                        speakAsJarvis(`Cube type set to ${value}, Sir.`);
+                        saveUserSettings();
+                        applySettingsToUI(); // Re-apply to update scramble, etc.
+                        resetTimer(); // Reset timer and generate new scramble for new cube type
+                    } else {
+                        speakAsJarvis(`Pardon me, Sir. I cannot set the cube type to '${value}'. Please choose from 3x3, 2x2, 4x4, or Pyraminx.`);
+                    }
+                    break;
+                case 'set_theme':
+                    const validThemes = ['dark', 'light', 'vibrant'];
+                    if (value && validThemes.includes(value.toLowerCase())) {
+                        currentTheme = value.toLowerCase();
+                        document.body.className = `theme-${currentTheme}`; // Directly apply class
+                        speakAsJarvis(`Theme set to ${value}, Sir.`);
+                        saveUserSettings();
+                        applySettingsToUI(); // Re-apply to update 3D cube background if visible
+                    } else {
+                        speakAsJarvis(`Pardon me, Sir. I cannot set the theme to '${value}'. Please choose from Dark, Light, or Vibrant.`);
+                    }
+                    break;
+                case 'toggle_3d_cube_view':
+                    show3DCubeView = !show3DCubeView;
+                    speakAsJarAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}, Sir.`);
+                    saveUserSettings();
+                    applySettingsToUI(); // Re-apply to toggle visibility
                     break;
                 case 'unknown':
                 default:
@@ -2386,11 +2493,20 @@
             // Voice Command Button Listener
             if (voiceCommandBtn && recognition) { // Only add if both exist
                 voiceCommandBtn.addEventListener('click', () => {
-                    if (isListeningForVoice) {
-                        recognition.stop();
+                    if (isListeningForVoice) { // If currently listening (continuously)
+                        recognition.stop(); // Stop continuous listening
                         speakAsJarvis("Voice input suspended.");
-                    } else {
-                        recognition.start();
+                        if (commandTimeoutId) { clearTimeout(commandTimeoutId); commandTimeoutId = null; }
+                        awaitingActualCommand = false;
+                    } else { // If not listening, start continuous listening
+                        try {
+                            recognition.start();
+                            // Jarvis will announce "Listening, Sir." via onstart event.
+                            // The `isListeningForVoice` flag is set by onstart.
+                        } catch (e) {
+                            console.error("[ERROR] Failed to start recognition:", e);
+                            speakAsJarvis("Pardon me, Sir. I could not activate voice input. Please check microphone permissions.");
+                        }
                     }
                 });
             } else if (voiceCommandBtn) {
