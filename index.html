@@ -1179,6 +1179,7 @@
         let commandTimeoutId = null; // To clear timeout for awaitingActualCommand
         let isStartingRecognition = false; // NEW: Flag to prevent multiple recognition.start() calls
         let recognitionRestartTimeoutId = null; // NEW: To debounce recognition restarts
+        let isProgrammaticStop = false; // NEW: Flag to indicate if recognition was stopped by our code
 
         // Web Speech API
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1221,6 +1222,8 @@
             // Also, explicitly abort any current recognition session to ensure a clean start.
             recognitionRestartTimeoutId = setTimeout(() => {
                 try {
+                    // Set programmatic stop flag before aborting
+                    isProgrammaticStop = true; 
                     // Abort any active or pending recognition to ensure a clean state
                     // Check if recognition is not already idle or closed before aborting.
                     if (recognition.readyState !== 'idle' && recognition.readyState !== 'closed') {
@@ -1231,6 +1234,8 @@
                     // Only start if it's truly idle or closed after abort
                     // Add a small microtask delay to allow abort to fully process before starting.
                     Promise.resolve().then(() => {
+                        // Reset programmatic stop flag after abort has been initiated
+                        isProgrammaticStop = false; 
                         if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
                             recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped
                             recognition.start();
@@ -1286,6 +1291,7 @@
                     console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
                     // Before processing, explicitly stop recognition to avoid re-triggering on subsequent speech
                     recognition.manuallyStopped = true; // Mark as manually stopped for `onend` handler
+                    isProgrammaticStop = true; // Mark as programmatic stop
                     recognition.stop(); 
                     awaitingActualCommand = false; // Reset immediately
                     // Process command after a short delay to allow `onend` to fire if it needs to.
@@ -1305,6 +1311,7 @@
                         console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
                         // Force a restart of recognition to ensure continuous listening resumes
                         recognition.manuallyStopped = false; // Mark as not manually stopped so onend will restart
+                        isProgrammaticStop = false; // Not a programmatic stop from our side, let onend handle it
                         recognition.stop(); // Stop current recognition, onend will handle restart
                     }, 5000); // 5 seconds to give a command
                 } else {
@@ -1313,7 +1320,7 @@
             };
 
             recognition.onend = () => {
-                console.log("[DEBUG] Voice recognition ENDED. isListeningForVoice: false, manuallyStopped:", recognition.manuallyStopped);
+                console.log("[DEBUG] Voice recognition ENDED. isListeningForVoice: false, manuallyStopped:", recognition.manuallyStopped, "isProgrammaticStop:", isProgrammaticStop);
                 isListeningForVoice = false; // No longer continuously listening
                 awaitingActualCommand = false; // Reset command mode
                 if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
@@ -1324,21 +1331,24 @@
                 }
                 // Only attempt to restart recognition if it was NOT manually stopped by the user or after a command.
                 // This means the 'onend' was triggered by an internal browser reason (e.g., audio timeout).
-                if (!recognition.manuallyStopped) { 
-                    console.log("[DEBUG] recognition.onend: Not manually stopped. Attempting controlled restart.");
+                if (!recognition.manuallyStopped && !isProgrammaticStop) { 
+                    console.log("[DEBUG] recognition.onend: Not manually stopped or programmatic stop. Attempting controlled restart.");
                     attemptRestartRecognition(); // Use the new centralized restart function
                 }
                 recognition.manuallyStopped = false; // Reset manual stop flag for next cycle
+                isProgrammaticStop = false; // Reset programmatic stop flag for next cycle
             };
 
             recognition.onerror = (event) => {
-                console.error(`[ERROR] Voice recognition ERROR: ${event.error}. isListeningForVoice: ${isListeningForVoice}, awaitingActualCommand: ${awaitingActualCommand}`);
+                console.error(`[ERROR] Voice recognition ERROR: ${event.error}. isListeningForVoice: ${isListeningForVoice}, awaitingActualCommand: ${awaitingActualCommand}, isProgrammaticStop: ${isProgrammaticStop}`);
                 
-                // If the error is 'aborted' and we manually stopped it, it's an expected behavior.
-                // Otherwise, it's an actual error.
-                const isExpectedAbort = (event.error === 'aborted' && recognition.manuallyStopped);
+                // If the error is 'aborted' and it was due to our programmatic stop, it's an expected behavior.
+                const isExpectedProgrammaticAbort = (event.error === 'aborted' && isProgrammaticStop);
 
-                if (!isExpectedAbort) { // Only speak error if it's not an expected manual abort
+                if (isExpectedProgrammaticAbort) {
+                    console.log("[DEBUG] recognition.onerror: Expected 'aborted' error due to programmatic stop. No user message, no immediate restart from onerror.");
+                    // The onend handler or the calling function will handle the subsequent restart logic.
+                } else { // Only speak error and attempt restart if it's not an expected programmatic abort
                     if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                         speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
                         if (voiceCommandBtn) voiceCommandBtn.style.display = 'none'; // Hide button if permissions permanently denied
@@ -1348,10 +1358,18 @@
                     } else if (event.error !== 'no-speech') { // 'no-speech' is common and not an error to report to user
                         speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
                     }
-                } else {
-                    console.log("[DEBUG] recognition.onerror: Expected 'aborted' error due to manual stop. No user message.");
+                    
+                    // For transient errors (not-allowed means permanent issue, no-speech is just silence), attempt a restart.
+                    if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
+                        console.log("[DEBUG] recognition.onerror: Non-critical error. Attempting controlled restart.");
+                        // Use a debounced restart to avoid thrashing
+                        if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
+                        recognitionRestartTimeoutId = setTimeout(() => {
+                            attemptRestartRecognition(); 
+                        }, 500); // Delay restart after an error
+                    }
                 }
-
+                // Always reset these flags at the end of onerror to ensure clean state for next cycle
                 isListeningForVoice = false;
                 awaitingActualCommand = false;
                 if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
@@ -1360,20 +1378,8 @@
                     clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
-                
-                // For transient errors (not-allowed means permanent issue, no-speech is just silence), attempt a restart.
-                // Do not restart if it was a manual abort, as onend will handle the restart logic.
-                if (!isExpectedAbort && event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
-                    console.log("[DEBUG] recognition.onerror: Non-critical error. Attempting controlled restart.");
-                    // Use a debounced restart to avoid thrashing
-                    if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
-                    recognitionRestartTimeoutId = setTimeout(() => {
-                        attemptRestartRecognition(); 
-                    }, 500); // Delay restart after an error
-                }
-                // Reset manuallyStopped flag here, as onerror might fire before onend sometimes,
-                // or after onend if there's a lingering issue.
                 recognition.manuallyStopped = false; 
+                isProgrammaticStop = false; 
             };
         } else {
             console.warn("[WARN] Web Speech API not supported in this browser. Voice commands will be disabled.");
@@ -1393,6 +1399,7 @@
         function speakAsJarvis(text) {
             console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
             // Only speak if sound effects are enabled AND AudioContext has been resumed by user gesture
+            // AND Tone.context.state is explicitly 'running'
             if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') { 
                 // Ensure voices are loaded before trying to find one
                 if (synth.getVoices().length === 0) {
@@ -1447,7 +1454,7 @@
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    throw new Error(`NLU Cloud Function error: ${response.status} - ${errorText}`);
+                    throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
                 }
 
                 const result = await response.json();
@@ -2655,6 +2662,7 @@
                     if (isListeningForVoice) { // If currently listening (continuously)
                         console.log("[DEBUG] Recognition is active, stopping it manually.");
                         recognition.manuallyStopped = true; // Set a flag for onend
+                        isProgrammaticStop = true; // Set programmatic stop flag
                         recognition.stop(); // Stop continuous listening
                         speakAsJarvis("Voice input suspended, Sir Sevindu.");
                         if (commandTimeoutId) { 
