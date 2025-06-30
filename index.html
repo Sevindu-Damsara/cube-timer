@@ -1219,23 +1219,21 @@
 
             // Use a small delay before calling start to allow browser state to settle.
             // This helps prevent "InvalidStateError: recognition has already started."
-            // Also, explicitly abort any current recognition session to ensure a clean start.
             recognitionRestartTimeoutId = setTimeout(() => {
                 try {
-                    // Set programmatic stop flag before aborting
-                    isProgrammaticStop = true; 
                     // Abort any active or pending recognition to ensure a clean state
-                    // Check if recognition is not already idle or closed before aborting.
+                    // IMPORTANT: Do NOT set isProgrammaticStop = true here.
+                    // This function's purpose is to *restart* after an unexpected stop.
+                    // If recognition.abort() is called here, and it triggers onerror,
+                    // isProgrammaticStop should be FALSE in onerror, indicating an UNEXPECTED abort.
                     if (recognition.readyState !== 'idle' && recognition.readyState !== 'closed') {
-                        recognition.abort(); // Force stop any ongoing recognition
-                        console.log("[DEBUG] Forced abort before attempting restart.");
+                        console.log("[DEBUG] Forcing recognition abort before attempting restart for clean state.");
+                        recognition.abort(); // This might trigger onerror with 'aborted'
                     }
                     
                     // Only start if it's truly idle or closed after abort
                     // Add a small microtask delay to allow abort to fully process before starting.
                     Promise.resolve().then(() => {
-                        // Reset programmatic stop flag after abort has been initiated
-                        isProgrammaticStop = false; 
                         if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
                             recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped
                             recognition.start();
@@ -1291,7 +1289,7 @@
                     console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
                     // Before processing, explicitly stop recognition to avoid re-triggering on subsequent speech
                     recognition.manuallyStopped = true; // Mark as manually stopped for `onend` handler
-                    isProgrammaticStop = true; // Mark as programmatic stop
+                    isProgrammaticStop = true; // Mark as programmatic stop *before* stopping
                     recognition.stop(); 
                     awaitingActualCommand = false; // Reset immediately
                     // Process command after a short delay to allow `onend` to fire if it needs to.
@@ -1311,7 +1309,7 @@
                         console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
                         // Force a restart of recognition to ensure continuous listening resumes
                         recognition.manuallyStopped = false; // Mark as not manually stopped so onend will restart
-                        isProgrammaticStop = false; // Not a programmatic stop from our side, let onend handle it
+                        isProgrammaticStop = true; // Mark as programmatic stop *before* stopping
                         recognition.stop(); // Stop current recognition, onend will handle restart
                     }, 5000); // 5 seconds to give a command
                 } else {
@@ -1329,26 +1327,31 @@
                     clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
-                // Only attempt to restart recognition if it was NOT manually stopped by the user or after a command.
-                // This means the 'onend' was triggered by an internal browser reason (e.g., audio timeout).
-                if (!recognition.manuallyStopped && !isProgrammaticStop) { 
-                    console.log("[DEBUG] recognition.onend: Not manually stopped or programmatic stop. Attempting controlled restart.");
+                
+                // If it was a programmatic stop (by our code, e.g., after a command or manual button stop)
+                if (isProgrammaticStop) {
+                    console.log("[DEBUG] recognition.onend: Programmatic stop detected. No automatic restart from onend.");
+                    isProgrammaticStop = false; // Reset the flag immediately after handling
+                    recognition.manuallyStopped = false; // Reset this too
+                } else { // If not a programmatic stop (meaning it was an unexpected browser end, or user manually stopped via button before a command)
+                    console.log("[DEBUG] recognition.onend: Not a programmatic stop. Attempting controlled restart.");
                     attemptRestartRecognition(); // Use the new centralized restart function
                 }
-                recognition.manuallyStopped = false; // Reset manual stop flag for next cycle
-                isProgrammaticStop = false; // Reset programmatic stop flag for next cycle
+                recognition.manuallyStopped = false; // Ensure this is reset for the next cycle, regardless
             };
 
             recognition.onerror = (event) => {
                 console.error(`[ERROR] Voice recognition ERROR: ${event.error}. isListeningForVoice: ${isListeningForVoice}, awaitingActualCommand: ${awaitingActualCommand}, isProgrammaticStop: ${isProgrammaticStop}`);
                 
-                // If the error is 'aborted' and it was due to our programmatic stop, it's an expected behavior.
+                // If the error is 'aborted', check if it was due to our programmatic stop.
+                // If isProgrammaticStop is TRUE, it means we called stop/abort, and this 'aborted' error is expected.
+                // If isProgrammaticStop is FALSE, it means the browser unexpectedly aborted it.
                 const isExpectedProgrammaticAbort = (event.error === 'aborted' && isProgrammaticStop);
 
                 if (isExpectedProgrammaticAbort) {
                     console.log("[DEBUG] recognition.onerror: Expected 'aborted' error due to programmatic stop. No user message, no immediate restart from onerror.");
                     // The onend handler or the calling function will handle the subsequent restart logic.
-                } else { // Only speak error and attempt restart if it's not an expected programmatic abort
+                } else { // Handle all other errors, or unexpected 'aborted' errors
                     if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                         speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
                         if (voiceCommandBtn) voiceCommandBtn.style.display = 'none'; // Hide button if permissions permanently denied
@@ -1359,9 +1362,9 @@
                         speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
                     }
                     
-                    // For transient errors (not-allowed means permanent issue, no-speech is just silence), attempt a restart.
+                    // For any unexpected error (including unexpected 'aborted' when isProgrammaticStop is false), attempt a restart.
                     if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
-                        console.log("[DEBUG] recognition.onerror: Non-critical error. Attempting controlled restart.");
+                        console.log("[DEBUG] recognition.onerror: Non-critical/unexpected error. Attempting controlled restart.");
                         // Use a debounced restart to avoid thrashing
                         if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
                         recognitionRestartTimeoutId = setTimeout(() => {
@@ -1378,8 +1381,8 @@
                     clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
-                recognition.manuallyStopped = false; 
-                isProgrammaticStop = false; 
+                recognition.manuallyStopped = false; // Always reset
+                isProgrammaticStop = false; // Always reset
             };
         } else {
             console.warn("[WARN] Web Speech API not supported in this browser. Voice commands will be disabled.");
@@ -2662,7 +2665,7 @@
                     if (isListeningForVoice) { // If currently listening (continuously)
                         console.log("[DEBUG] Recognition is active, stopping it manually.");
                         recognition.manuallyStopped = true; // Set a flag for onend
-                        isProgrammaticStop = true; // Set programmatic stop flag
+                        isProgrammaticStop = true; // Set programmatic stop flag *before* stopping
                         recognition.stop(); // Stop continuous listening
                         speakAsJarvis("Voice input suspended, Sir Sevindu.");
                         if (commandTimeoutId) { 
