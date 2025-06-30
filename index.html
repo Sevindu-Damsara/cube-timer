@@ -1048,56 +1048,43 @@
                 return;
             }
 
-            // Prevent multiple simultaneous start attempts
-            if (isStartingRecognition) {
-                console.log("[DEBUG] Recognition already in starting process. Aborting redundant restart.");
+            // If already actively listening or in the process of starting, exit.
+            // recognition.listening is usually true if the internal state is 'listening'.
+            // isStartingRecognition is our custom flag to prevent multiple external calls.
+            if (isStartingRecognition || recognition.listening) {
+                console.log("[DEBUG] Recognition already listening or starting. Aborting redundant restart.");
+                isListeningForVoice = true; // Ensure our flag is consistent
+                if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
                 return;
             }
 
-            // If already listening, no need to restart
-            if (recognition.listening) { // Check if it's explicitly listening (might be more reliable than isListeningForVoice)
-                 console.log("[DEBUG] Recognition is already actively listening. No restart needed.");
-                 isListeningForVoice = true; // Ensure our flag is correct
-                 if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
-                 return;
-            }
-            
             // Set flag to indicate a start attempt is in progress
             isStartingRecognition = true;
             if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Indicate active state while trying to start
 
-            // Use a timeout to give the browser time to clear previous states
             setTimeout(() => {
-                if (recognition.listening) { // Re-check after delay
-                    console.log("[DEBUG] Recognition started during delay. No further action needed.");
-                    isStartingRecognition = false;
-                    isListeningForVoice = true;
-                    return;
-                }
-
-                try {
-                    // Only start if not already listening or in the process of starting
-                    if (recognition.readyState !== 'connecting' && recognition.readyState !== 'listening') {
+                // After a delay, re-check the state. The browser needs time to transition.
+                // The key states for 'start' are 'idle' or 'closed'.
+                if (recognition.readyState === 'idle' || recognition.readyState === 'closed') {
+                    try {
                         recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped for this restart
                         recognition.start();
-                        console.log("[DEBUG] SpeechRecognition.start() called by attemptRestartRecognition.");
-                    } else {
-                        console.log("[DEBUG] Recognition already connecting or listening. No direct start call.");
+                        console.log("[DEBUG] SpeechRecognition.start() called by attemptRestartRecognition (after delay and state check).");
+                    } catch (e) {
+                        console.error("[ERROR] Failed to start recognition in attemptRestartRecognition:", e);
+                        // If it fails here, it's a more fundamental issue.
+                        speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
                     }
-                } catch (e) {
-                    console.error("[ERROR] Failed to start recognition in attemptRestartRecognition:", e);
-                    if (e.name === 'InvalidStateError' && e.message.includes('already started')) {
-                         console.warn("[WARN] InvalidStateError during restart: Recognition was likely already starting/listening. Adjusting internal state.");
-                         isListeningForVoice = true; // Assume it's actually listening
-                    } else if (e.name === 'AbortError') {
-                         console.warn("[WARN] AbortError during restart: Recognition was likely aborted immediately after starting. Will retry if needed.");
-                    } else {
-                         speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
+                } else {
+                    console.log(`[DEBUG] Recognition not in 'idle' or 'closed' state after delay (current state: ${recognition.readyState}). Will not call start().`);
+                    // If it's in 'connecting', 'listening', or 'ending', we don't need to call start().
+                    // We assume it's handling itself or will trigger onend/onerror again.
+                    if (recognition.readyState === 'listening') {
+                        isListeningForVoice = true; // Correct our flag if it started independently
                     }
-                } finally {
-                    isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
                 }
-            }, 1000); // 1 second delay
+                isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
+            }, 500); // Increased delay slightly to 500ms for more robustness.
         }
 
         if (recognition) {
