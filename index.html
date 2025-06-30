@@ -321,7 +321,7 @@
                 padding: 1.5rem; /* Reduced padding for mobile */
                 gap: 1.5rem; /* Reduced gap for mobile */
                 max-width: 100%; /* Take full width on mobile */
-                width: 100%; /* Ensure it fills the screen */
+                width: 100%;
             }
 
             .auth-corner-buttons {
@@ -562,7 +562,7 @@
                 background="#0f172a"           <!-- Set a default background color that matches dark theme -->
             ></twisty-player>
             <!-- Custom Toolbar -->
-            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
+            <div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
                 <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
                 </button>
@@ -792,6 +792,9 @@
         // The URL for your deployed Vercel Serverless Function for AI insights.
         // This will be provided AFTER you deploy the function to Vercel and then updated here.
         const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
+        // NEW: The URL for your deployed Vercel Serverless Function for Gemini NLU.
+        // You will need to deploy api/gemini-nlu.py and update this URL.
+        const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-nlu"; // <<< IMPORTANT: Update this after deployment!
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
@@ -1042,9 +1045,9 @@
             };
 
             recognition.onresult = (event) => {
-                const command = event.results[0][0].transcript.toLowerCase();
-                console.log(`[DEBUG] Voice command received: "${command}"`);
-                handleVoiceCommand(command);
+                const command = event.results[0][0].transcript; // Keep raw transcript for Gemini
+                console.log(`[DEBUG] Raw voice command received: "${command}"`);
+                processVoiceCommandWithGemini(command); // Send to Gemini for NLU
             };
 
             recognition.onend = () => {
@@ -1084,45 +1087,102 @@
         }
 
         /**
-         * Handles incoming voice commands.
-         * @param {string} command - The recognized voice command.
+         * Sends the raw voice transcript to Gemini NLU Cloud Function for interpretation.
+         * @param {string} rawTranscript - The raw, unparsed transcript from speech recognition.
          */
-        function handleVoiceCommand(command) {
-            command = command.toLowerCase().trim(); // Ensure consistency
-            console.log(`[DEBUG] Processing voice command: "${command}"`);
+        async function processVoiceCommandWithGemini(rawTranscript) {
+            console.log(`[DEBUG] Sending raw transcript to Gemini NLU: "${rawTranscript}"`);
+            
+            if (!geminiNluFunctionUrl || geminiNluFunctionUrl === "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL") {
+                speakAsJarvis("Sir, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
+                console.error("[ERROR] Gemini NLU Cloud Function URL is not configured.");
+                return;
+            }
 
-            if (command.includes('start timer') || command.includes('begin timer') || command.includes('go')) {
-                speakAsJarvis("Initiating timer sequence, Sir.");
-                toggleTimer();
-            } else if (command.includes('stop timer') || command.includes('halt timer') || command.includes('end timer')) {
-                if (isTiming) {
-                    speakAsJarvis("Timer halted, Sir.");
-                    toggleTimer(); // This will stop the timer and add solve
-                } else {
-                    speakAsJarvis("The timer is not currently running, Sir.");
+            speakAsJarvis("Processing command, Sir.");
+
+            try {
+                const response = await fetch(geminiNluFunctionUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transcript: rawTranscript })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`NLU Cloud Function error: ${response.status} - ${errorText}`);
                 }
-            } else if (command.includes('new scramble') || command.includes('scramble')) {
-                speakAsJarvis("Generating new scramble, Sir.");
-                scramble = generateScramble();
-                resetTimer();
-            } else if (command.includes('reset timer') || command.includes('clear timer')) {
-                speakAsJarvis("Timer reset, Sir.");
-                resetTimer();
-            } else if (command.includes('open settings') || command.includes('settings')) {
-                speakAsJarvis("Opening settings, Sir.");
-                if (settingsBtn) settingsBtn.click();
-            } else if (command.includes('close settings') || command.includes('dismiss settings')) {
-                speakAsJarvis("Closing settings, Sir.");
-                if (closeSettingsModalBtn) closeSettingsModalBtn.click();
-            } else if (command.includes('get insight') || command.includes('analyze solve')) {
-                if (solves.length > 0) {
-                    speakAsJarvis("Accessing neural network for solve analysis, Sir.");
-                    getSolveInsight(solves[solves.length - 1].id); // Get insight for the last solve
+
+                const result = await response.json();
+                console.log("[DEBUG] Gemini NLU response:", result);
+
+                const canonicalCommand = result.canonicalCommand;
+                if (canonicalCommand) {
+                    handleCanonicalCommand(canonicalCommand);
                 } else {
-                    speakAsJarvis("There are no solves recorded to analyze, Sir.");
+                    speakAsJarvis("Pardon me, Sir. I could not determine a clear command from your request.");
+                    console.warn("[WARN] Gemini NLU did not return a canonical command.");
                 }
-            } else {
-                speakAsJarvis("Pardon me, Sir. I did not understand that command. Please try again.");
+
+            } catch (e) {
+                speakAsJarvis(`Sir, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
+                console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
+            }
+        }
+
+        /**
+         * Handles the canonical command received from Gemini NLU.
+         * @param {string} canonicalCommand - The simplified, standardized command (e.g., "start_timer").
+         */
+        function handleCanonicalCommand(canonicalCommand) {
+            console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}"`);
+
+            switch (canonicalCommand) {
+                case 'start_timer':
+                    if (!isTiming) {
+                        speakAsJarvis("Initiating timer sequence, Sir.");
+                        toggleTimer();
+                    } else {
+                        speakAsJarvis("The timer is already in progress, Sir.");
+                    }
+                    break;
+                case 'stop_timer':
+                    if (isTiming) {
+                        speakAsJarvis("Timer halted, Sir.");
+                        toggleTimer(); // This will stop the timer and add solve
+                    } else {
+                        speakAsJarvis("The timer is not currently running, Sir.");
+                    }
+                    break;
+                case 'new_scramble':
+                    speakAsJarvis("Generating new scramble, Sir.");
+                    scramble = generateScramble();
+                    resetTimer();
+                    break;
+                case 'reset_timer':
+                    speakAsJarvis("Timer reset, Sir.");
+                    resetTimer();
+                    break;
+                case 'open_settings':
+                    speakAsJarvis("Opening settings, Sir.");
+                    if (settingsBtn) settingsBtn.click();
+                    break;
+                case 'close_settings':
+                    speakAsJarvis("Closing settings, Sir.");
+                    if (closeSettingsModalBtn) closeSettingsModalBtn.click();
+                    break;
+                case 'get_insight':
+                    if (solves.length > 0) {
+                        speakAsJarvis("Accessing neural network for solve analysis, Sir.");
+                        getSolveInsight(solves[solves.length - 1].id); // Get insight for the last solve
+                    } else {
+                        speakAsJarvis("There are no solves recorded to analyze, Sir.");
+                    }
+                    break;
+                case 'unknown':
+                default:
+                    speakAsJarvis("Pardon me, Sir. I did not fully comprehend your instruction. Please try again.");
+                    break;
             }
         }
 
@@ -1438,8 +1498,8 @@
             timesForAvg.sort((a, b) => a - b);
             console.log("[DEBUG] calculateAverage: Times sorted:", timesForAvg);
 
-            // Drop best and worst if N > 2
-            if (timesForAvg.length > 2) { // Ensure there are enough elements to slice
+            // Drop best and worst if timesForAvg.length allows (e.g., for Ao5, drop 1st and last from 5)
+            if (timesForAvg.length > 2) {
                 timesForAvg = timesForAvg.slice(1, -1);
                 console.log("[DEBUG] calculateAverage: Dropped best/worst. Remaining times:", timesForAvg);
             } else {
@@ -1662,10 +1722,10 @@
             const apiUrl = geminiInsightFunctionUrl; // Corrected to use the variable directly
 
             // Now, this check truly verifies if the URL is set.
-            if (!apiUrl) { 
+            if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") { 
                 if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please ensure your Vercel function is deployed and the URL is correct.";
                 if (insightSpinner) insightSpinner.style.display = 'none';
-                console.error("[ERROR] Gemini Insight Cloud Function URL is not set.");
+                console.error("[ERROR] Gemini Insight Cloud Function URL is not set or is default placeholder.");
                 speakAsJarvis("Sir, the AI insight system is currently offline. Please configure the cloud function URL.");
                 return;
             }
