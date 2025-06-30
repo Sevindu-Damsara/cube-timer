@@ -61,22 +61,22 @@ def gemini_insight_handler():
         # Construct the prompt for Gemini.
         # Instruct Gemini to generate a general insight, an optimal solution, and a personalized tip.
         # Explicitly ask for a JSON response structure.
-        # ADDED: Instructions for formal, respectful tone and addressing as "Sir Sevindu".
+        # MODIFIED: Removed instructions for "Sir Sevindu" in the generated text content.
         prompt = f"""
         You are an advanced AI assistant named Jarvis, specialized in Rubik's Cube analysis.
         Provide a concise general insight, an optimal solution if applicable, and a personalized tip for the following Rubik's Cube solve.
-        The user's level is {user_level}. The cube type was {cube_type}.
-        The scramble was: {scramble}.
-        The solve time was: {solve_time_formatted}.
+        The user's cubing level is designated as {user_level}. The cube type used was {cube_type}.
+        The scramble for this solve was: {scramble}.
+        The recorded solve time was: {solve_time_formatted}.
         Any penalty applied was: {penalty}.
 
         Important instructions for your response:
-        1.  **Tone and Address:** Always adopt a formal, respectful, and helpful tone, characteristic of a personal AI assistant. Address the user directly as "Sir Sevindu" at least once in the personalized tip or general insight.
-        2.  **General Insight:** Provide a brief, overall observation about the solve (e.g., "A solid solve," "Room for improvement in F2L"). Keep this under 30 words.
-        3.  **Optimal Solution:** If an optimal solution for the provided scramble is known or can be generated, provide it. Otherwise, state that it's "Not available."
-        4.  **Personalized Tip:** Offer one specific, actionable tip tailored to the user's current skill level ({user_level}) and the characteristics of this solve (e.g., "Consider practicing cross solutions," "Focus on look-ahead during OLL"). This should be a single, clear recommendation, under 40 words.
-        
-        Respond ONLY with a JSON object in the following format:
+        1.  **General Insight:** Provide a brief, overall observation about the solve (e.g., "A solid solve," "Room for improvement in F2L"). Keep this under 30 words.
+        2.  **Optimal Solution:** If an optimal solution for the provided scramble is known or can be generated, provide it. Otherwise, state that it is 'Not available'.
+        3.  **Personalized Tip:** Offer one specific, actionable recommendation tailored to the user's current skill level ({user_level}) and the characteristics of this particular solve (e.g., "Consider practicing cross solutions," "Focus on look-ahead during OLL"). This should be a single, clear recommendation, under 40 words.
+        4.  **Tone:** Maintain a formal, respectful, and helpful tone throughout the generated text. Do not include specific salutations or direct addresses like "Sir Sevindu" within the 'insight', 'optimalSolution', or 'personalizedTip' fields.
+
+        Respond ONLY with a JSON object in the following exact format:
         {{
           "insight": "General insight text.",
           "optimalSolution": "Optimal solution algorithm (e.g., F U R U' R' F') or 'Not available'.",

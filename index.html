@@ -779,7 +779,7 @@
         // NOTE: The geminiApiKey is handled by a serverless function for security.
         // You will need to deploy a Vercel Serverless Function for AI Insight.
         // =====================================================================================================
-        const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in Firestore. e.g., 'rubik-timer-prod-v1'
+        const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in e.g., 'rubik-timer-prod-v1'
         const firebaseConfig = {
             apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
             authDomain: "ubically-timer.firebaseapp.com",
@@ -794,7 +794,7 @@
         const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
         // NEW: The URL for your deployed Vercel Serverless Function for Gemini NLU.
         // You will need to deploy api/gemini-nlu.py and update this URL.
-        const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-nlu"; // <<< IMPORTANT: Update this after deployment!
+        const geminiNluFunctionUrl = "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL"; // <<< IMPORTANT: Update this after deployment!
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
@@ -1041,32 +1041,35 @@
             recognition.continuous = true; // IMPORTANT: Enable continuous listening for wake word
             recognition.interimResults = false; // Only return final results
             recognition.lang = 'en-US'; // Set language
+            recognition.manuallyStopped = false; // Custom flag to track if recognition was manually stopped
 
             recognition.onstart = () => {
-                console.log("[DEBUG] Voice recognition STARTED.");
+                console.log("[DEBUG] Voice recognition STARTED. isListeningForVoice: true");
                 isListeningForVoice = true; // System is now listening continuously
                 if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Visual feedback
-                // Jarvis doesn't need to speak "Listening" here, as it's continuous background
             };
 
             recognition.onresult = (event) => {
-                console.log("[DEBUG] Voice recognition ONRESULT triggered.");
+                console.log("[DEBUG] Voice recognition ONRESULT triggered. Current awaitingActualCommand:", awaitingActualCommand);
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
 
                 if (commandTimeoutId) {
-                    console.log("[DEBUG] Clearing existing command timeout.");
+                    console.log("[DEBUG] Clearing existing command timeout on new transcript.");
                     clearTimeout(commandTimeoutId); // Clear any pending command timeout
                     commandTimeoutId = null;
                 }
 
                 if (awaitingActualCommand) {
+                    // We are in command mode, process this as a direct command
                     console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
                     processVoiceCommandWithGemini(transcript);
-                    awaitingActualCommand = false; // Reset after processing command
-                    console.log("[DEBUG] Awaiting command mode set to FALSE after command processing.");
-                    // Optionally, set a short delay before allowing next wake word detection
-                    // setTimeout(() => { awaitingActualCommand = false; }, 1000); 
+                    // After processing a command, stop recognition to allow a clean restart
+                    // and prevent multiple interpretations of the same phrase.
+                    recognition.manuallyStopped = true; // Mark as manually stopped for `onend` handler
+                    recognition.stop(); 
+                    awaitingActualCommand = false; // Reset immediately
+                    console.log("[DEBUG] Recognition stopped and awaitingActualCommand set to FALSE after command processing.");
                 } else if (transcript.includes('jarvis')) { // Check for wake word
                     console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
                     speakAsJarvis("At your service, Sir Sevindu. Your command?");
@@ -1078,12 +1081,12 @@
                         console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
                     }, 5000); // 5 seconds to give a command
                 } else {
-                    console.log("[DEBUG] No wake word detected. Continuing continuous listening for 'Jarvis'.");
+                    console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
                 }
             };
 
             recognition.onend = () => {
-                console.log("[DEBUG] Voice recognition ENDED.");
+                console.log("[DEBUG] Voice recognition ENDED. isListeningForVoice: false, manuallyStopped:", recognition.manuallyStopped);
                 isListeningForVoice = false; // No longer continuously listening
                 awaitingActualCommand = false; // Reset command mode
                 if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
@@ -1092,28 +1095,31 @@
                     clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
-                // Attempt to restart recognition if it stopped due to an error, but with a delay
-                // to prevent rapid restarts if the error is persistent.
-                // Do not restart if explicitly stopped by user or not allowed.
-                if (voiceCommandBtn.classList.contains('active') && !recognition.manuallyStopped) { // Only restart if the button implies active
-                    console.log("[DEBUG] Attempting to RESTART voice recognition after END event (if not manually stopped).");
+                // Only attempt to restart recognition if it was NOT manually stopped by the user or after a command.
+                // This means the 'onend' was triggered by an internal browser reason (e.g., audio timeout).
+                if (!recognition.manuallyStopped) { 
+                    console.log("[DEBUG] Attempting to RESTART voice recognition after END event (not manually stopped).");
                     setTimeout(() => {
                         try {
                             recognition.start();
                             console.log("[DEBUG] Voice recognition RESTARTED after delay.");
                         } catch (e) {
-                            console.error("[ERROR] Failed to restart recognition:", e);
+                            console.error("[ERROR] Failed to restart recognition after onend:", e);
                         }
                     }, 1000); // Wait 1 second before attempting restart
                 }
-                recognition.manuallyStopped = false; // Reset manual stop flag
+                recognition.manuallyStopped = false; // Reset manual stop flag for next cycle
             };
 
             recognition.onerror = (event) => {
-                console.error(`[ERROR] Voice recognition ERROR: ${event.error}`);
+                console.error(`[ERROR] Voice recognition ERROR: ${event.error}. isListeningForVoice: ${isListeningForVoice}, awaitingActualCommand: ${awaitingActualCommand}`);
                 // 'no-speech' is common if no audio is detected, don't speak an error for it.
                 // 'not-allowed' happens if mic permission is denied or continuous listening is problematic.
-                if (event.error !== 'no-speech') {
+                if (event.error === 'not-allowed') {
+                    speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
+                    if (voiceCommandBtn) voiceCommandBtn.style.display = 'none'; // Hide button if permissions permanently denied
+                    console.warn("[WARN] Microphone access denied. Voice commands permanently disabled.");
+                } else if (event.error !== 'no-speech') {
                     speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
                 }
                 isListeningForVoice = false;
@@ -1124,20 +1130,17 @@
                     clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
-                // If it's a critical error (like not-allowed), don't try to restart automatically
-                if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
-                     console.warn("[WARN] Voice recognition will NOT auto-restart due to critical error:", event.error);
-                } else {
-                    // For transient errors, attempt a restart
+                // For transient errors (not-allowed means permanent issue, no-speech is just silence), attempt a restart.
+                if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
                     console.log("[DEBUG] Attempting to RESTART voice recognition after non-critical ERROR.");
                     setTimeout(() => {
-                        // Only restart if the user implicitly wants it to be active (button is active)
-                        if (voiceCommandBtn.classList.contains('active')) {
+                        // Only restart if the voice command button is still visible and implies active state
+                        if (voiceCommandBtn && voiceCommandBtn.style.display !== 'none' && !isListeningForVoice) {
                             try {
                                 recognition.start();
                                 console.log("[DEBUG] Voice recognition RESTARTED after error delay.");
                             } catch (e) {
-                                console.error("[ERROR] Failed to restart recognition:", e);
+                                console.error("[ERROR] Failed to restart recognition after error:", e);
                             }
                         }
                     }, 1000); // Wait 1 second before attempting restart
@@ -1145,6 +1148,13 @@
             };
         } else {
             console.warn("[WARN] Web Speech API not supported in this browser. Voice commands will be disabled.");
+            // If the API is not supported, hide the voice command button.
+            document.addEventListener('DOMContentLoaded', () => {
+                const voiceBtn = document.getElementById('voiceCommandBtn');
+                if (voiceBtn) {
+                    voiceBtn.style.display = 'none';
+                }
+            });
         }
 
         /**
@@ -1154,16 +1164,30 @@
         function speakAsJarvis(text) {
             console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
             if (enableSoundEffects && synth && SpeechSynthesis) {
-                const utterance = new SpeechSynthesis(text);
-                // Try to find a specific voice for Jarvis if available (e.g., a male, US English voice)
-                const voices = synth.getVoices();
-                utterance.voice = voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
-                                  voices.find(voice => voice.lang === 'en-US') ||
-                                  voices[0]; // Fallback to first available voice
-                utterance.pitch = 1;
-                utterance.rate = 1; // Normal speed
-                synth.speak(utterance);
-                console.log(`[DEBUG] Jarvis speaking: "${text}"`);
+                // Ensure voices are loaded before trying to find one
+                if (synth.getVoices().length === 0) {
+                    synth.onvoiceschanged = () => {
+                        const voices = synth.getVoices();
+                        const utterance = new SpeechSynthesis(text);
+                        utterance.voice = voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
+                                          voices.find(voice => voice.lang === 'en-US') ||
+                                          voices[0]; // Fallback to first available voice
+                        utterance.pitch = 1;
+                        utterance.rate = 1;
+                        synth.speak(utterance);
+                        console.log(`[DEBUG] Jarvis speaking (deferred): "${text}"`);
+                    };
+                } else {
+                    const voices = synth.getVoices();
+                    const utterance = new SpeechSynthesis(text);
+                    utterance.voice = voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
+                                      voices.find(voice => voice.lang === 'en-US') ||
+                                      voices[0]; // Fallback to first available voice
+                    utterance.pitch = 1;
+                    utterance.rate = 1;
+                    synth.speak(utterance);
+                    console.log(`[DEBUG] Jarvis speaking: "${text}"`);
+                }
             } else {
                 console.log(`[DEBUG] Jarvis would speak (sounds disabled or API not supported): "${text}"`);
             }
@@ -2520,9 +2544,9 @@
             // Voice Command Button Listener
             if (voiceCommandBtn && recognition) { // Only add if both exist
                 voiceCommandBtn.addEventListener('click', () => {
-                    console.log("[DEBUG] Voice command button clicked.");
+                    console.log("[DEBUG] Voice command button clicked. isListeningForVoice:", isListeningForVoice);
                     if (isListeningForVoice) { // If currently listening (continuously)
-                        console.log("[DEBUG] Recognition is active, stopping it.");
+                        console.log("[DEBUG] Recognition is active, stopping it manually.");
                         recognition.manuallyStopped = true; // Set a flag for onend
                         recognition.stop(); // Stop continuous listening
                         speakAsJarvis("Voice input suspended, Sir Sevindu.");
@@ -2535,7 +2559,8 @@
                         console.log("[DEBUG] Awaiting command mode set to FALSE on manual stop.");
                     } else { // If not listening, start continuous listening
                         try {
-                            console.log("[DEBUG] Recognition is inactive, starting it.");
+                            console.log("[DEBUG] Recognition is inactive, starting it for continuous listening.");
+                            recognition.manuallyStopped = false; // Reset flag
                             recognition.start();
                             // Jarvis will announce "Listening, Sir Sevindu." via onstart event.
                             // The `isListeningForVoice` flag is set by onstart.
