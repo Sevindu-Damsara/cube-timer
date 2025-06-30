@@ -794,7 +794,7 @@
         const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
         // NEW: The URL for your deployed Vercel Serverless Function for Gemini NLU.
         // You will need to deploy api/gemini-nlu.py and update this URL.
-        const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-nlu"; // <<< IMPORTANT: Update this after deployment!
+        const geminiNluFunctionUrl = ""; // <<< IMPORTANT: Update this after deployment!
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
@@ -1058,33 +1058,44 @@
                 return;
             }
 
-            // Set flag to indicate a start attempt is in progress
             isStartingRecognition = true;
             if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Indicate active state while trying to start
 
-            setTimeout(() => {
-                // After a delay, re-check the state. The browser needs time to transition.
-                // The key states for 'start' are 'idle' or 'closed'.
-                if (recognition.readyState === 'idle' || recognition.readyState === 'closed') {
-                    try {
-                        recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped for this restart
-                        recognition.start();
-                        console.log("[DEBUG] SpeechRecognition.start() called by attemptRestartRecognition (after delay and state check).");
-                    } catch (e) {
-                        console.error("[ERROR] Failed to start recognition in attemptRestartRecognition:", e);
-                        // If it fails here, it's a more fundamental issue.
-                        speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
-                    }
-                } else {
-                    console.log(`[DEBUG] Recognition not in 'idle' or 'closed' state after delay (current state: ${recognition.readyState}). Will not call start().`);
-                    // If it's in 'connecting', 'listening', or 'ending', we don't need to call start().
-                    // We assume it's handling itself or will trigger onend/onerror again.
-                    if (recognition.readyState === 'listening') {
-                        isListeningForVoice = true; // Correct our flag if it started independently
-                    }
+            // Immediate start attempt if it's in an 'undefined' or 'closed' state.
+            // This is particularly important for the very first initialization.
+            if (recognition.readyState === undefined || recognition.readyState === 'closed') {
+                try {
+                    recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped
+                    recognition.start();
+                    console.log("[DEBUG] SpeechRecognition.start() called immediately (initial or closed state).");
+                    isStartingRecognition = false; // Reset the flag immediately after attempt
+                } catch (e) {
+                    console.error("[ERROR] Failed to start recognition immediately:", e);
+                    speakAsJarvis("Pardon me, Sir Sevindu. I encountered an error activating voice input.");
+                    isStartingRecognition = false; // Reset on failure
                 }
-                isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
-            }, 500); // Increased delay slightly to 500ms for more robustness.
+            } else {
+                // For other states (e.g., 'idle' after a previous stop, or 'ending'),
+                // use a slight delay to allow state transitions.
+                setTimeout(() => {
+                    if (recognition.readyState === 'idle' || recognition.readyState === 'closed') {
+                        try {
+                            recognition.manuallyStopped = false;
+                            recognition.start();
+                            console.log("[DEBUG] SpeechRecognition.start() called by attemptRestartRecognition (after delay and state check).");
+                        } catch (e) {
+                            console.error("[ERROR] Failed to start recognition after delay:", e);
+                            speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
+                        }
+                    } else {
+                        console.log(`[DEBUG] Recognition not in 'idle' or 'closed' state after delay (current state: ${recognition.readyState}). Will not call start().`);
+                        if (recognition.readyState === 'listening') {
+                            isListeningForVoice = true; // Correct our flag if it started independently
+                        }
+                    }
+                    isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
+                }, 500); // Increased delay slightly to 500ms for more robustness.
+            }
         }
 
         if (recognition) {
@@ -2942,3 +2953,4 @@
     </script>
 </body>
 </html>
+
