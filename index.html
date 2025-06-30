@@ -794,7 +794,7 @@
         const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
         // NEW: The URL for your deployed Vercel Serverless Function for Gemini NLU.
         // You will need to deploy api/gemini-nlu.py and update this URL.
-        const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-nlu"; // <<< IMPORTANT: Update this after deployment!
+        const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-npu"; // <<< IMPORTANT: Update this after deployment!
         // =====================================================================================================
         // --- END IMPORTANT CONFIGURATION ---
         // =====================================================================================================
@@ -1029,13 +1029,76 @@
         let isListeningForVoice = false; // New state for voice recognition (global continuous listening)
         let awaitingActualCommand = false; // New state: true after wake word, waiting for command
         let commandTimeoutId = null; // To clear timeout for awaitingActualCommand
-
+        let isStartingRecognition = false; // NEW: Flag to prevent multiple recognition.start() calls
 
         // Web Speech API
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const SpeechSynthesis = window.SpeechSynthesisUtterance;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
         const synth = window.speechSynthesis;
+
+        /**
+         * Attempts to start or restart SpeechRecognition after a delay.
+         * Ensures only one start attempt is active at a time to prevent InvalidStateError.
+         */
+        function attemptRestartRecognition() {
+            console.log("[DEBUG] attemptRestartRecognition called. isStartingRecognition:", isStartingRecognition, "isListeningForVoice:", isListeningForVoice, "recognition.readyState:", recognition ? recognition.readyState : "N/A");
+            if (!recognition) {
+                console.warn("[WARN] SpeechRecognition API not available, cannot restart.");
+                return;
+            }
+
+            // Prevent multiple simultaneous start attempts
+            if (isStartingRecognition) {
+                console.log("[DEBUG] Recognition already in starting process. Aborting redundant restart.");
+                return;
+            }
+
+            // If already listening, no need to restart
+            if (recognition.listening) { // Check if it's explicitly listening (might be more reliable than isListeningForVoice)
+                 console.log("[DEBUG] Recognition is already actively listening. No restart needed.");
+                 isListeningForVoice = true; // Ensure our flag is correct
+                 if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
+                 return;
+            }
+            
+            // Set flag to indicate a start attempt is in progress
+            isStartingRecognition = true;
+            if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Indicate active state while trying to start
+
+            // Use a timeout to give the browser time to clear previous states
+            setTimeout(() => {
+                if (recognition.listening) { // Re-check after delay
+                    console.log("[DEBUG] Recognition started during delay. No further action needed.");
+                    isStartingRecognition = false;
+                    isListeningForVoice = true;
+                    return;
+                }
+
+                try {
+                    // Only start if not already listening or in the process of starting
+                    if (recognition.readyState !== 'connecting' && recognition.readyState !== 'listening') {
+                        recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped for this restart
+                        recognition.start();
+                        console.log("[DEBUG] SpeechRecognition.start() called by attemptRestartRecognition.");
+                    } else {
+                        console.log("[DEBUG] Recognition already connecting or listening. No direct start call.");
+                    }
+                } catch (e) {
+                    console.error("[ERROR] Failed to start recognition in attemptRestartRecognition:", e);
+                    if (e.name === 'InvalidStateError' && e.message.includes('already started')) {
+                         console.warn("[WARN] InvalidStateError during restart: Recognition was likely already starting/listening. Adjusting internal state.");
+                         isListeningForVoice = true; // Assume it's actually listening
+                    } else if (e.name === 'AbortError') {
+                         console.warn("[WARN] AbortError during restart: Recognition was likely aborted immediately after starting. Will retry if needed.");
+                    } else {
+                         speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
+                    }
+                } finally {
+                    isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
+                }
+            }, 1000); // 1 second delay
+        }
 
         if (recognition) {
             recognition.continuous = true; // IMPORTANT: Enable continuous listening for wake word
@@ -1117,15 +1180,8 @@
                 // Only attempt to restart recognition if it was NOT manually stopped by the user or after a command.
                 // This means the 'onend' was triggered by an internal browser reason (e.g., audio timeout).
                 if (!recognition.manuallyStopped) { 
-                    console.log("[DEBUG] Attempting to RESTART voice recognition after END event (not manually stopped).");
-                    setTimeout(() => {
-                        try {
-                            recognition.start();
-                            console.log("[DEBUG] Voice recognition RESTARTED after delay.");
-                        } catch (e) {
-                            console.error("[ERROR] Failed to restart recognition after onend:", e);
-                        }
-                    }, 1000); // Wait 1 second before attempting restart
+                    console.log("[DEBUG] recognition.onend: Not manually stopped. Attempting controlled restart.");
+                    attemptRestartRecognition(); // Use the new centralized restart function
                 }
                 recognition.manuallyStopped = false; // Reset manual stop flag for next cycle
             };
@@ -1151,18 +1207,8 @@
                 }
                 // For transient errors (not-allowed means permanent issue, no-speech is just silence), attempt a restart.
                 if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
-                    console.log("[DEBUG] Attempting to RESTART voice recognition after non-critical ERROR.");
-                    setTimeout(() => {
-                        // Only restart if the voice command button is still visible and implies active state
-                        if (voiceCommandBtn && voiceCommandBtn.style.display !== 'none' && !isListeningForVoice) {
-                            try {
-                                recognition.start();
-                                console.log("[DEBUG] Voice recognition RESTARTED after error delay.");
-                            } catch (e) {
-                                console.error("[ERROR] Failed to restart recognition after error:", e);
-                            }
-                        }
-                    }, 1000); // Wait 1 second before attempting restart
+                    console.log("[DEBUG] recognition.onerror: Non-critical error. Attempting controlled restart.");
+                    attemptRestartRecognition(); // Use the new centralized restart function
                 }
             };
         } else {
@@ -1256,21 +1302,9 @@
                 console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
             } finally {
                 // After processing command, ensure recognition restarts to listen for wake word
-                // Use a slight delay to prevent race conditions with recognition.onend
-                console.log("[DEBUG] processVoiceCommandWithGemini: Scheduling recognition restart after command processing.");
-                setTimeout(() => {
-                    if (!isListeningForVoice) { // Only restart if not already listening (e.g. if onend already started it)
-                        try {
-                            recognition.manuallyStopped = false; // Reset manual stop flag
-                            recognition.start();
-                            console.log("[DEBUG] Recognition restarted after command processing.");
-                        } catch (restartError) {
-                            console.error("[ERROR] Failed to restart recognition after command processing:", restartError);
-                        }
-                    } else {
-                        console.log("[DEBUG] Recognition already active after command processing (likely from onend). No need to restart.");
-                    }
-                }, 500); // Short delay before restarting recognition
+                // Use the centralized restart function
+                console.log("[DEBUG] processVoiceCommandWithGemini: Initiating controlled recognition restart after command processing.");
+                attemptRestartRecognition();
             }
         }
 
@@ -2596,13 +2630,12 @@
                         console.log("[DEBUG] Awaiting command mode set to FALSE on manual stop.");
                     } else { // If not listening, start continuous listening
                         try {
-                            console.log("[DEBUG] Recognition is inactive, starting it for continuous listening.");
-                            recognition.manuallyStopped = false; // Reset flag
-                            recognition.start();
+                            console.log("[DEBUG] Recognition is inactive, attempting to start for continuous listening.");
+                            attemptRestartRecognition(); // Use the controlled restart
                             // Jarvis will announce "Listening, Sir Sevindu." via onstart event.
                             // The `isListeningForVoice` flag is set by onstart.
                         } catch (e) {
-                            console.error("[ERROR] Failed to start recognition:", e);
+                            console.error("[ERROR] Failed to start recognition from button click:", e);
                             speakAsJarvis("Pardon me, Sir Sevindu. I could not activate voice input. Please check microphone permissions.");
                         }
                     }
@@ -2905,8 +2938,8 @@
             // Start continuous listening for wake word if Web Speech API is supported
             if (recognition) {
                 try {
-                    recognition.start();
-                    console.log("[DEBUG] Initial SpeechRecognition.start() called for continuous wake word listening.");
+                    console.log("[DEBUG] Initial SpeechRecognition.start() called for continuous wake word listening via attemptRestartRecognition.");
+                    attemptRestartRecognition(); // Use the controlled restart for initial start
                 } catch (e) {
                     console.error("[ERROR] Initial recognition.start() failed:", e);
                     // This can happen if microphone is not available or permissions are denied initially.
