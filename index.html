@@ -570,7 +570,7 @@
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
                 </button>
                 <button id="restartPreviewBtn" class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.188A7.001 7.001 0 0110 3a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7c0-.203.011-.403.032-.601A1.505 1.505 0 003 9.5a.5.5 0 01-.5-.5.5.5 0 00-.5-.5A1.505 1.505 0 002 8.42V7a1 1 0 011-1V3a1 1 0 011-1zm6 13a5 5 0 100-10 5 5 0 000 10z" clip-rule="evenodd"></path></svg>
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.188A7.001 7.001 0 0110 3a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7c0-.203.011-.403.032-.601A1.505 0 003 9.5a.5.5 0 01-.5-.5.5.5 0 00-.5-.5A1.505 0 002 8.42V7a1 1 0 011-1V3a1 1 0 011-1zm6 13a5 5 0 100-10 5 5 0 000 10z" clip-rule="evenodd"></path></svg>
                 </button>
             </div>
         </div>
@@ -817,7 +817,8 @@
         // This listener ensures that Tone.js AudioContext is resumed only after a direct user gesture.
         // It's added to the body and removes itself after the first execution.
         const resumeAudioContextOnFirstGesture = async () => {
-            if (!audioContextResumed && Tone.context.state !== 'running') {
+            // Only attempt to resume if the context is suspended and not already resumed by our flag
+            if (!audioContextResumed && Tone.context.state === 'suspended') {
                 try {
                     await Tone.start();
                     audioContextResumed = true;
@@ -1176,6 +1177,7 @@
         let awaitingActualCommand = false; // New state: true after wake word, waiting for command
         let commandTimeoutId = null; // To clear timeout for awaitingActualCommand
         let isStartingRecognition = false; // NEW: Flag to prevent multiple recognition.start() calls
+        let recognitionRestartTimeoutId = null; // NEW: To debounce recognition restarts
 
         // Web Speech API
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1194,9 +1196,14 @@
                 return;
             }
 
+            // Clear any existing restart timeout to debounce calls
+            if (recognitionRestartTimeoutId) {
+                clearTimeout(recognitionRestartTimeoutId);
+                recognitionRestartTimeoutId = null;
+                console.log("[DEBUG] Cleared existing recognition restart timeout.");
+            }
+
             // If already actively listening or in the process of starting, exit.
-            // recognition.listening is usually true if the internal state is 'listening'.
-            // isStartingRecognition is our custom flag to prevent multiple external calls.
             if (recognition.listening || isStartingRecognition) {
                 console.log("[DEBUG] Recognition already listening or starting. Aborting redundant restart.");
                 isListeningForVoice = true; // Ensure our flag is consistent
@@ -1209,24 +1216,34 @@
 
             // Use a small delay before calling start to allow browser state to settle.
             // This helps prevent "InvalidStateError: recognition has already started."
-            setTimeout(() => {
-                if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
-                    try {
+            // Also, explicitly abort any current recognition session to ensure a clean start.
+            recognitionRestartTimeoutId = setTimeout(() => {
+                try {
+                    // Abort any active or pending recognition to ensure a clean state
+                    if (recognition.listening || recognition.readyState === 'starting') {
+                        recognition.abort(); // Force stop any ongoing recognition
+                        console.log("[DEBUG] Forced abort before attempting restart.");
+                    }
+                    
+                    // Only start if it's truly idle or closed after abort
+                    if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
                         recognition.manuallyStopped = false; // Ensure it's not marked as manually stopped
                         recognition.start();
                         console.log("[DEBUG] SpeechRecognition.start() called after delay and state check.");
-                    } catch (e) {
-                        console.error("[ERROR] Failed to start recognition after delay:", e);
-                        speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
+                    } else {
+                        console.log(`[DEBUG] Recognition not in 'idle', 'closed', or 'undefined' state after delay (current state: ${recognition.readyState}). Will not call start().`);
+                        if (recognition.readyState === 'listening') {
+                            isListeningForVoice = true; // Correct our flag if it started independently
+                        }
                     }
-                } else {
-                    console.log(`[DEBUG] Recognition not in 'idle', 'closed', or 'undefined' state after delay (current state: ${recognition.readyState}). Will not call start().`);
-                    if (recognition.readyState === 'listening') {
-                        isListeningForVoice = true; // Correct our flag if it started independently
-                    }
+                } catch (e) {
+                    console.error("[ERROR] Failed to start recognition after delay:", e);
+                    speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
+                } finally {
+                    isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
+                    recognitionRestartTimeoutId = null; // Clear the timeout ID
                 }
-                isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
-            }, 100); // Reduced delay to 100ms, often sufficient.
+            }, 500); // Increased delay to 500ms for more stability
         }
 
         if (recognition) {
@@ -1240,6 +1257,11 @@
                 isListeningForVoice = true; // System is now listening continuously
                 if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Visual feedback
                 isStartingRecognition = false; // Ensure this is reset once it truly starts
+                // Clear any pending restart timeout, as it has successfully started
+                if (recognitionRestartTimeoutId) {
+                    clearTimeout(recognitionRestartTimeoutId);
+                    recognitionRestartTimeoutId = null;
+                }
             };
 
             recognition.onresult = (event) => {
@@ -1256,12 +1278,11 @@
                 if (awaitingActualCommand) {
                     // We are in command mode, process this as a direct command
                     console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
-                    processVoiceCommandWithGemini(transcript);
-                    // After processing a command, stop recognition to allow a clean restart
-                    // and prevent multiple interpretations of the same phrase.
+                    // Before processing, explicitly stop recognition to avoid re-triggering on subsequent speech
                     recognition.manuallyStopped = true; // Mark as manually stopped for `onend` handler
                     recognition.stop(); 
                     awaitingActualCommand = false; // Reset immediately
+                    processVoiceCommandWithGemini(transcript); // Process command after stopping recognition
                     console.log("[DEBUG] Recognition stopped and awaitingActualCommand set to FALSE after command processing.");
                 } else if (transcript.includes('jarvis')) { // Check for wake word
                     console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
@@ -1311,7 +1332,7 @@
                 const isExpectedAbort = (event.error === 'aborted' && recognition.manuallyStopped);
 
                 if (!isExpectedAbort) { // Only speak error if it's not an expected manual abort
-                    if (event.error === 'not-allowed') {
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                         speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
                         if (voiceCommandBtn) voiceCommandBtn.style.display = 'none'; // Hide button if permissions permanently denied
                         console.warn("[WARN] Microphone access denied. Voice commands permanently disabled.");
@@ -1337,7 +1358,11 @@
                 // Do not restart if it was a manual abort, as onend will handle the restart logic.
                 if (!isExpectedAbort && event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
                     console.log("[DEBUG] recognition.onerror: Non-critical error. Attempting controlled restart.");
-                    attemptRestartRecognition(); // Use the new centralized restart function
+                    // Use a debounced restart to avoid thrashing
+                    if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
+                    recognitionRestartTimeoutId = setTimeout(() => {
+                        attemptRestartRecognition(); 
+                    }, 500); // Delay restart after an error
                 }
                 // Reset manuallyStopped flag here, as onerror might fire before onend sometimes,
                 // or after onend if there's a lingering issue.
@@ -1360,7 +1385,8 @@
          */
         function speakAsJarvis(text) {
             console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
-            if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed) { // Ensure AudioContext is resumed
+            // Only speak if sound effects are enabled AND AudioContext has been resumed by user gesture
+            if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') { 
                 // Ensure voices are loaded before trying to find one
                 if (synth.getVoices().length === 0) {
                     synth.onvoiceschanged = () => {
@@ -2366,7 +2392,7 @@
                 isTiming = false;
                 if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
                 if (timerDisplay) timerDisplay.classList.remove('ready');
-                if (enableSoundEffects) {
+                if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
                     console.log("[DEBUG] Playing stop sound.");
                     stopSound.triggerAttackRelease("C2", "8n");
                 }
@@ -2389,7 +2415,7 @@
                 if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
                 startTime = Date.now();
                 timerInterval = setInterval(updateTimer, 10); // Update every 10ms for millisecond precision
-                if (enableSoundEffects) {
+                if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
                     console.log("Playing Go! sound (inspection stopped early).");
                     goSound.triggerAttackRelease(["C4", "E4", "G4"], "8n"); // "Go!" sound
                 }
@@ -2412,7 +2438,7 @@
                         console.log(`[DEBUG] Inspection countdown: ${inspectionTimeLeft}s remaining.`);
                         if (timerDisplay) timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
                         if (inspectionTimeLeft >= 0) {
-                            if (enableSoundEffects) {
+                            if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
                                 // Play beep at 10 seconds and from 5 seconds down to 1
                                 if (inspectionTimeLeft === 10 || (inspectionTimeLeft <= 5 && inspectionTimeLeft > 0)) {
                                     console.log(`[DEBUG] Playing inspection beep for ${inspectionTimeLeft}s.`);
@@ -2448,7 +2474,7 @@
                             if (timerDisplay) timerDisplay.textContent = formatTime(0);
                             scramble = generateScramble();
                             if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
-                            if (enableSoundEffects) {
+                            if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
                                 console.log("Playing forced stop sound due to inspection timeout.");
                                 stopSound.triggerAttackRelease("F2", "8n"); // A different sound for forced stop
                             }
@@ -2464,7 +2490,7 @@
                     if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
                     startTime = Date.now();
                     timerInterval = setInterval(updateTimer, 10);
-                    if (enableSoundEffects) {
+                    if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
                         console.log("Playing initial start sound (no inspection).");
                         startSound.triggerAttackRelease("C4", "8n"); // Initial start sound
                     }
@@ -2514,13 +2540,7 @@
                 scramble = generateScramble();
                 resetTimer();
             }); else console.error("[ERROR] scrambleBtn not found!");
-            if (settingsBtn) settingsBtn.addEventListener('click', () => { // Removed async for Tone.start()
-                // No need for Tone.start() here, handled by global resumeAudioContextOnFirstGesture
-                // if (enableSoundEffects && Tone.context.state !== 'running') {
-                //     await Tone.start();
-                //     console.log("AudioContext ensured to be running (Tone.start() called on settingsBtn click).");
-                // }
-
+            if (settingsBtn) settingsBtn.addEventListener('click', () => { 
                 const settingsModal = document.getElementById('settingsModal');
                 if (settingsModal) {
                     settingsModal.classList.add('open');
@@ -2735,13 +2755,7 @@
                 }
             }
 
-            if (signInBtn) signInBtn.addEventListener('click', () => { // Removed async for Tone.start()
-                // No need for Tone.start() here, handled by global resumeAudioContextOnFirstGesture
-                // if (enableSoundEffects && Tone.context.state !== 'running') {
-                //     await Tone.start();
-                //     console.log("AudioContext ensured to be running (Tone.start() called on signInBtn click).");
-                // }
-
+            if (signInBtn) signInBtn.addEventListener('click', () => { 
                 if (authModal) {
                     authModal.classList.add('open');
                     authModal.focus();
@@ -2757,13 +2771,7 @@
                 clearAuthError();
             }); else console.error("[ERROR] signInBtn not found!");
 
-            if (signUpBtn) signUpBtn.addEventListener('click', () => { // Removed async for Tone.start()
-                // No need for Tone.start() here, handled by global resumeAudioContextOnFirstGesture
-                // if (enableSoundEffects && Tone.context.state !== 'running') {
-                //     await Tone.start();
-                //     console.log("AudioContext ensured to be running (Tone.start() called on signUpBtn click).");
-                // }
-
+            if (signUpBtn) signUpBtn.addEventListener('click', () => { 
                 if (authModal) {
                     authModal.classList.add('open');
                     authModal.focus();
@@ -2780,13 +2788,7 @@
                 clearAuthError();
             }); else console.error("[ERROR] signUpBtn not found!");
 
-            if (signOutBtn) signOutBtn.addEventListener('click', async () => { // Removed async for Tone.start()
-                // No need for Tone.start() here, handled by global resumeAudioContextOnFirstGesture
-                // if (enableSoundEffects && Tone.context.state !== 'running') {
-                //     await Tone.start();
-                //     console.log("AudioContext ensured to be running (Tone.start() called on signOutBtn click).");
-                // }
-
+            if (signOutBtn) signOutBtn.addEventListener('click', async () => { 
                 if (auth) { // Only attempt sign out if auth object is initialized
                     try {
                         await signOut(auth);
@@ -2800,12 +2802,6 @@
 
             if (emailAuthBtn) emailAuthBtn.addEventListener('click', handleSignIn); // Direct assignment, not dynamic
             if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
-                // No need for Tone.start() here, handled by global resumeAudioContextOnFirstGesture
-                // if (enableSoundEffects && Tone.context.state !== 'running') {
-                //     await Tone.start();
-                //     console.log("AudioContext ensured to be running (Tone.start() called on googleSignInBtn click).");
-                // }
-
                 // Defensive check for auth before using it
                 if (!auth) {
                     console.warn("[WARN] Google Sign-In: Firebase Auth not initialized.");
