@@ -1221,15 +1221,8 @@
             // This helps prevent "InvalidStateError: recognition has already started."
             recognitionRestartTimeoutId = setTimeout(() => {
                 try {
-                    // Abort any active or pending recognition to ensure a clean state
-                    // IMPORTANT: Do NOT set isProgrammaticStop = true here.
-                    // This function's purpose is to *restart* after an unexpected stop.
-                    // If recognition.abort() is called here, and it triggers onerror,
-                    // isProgrammaticStop should be FALSE in onerror, indicating an UNEXPECTED abort.
-                    if (recognition.readyState !== 'idle' && recognition.readyState !== 'closed') {
-                        console.log("[DEBUG] Forcing recognition abort before attempting restart for clean state.");
-                        recognition.abort(); // This might trigger onerror with 'aborted'
-                    }
+                    // REMOVED: recognition.abort() from here.
+                    // The onend/onerror handlers are responsible for stopping/restarting.
                     
                     // Only start if it's truly idle or closed after abort
                     // Add a small microtask delay to allow abort to fully process before starting.
