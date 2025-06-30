@@ -1,4 +1,6 @@
 # api/gemini-insight.py inside your Vercel project's 'api' directory
+# This file specifies Python dependencies for your Vercel Cloud Function.
+# This function generates AI insight using Gemini API.
 
 import os
 import requests
@@ -7,12 +9,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
 
 # Initialize the Flask app for Vercel.
-# Vercel functions expect a Flask or FastAPI app for Python.
 app = Flask(__name__)
-# Enable CORS for all origins for development.
-# For production, restrict this to your Vercel frontend URL:
-# CORS(app, resources={r"/api/*": {"origins": "https://your-app-name.vercel.app"}})
-CORS(app)
+CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
 
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
@@ -36,82 +34,122 @@ def gemini_insight_handler():
             print("ERROR: No JSON body received.")
             return jsonify({"error": "No JSON body received."}), 400
 
-        # Extract data from the request.
-        scramble = request_json.get('scramble')
+        # Extract data from the request
+        scramble = request_json.get('scramble', 'unknown scramble')
         cube_type = request_json.get('cubeType', '3x3')
         solve_time_ms = request_json.get('solveTimeMs')
-        penalty = request_json.get('penalty')
-        user_level = request_json.get('userLevel')
+        penalty = request_json.get('penalty', 'none')
+        user_level = request_json.get('userLevel', 'General Cubist')
 
-        # Basic validation for required fields
-        if not scramble:
-            print("ERROR: Missing 'scramble' in request.")
-            return jsonify({"error": "Missing 'scramble' in request."}), 400
+        # Convert solve_time_ms to a human-readable format for the prompt
+        solve_time_formatted = "N/A"
+        if solve_time_ms is not None:
+            minutes = int(solve_time_ms / 60000)
+            seconds = int((solve_time_ms % 60000) / 1000)
+            milliseconds = int(solve_time_ms % 1000)
+            solve_time_formatted = f"{minutes:02}:{seconds:02}.{milliseconds:03}"
 
-        # Construct prompt for the Gemini API
-        # We are asking for multiple pieces of information in a structured JSON format.
-        # The prompt is carefully crafted to guide Gemini's response.
-        solve_time_str = f"{solve_time_ms / 1000:.2f} seconds" if solve_time_ms is not None else "an unknown time"
-        if penalty == '+2':
-            solve_time_str += " with a +2 penalty"
-        elif penalty == 'DNF':
-            solve_time_str = "DNF (Did Not Finish)"
+        print(f"DEBUG: Insight request details - Scramble: {scramble}, Type: {cube_type}, Time: {solve_time_formatted}, Penalty: {penalty}, Level: {user_level}")
 
-        # The core prompt asking for structured data
-        prompt = f"""
-        You are Jarvis, a highly intelligent AI assistant providing expert analysis for Rubik's Cube solves.
-        A user, Sir, Sevindu, has just completed a {cube_type} solve with the following scramble: "{scramble}".
-        The solve time was {solve_time_str}. The user's cubing level is estimated to be "{user_level}".
-
-        Please provide a concise and helpful analysis for this solve. Your response should contain three distinct parts:
-        1.  **General Insight**: A brief, encouraging general analysis of the solve, considering the scramble and outcome.
-        2.  **Optimal Solution (Simulated)**: A plausible, step-by-step example of an optimal or very efficient solution for this exact scramble. Do not state that it's a "simulated" solution, present it as a clear set of moves. Keep it concise, e.g., "R U R' F' L F L' U' R U' R'". For a 3x3, aim for approximately 15-25 moves. For Pyraminx, 8-12 moves. For 2x2, 6-10 moves. For 4x4, 30-45 moves.
-        3.  **Personalized Tip**: A single, actionable tip tailored to the user's "{user_level}" cubing level and the specifics of this solve ({solve_time_str}, {penalty if penalty else 'no penalty'}). For a DNF, suggest focusing on fundamental execution. For slower times, suggest improving look-ahead or specific stages. For faster times, suggest advanced techniques.
-
-        Format your entire response as a JSON object with the following keys:
-        {{
-            "insight": "Your general insight here.",
-            "optimalSolution": "Move sequence here (e.g., R U R' F' L F L' U' R U' R').",
-            "personalizedTip": "Your personalized tip here."
-        }}
-        Ensure the 'optimalSolution' is a string of standard cubing notation moves.
-        """
-
-        gemini_api_key = os.environ.get('GEMINI_API_KEY')
+        # Your Gemini API Key - This should be set as an environment variable in Vercel.
+        # For development, you might hardcode it here temporarily, but REMOVE for production.
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
         if not gemini_api_key:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
-            return jsonify({"error": "Server-side AI key not configured."}), 500
+            return jsonify({"error": "Server configuration error: Gemini API Key is not set."}), 500
 
-        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+        # Construct the prompt for Gemini.
+        # Instruct Gemini to generate a general insight, an optimal solution, and a personalized tip.
+        # Explicitly ask for a JSON response structure.
+        # ADDED: Instructions for formal, respectful tone and addressing as "Sir Sevindu".
+        prompt = f"""
+        You are an advanced AI assistant named Jarvis, specialized in Rubik's Cube analysis.
+        Provide a concise general insight, an optimal solution if applicable, and a personalized tip for the following Rubik's Cube solve.
+        The user's level is {user_level}. The cube type was {cube_type}.
+        The scramble was: {scramble}.
+        The solve time was: {solve_time_formatted}.
+        Any penalty applied was: {penalty}.
 
+        Important instructions for your response:
+        1.  **Tone and Address:** Always adopt a formal, respectful, and helpful tone, characteristic of a personal AI assistant. Address the user directly as "Sir Sevindu" at least once in the personalized tip or general insight.
+        2.  **General Insight:** Provide a brief, overall observation about the solve (e.g., "A solid solve," "Room for improvement in F2L"). Keep this under 30 words.
+        3.  **Optimal Solution:** If an optimal solution for the provided scramble is known or can be generated, provide it. Otherwise, state that it's "Not available."
+        4.  **Personalized Tip:** Offer one specific, actionable tip tailored to the user's current skill level ({user_level}) and the characteristics of this solve (e.g., "Consider practicing cross solutions," "Focus on look-ahead during OLL"). This should be a single, clear recommendation, under 40 words.
+        
+        Respond ONLY with a JSON object in the following format:
+        {{
+          "insight": "General insight text.",
+          "optimalSolution": "Optimal solution algorithm (e.g., F U R U' R' F') or 'Not available'.",
+          "personalizedTip": "Personalized tip text."
+        }}
+        """
+
+        gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        headers = {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': gemini_api_key # Pass API key via header
+        }
         payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
+            ],
+            # Use responseSchema to ensure structured output
             "generationConfig": {
-                "responseMimeType": "application/json"
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "insight": { "type": "STRING" },
+                        "optimalSolution": { "type": "STRING" },
+                        "personalizedTip": { "type": "STRING" }
+                    },
+                    "required": ["insight", "optimalSolution", "personalizedTip"]
+                }
             }
         }
-        
+
         print("DEBUG: Sending request to Gemini API.")
-        response = requests.post(api_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+        gemini_response = requests.post(gemini_url, headers=headers, json=payload, timeout=30)
+        gemini_response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
 
-        gemini_response = response.json()
-        print(f"DEBUG: Raw Gemini API response: {json.dumps(gemini_response, indent=2)}")
+        gemini_result = gemini_response.json()
+        print(f"DEBUG: Raw Gemini response: {json.dumps(gemini_result, indent=2)}")
 
-        # Extract the content from Gemini's response
-        if gemini_response and gemini_response.get('candidates') and gemini_response['candidates'][0].get('content') and gemini_response['candidates'][0]['content'].get('parts'):
-            # Gemini's structured response comes as a string representation of JSON
-            response_text = gemini_response['candidates'][0]['content']['parts'][0]['text']
-            # Attempt to parse the inner JSON string
-            try:
-                parsed_insight = json.loads(response_text)
-                return jsonify(parsed_insight), 200
-            except json.JSONDecodeError as e:
-                print(f"ERROR: Failed to parse Gemini's inner JSON response: {e}. Raw response text: '{response_text}'")
-                return jsonify({"error": "AI response was malformed, please try again."}), 500
+        # Extract content from Gemini's structured response
+        if gemini_result.get('candidates') and len(gemini_result['candidates']) > 0:
+            if gemini_result['candidates'][0].get('content') and gemini_result['candidates'][0]['content'].get('parts'):
+                try:
+                    # The content is a stringified JSON, so parse it
+                    gemini_content_str = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                    parsed_gemini_content = json.loads(gemini_content_str)
+                    
+                    insight = parsed_gemini_content.get('insight', 'No insight generated.')
+                    optimal_solution = parsed_gemini_content.get('optimalSolution', 'Not available.')
+                    personalized_tip = parsed_gemini_content.get('personalizedTip', 'No personalized tip generated.')
+
+                    return jsonify({
+                        "insight": insight,
+                        "optimalSolution": optimal_solution,
+                        "personalizedTip": personalized_tip
+                    }), 200
+
+                except json.JSONDecodeError as e:
+                    print(f"ERROR: JSON decoding error on Gemini response: {e}. Raw response: '{gemini_content_str}'")
+                    return jsonify({"error": f"AI response malformed: {e}"}), 500
+                except Exception as e:
+                    print(f"ERROR: Unexpected error processing Gemini response: {e}")
+                    return jsonify({"error": f"An unexpected error occurred processing AI response: {e}"}), 500
+            else:
+                print("WARN: Gemini response 'content' or 'parts' missing.")
+                return jsonify({"error": "AI response content missing."}), 500
         else:
-            print(f"ERROR: Unexpected Gemini API response structure: {gemini_response}")
-            return jsonify({"error": "Failed to get AI insight due to unexpected response structure."}), 500
+            print("WARN: Gemini response 'candidates' missing or empty.")
+            return jsonify({"error": "AI response candidates missing or empty."}), 500
 
     except requests.exceptions.ConnectionError as conn_err:
         print(f"ERROR: Connection error during Gemini API call: {conn_err}")
@@ -132,4 +170,3 @@ def gemini_insight_handler():
         import traceback
         print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
-

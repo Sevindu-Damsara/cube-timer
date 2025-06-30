@@ -816,6 +816,7 @@
         // This function attempts to initialize user data and settings (Firestore listener, settings load).
         // It will only proceed if both `domElementsReady` AND `isAuthReady` are true.
         const initializeUserDataAndSettings = async () => {
+            console.log("[DEBUG] initializeUserDataAndSettings called.");
             if (!domElementsReady) {
                  console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready. Waiting.");
                  return;
@@ -850,6 +851,7 @@
             }
             // Ensure timer/scramble are reset/generated regardless of auth state
             resetTimer(); 
+            console.log("[DEBUG] initializeUserDataAndSettings completed.");
         };
 
         // Helper to check if Firebase config is valid (more robust than just checking for non-empty strings)
@@ -1041,75 +1043,99 @@
             recognition.lang = 'en-US'; // Set language
 
             recognition.onstart = () => {
-                console.log("[DEBUG] Voice recognition started.");
+                console.log("[DEBUG] Voice recognition STARTED.");
                 isListeningForVoice = true; // System is now listening continuously
                 if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Visual feedback
                 // Jarvis doesn't need to speak "Listening" here, as it's continuous background
             };
 
             recognition.onresult = (event) => {
+                console.log("[DEBUG] Voice recognition ONRESULT triggered.");
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
                 console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
 
                 if (commandTimeoutId) {
+                    console.log("[DEBUG] Clearing existing command timeout.");
                     clearTimeout(commandTimeoutId); // Clear any pending command timeout
                     commandTimeoutId = null;
                 }
 
                 if (awaitingActualCommand) {
-                    // We are in command mode, process this as a direct command
-                    console.log("[DEBUG] Awaiting command mode: Processing transcript as command.");
+                    console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
                     processVoiceCommandWithGemini(transcript);
                     awaitingActualCommand = false; // Reset after processing command
+                    console.log("[DEBUG] Awaiting command mode set to FALSE after command processing.");
                     // Optionally, set a short delay before allowing next wake word detection
                     // setTimeout(() => { awaitingActualCommand = false; }, 1000); 
                 } else if (transcript.includes('jarvis')) { // Check for wake word
-                    console.log("[DEBUG] Wake word 'Jarvis' detected.");
-                    speakAsJarvis("At your service, Sir. Your command?");
+                    console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
+                    speakAsJarvis("At your service, Sir Sevindu. Your command?");
                     awaitingActualCommand = true; // Enter command mode
                     // Set a timeout to exit command mode if no command follows quickly
                     commandTimeoutId = setTimeout(() => {
                         awaitingActualCommand = false;
-                        speakAsJarvis("No command received, Sir. I shall continue to listen for your instructions.");
-                        console.log("[DEBUG] Command mode timed out.");
+                        speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                        console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
                     }, 5000); // 5 seconds to give a command
+                } else {
+                    console.log("[DEBUG] No wake word detected. Continuing continuous listening for 'Jarvis'.");
                 }
             };
 
             recognition.onend = () => {
-                console.log("[DEBUG] Voice recognition ended (usually due to explicit stop()).");
+                console.log("[DEBUG] Voice recognition ENDED.");
                 isListeningForVoice = false; // No longer continuously listening
                 awaitingActualCommand = false; // Reset command mode
                 if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
                 if (commandTimeoutId) {
-                    clearTimeout(commandTimeoutId);
-                    commandTimeoutId = null;
-                }
-            };
-
-            recognition.onerror = (event) => {
-                console.error(`[ERROR] Voice recognition error: ${event.error}`);
-                // 'no-speech' is common if no audio is detected, don't speak an error for it.
-                // 'not-allowed' happens if mic permission is denied or continuous listening is problematic.
-                if (event.error !== 'no-speech') {
-                    speakAsJarvis(`Pardon me, Sir. An error occurred with voice input: ${event.error}.`);
-                }
-                isListeningForVoice = false;
-                awaitingActualCommand = false;
-                if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-                if (commandTimeoutId) {
+                    console.log("[DEBUG] Clearing command timeout on recognition END.");
                     clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
                 // Attempt to restart recognition if it stopped due to an error, but with a delay
                 // to prevent rapid restarts if the error is persistent.
-                if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed') {
-                    console.log("[DEBUG] Attempting to restart voice recognition after error.");
+                // Do not restart if explicitly stopped by user or not allowed.
+                if (voiceCommandBtn.classList.contains('active') && !recognition.manuallyStopped) { // Only restart if the button implies active
+                    console.log("[DEBUG] Attempting to RESTART voice recognition after END event (if not manually stopped).");
                     setTimeout(() => {
-                        if (!isListeningForVoice && voiceCommandBtn.classList.contains('active')) { // Check button state
-                             // Only restart if the user implicitly wants it to be active
+                        try {
+                            recognition.start();
+                            console.log("[DEBUG] Voice recognition RESTARTED after delay.");
+                        } catch (e) {
+                            console.error("[ERROR] Failed to restart recognition:", e);
+                        }
+                    }, 1000); // Wait 1 second before attempting restart
+                }
+                recognition.manuallyStopped = false; // Reset manual stop flag
+            };
+
+            recognition.onerror = (event) => {
+                console.error(`[ERROR] Voice recognition ERROR: ${event.error}`);
+                // 'no-speech' is common if no audio is detected, don't speak an error for it.
+                // 'not-allowed' happens if mic permission is denied or continuous listening is problematic.
+                if (event.error !== 'no-speech') {
+                    speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
+                }
+                isListeningForVoice = false;
+                awaitingActualCommand = false;
+                if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
+                if (commandTimeoutId) {
+                    console.log("[DEBUG] Clearing command timeout on recognition ERROR.");
+                    clearTimeout(commandTimeoutId);
+                    commandTimeoutId = null;
+                }
+                // If it's a critical error (like not-allowed), don't try to restart automatically
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
+                     console.warn("[WARN] Voice recognition will NOT auto-restart due to critical error:", event.error);
+                } else {
+                    // For transient errors, attempt a restart
+                    console.log("[DEBUG] Attempting to RESTART voice recognition after non-critical ERROR.");
+                    setTimeout(() => {
+                        // Only restart if the user implicitly wants it to be active (button is active)
+                        if (voiceCommandBtn.classList.contains('active')) {
                             try {
                                 recognition.start();
+                                console.log("[DEBUG] Voice recognition RESTARTED after error delay.");
                             } catch (e) {
                                 console.error("[ERROR] Failed to restart recognition:", e);
                             }
@@ -1126,6 +1152,7 @@
          * @param {string} text - The text for Jarvis to speak.
          */
         function speakAsJarvis(text) {
+            console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
             if (enableSoundEffects && synth && SpeechSynthesis) {
                 const utterance = new SpeechSynthesis(text);
                 // Try to find a specific voice for Jarvis if available (e.g., a male, US English voice)
@@ -1150,12 +1177,12 @@
             console.log(`[DEBUG] Sending raw transcript to Gemini NLU: "${rawTranscript}"`);
             
             if (!geminiNluFunctionUrl || geminiNluFunctionUrl === "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL") {
-                speakAsJarvis("Sir, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
+                speakAsJarvis("Sir Sevindu, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
                 console.error("[ERROR] Gemini NLU Cloud Function URL is not configured.");
                 return;
             }
 
-            speakAsJarvis("Interpreting command, Sir.");
+            speakAsJarvis("Interpreting command, Sir Sevindu.");
 
             try {
                 const response = await fetch(geminiNluFunctionUrl, {
@@ -1177,12 +1204,12 @@
                 if (canonicalCommand) {
                     handleCanonicalCommand(canonicalCommand, commandValue);
                 } else {
-                    speakAsJarvis("Pardon me, Sir. I could not determine a clear command from your request.");
+                    speakAsJarvis("Pardon me, Sir Sevindu. I could not determine a clear command from your request.");
                     console.warn("[WARN] Gemini NLU did not return a canonical command.");
                 }
 
             } catch (e) {
-                speakAsJarvis(`Sir, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
+                speakAsJarvis(`Sir Sevindu, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
                 console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
             }
         }
@@ -1198,61 +1225,61 @@
             switch (canonicalCommand) {
                 case 'start_timer':
                     if (!isTiming) {
-                        speakAsJarvis("Initiating timer sequence, Sir.");
+                        speakAsJarvis("Initiating timer sequence, Sir Sevindu.");
                         toggleTimer();
                     } else {
-                        speakAsJarvis("The timer is already in progress, Sir.");
+                        speakAsJarvis("The timer is already in progress, Sir Sevindu.");
                     }
                     break;
                 case 'stop_timer':
                     if (isTiming) {
-                        speakAsJarvis("Timer halted, Sir.");
+                        speakAsJarvis("Timer halted, Sir Sevindu.");
                         toggleTimer(); // This will stop the timer and add solve
                     } else {
-                        speakAsJarvis("The timer is not currently running, Sir.");
+                        speakAsJarvis("The timer is not currently running, Sir Sevindu.");
                     }
                     break;
                 case 'new_scramble':
-                    speakAsJarvis("Generating new scramble, Sir.");
+                    speakAsJarvis("Generating new scramble, Sir Sevindu.");
                     scramble = generateScramble();
                     resetTimer();
                     break;
                 case 'reset_timer':
-                    speakAsJarvis("Timer reset, Sir.");
+                    speakAsJarvis("Timer reset, Sir Sevindu.");
                     resetTimer();
                     break;
                 case 'open_settings':
-                    speakAsJarvis("Opening settings, Sir.");
+                    speakAsJarvis("Opening settings, Sir Sevindu.");
                     if (settingsBtn) settingsBtn.click();
                     break;
                 case 'close_settings':
-                    speakAsJarvis("Closing settings, Sir.");
+                    speakAsJarvis("Closing settings, Sir Sevindu.");
                     // Check if settings modal is open before attempting to close
                     const settingsModal = document.getElementById('settingsModal');
                     if (settingsModal && settingsModal.classList.contains('open')) {
                         closeSettingsModalBtn.click();
                     } else {
-                        speakAsJarvis("The settings panel is not currently open, Sir.");
+                        speakAsJarvis("The settings panel is not currently open, Sir Sevindu.");
                     }
                     break;
                 case 'get_insight':
                     if (solves.length > 0) {
-                        speakAsJarvis("Accessing neural network for solve analysis, Sir.");
+                        speakAsJarvis("Accessing neural network for solve analysis, Sir Sevindu.");
                         getSolveInsight(solves[solves.length - 1].id); // Get insight for the last solve
                     } else {
-                        speakAsJarvis("There are no solves recorded to analyze, Sir.");
+                        speakAsJarvis("There are no solves recorded to analyze, Sir Sevindu.");
                     }
                     break;
                 // NEW: Voice commands for settings
                 case 'toggle_inspection':
                     enableInspection = !enableInspection;
-                    speakAsJarvis(`Inspection mode is now ${enableInspection ? 'enabled' : 'disabled'}, Sir.`);
+                    speakAsJarvis(`Inspection mode is now ${enableInspection ? 'enabled' : 'disabled'}, Sir Sevindu.`);
                     saveUserSettings();
                     applySettingsToUI(); // Re-apply to update UI
                     break;
                 case 'toggle_sound_effects':
                     enableSoundEffects = !enableSoundEffects;
-                    speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}, Sir.`);
+                    speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}, Sir Sevindu.`);
                     saveUserSettings();
                     // applySettingsToUI is not strictly needed for this, but consistent
                     break;
@@ -1260,12 +1287,12 @@
                     const validCubeTypes = ['3x3', '2x2', '4x4', 'pyraminx'];
                     if (value && validCubeTypes.includes(value.toLowerCase())) {
                         cubeType = value.toLowerCase();
-                        speakAsJarvis(`Cube type set to ${value}, Sir.`);
+                        speakAsJarvis(`Cube type set to ${value}, Sir Sevindu.`);
                         saveUserSettings();
                         applySettingsToUI(); // Re-apply to update scramble, etc.
                         resetTimer(); // Reset timer and generate new scramble for new cube type
                     } else {
-                        speakAsJarvis(`Pardon me, Sir. I cannot set the cube type to '${value}'. Please choose from 3x3, 2x2, 4x4, or Pyraminx.`);
+                        speakAsJarvis(`Pardon me, Sir Sevindu. I cannot set the cube type to '${value}'. Please choose from 3x3, 2x2, 4x4, or Pyraminx.`);
                     }
                     break;
                 case 'set_theme':
@@ -1273,22 +1300,22 @@
                     if (value && validThemes.includes(value.toLowerCase())) {
                         currentTheme = value.toLowerCase();
                         document.body.className = `theme-${currentTheme}`; // Directly apply class
-                        speakAsJarvis(`Theme set to ${value}, Sir.`);
+                        speakAsJarvis(`Theme set to ${value}, Sir Sevindu.`);
                         saveUserSettings();
                         applySettingsToUI(); // Re-apply to update 3D cube background if visible
                     } else {
-                        speakAsJarvis(`Pardon me, Sir. I cannot set the theme to '${value}'. Please choose from Dark, Light, or Vibrant.`);
+                        speakAsJarvis(`Pardon me, Sir Sevindu. I cannot set the theme to '${value}'. Please choose from Dark, Light, or Vibrant.`);
                     }
                     break;
                 case 'toggle_3d_cube_view':
                     show3DCubeView = !show3DCubeView;
-                    speakAsJarAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}, Sir.`);
+                    speakAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}, Sir Sevindu.`);
                     saveUserSettings();
                     applySettingsToUI(); // Re-apply to toggle visibility
                     break;
                 case 'unknown':
                 default:
-                    speakAsJarvis("Pardon me, Sir. I did not fully comprehend your instruction. Please try again.");
+                    speakAsJarvis("Pardon me, Sir Sevindu. I did not fully comprehend your instruction. Please try again.");
                     break;
             }
         }
@@ -1758,7 +1785,7 @@
             // Check if AI Insight function URL is configured before calling
             // This is the correct constant to check, not a hardcoded string
             if (geminiInsightFunctionUrl) { 
-                 speakAsJarvis("Your solve is complete, Sir. Analyzing your performance.");
+                 speakAsJarvis("Your solve is complete, Sir Sevindu. Analyzing your performance.");
                  // Use the latest solve (which is the newSolve just added)
                  getSolveInsight(newSolve.id); 
             } else {
@@ -1833,7 +1860,7 @@
                 if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please ensure your Vercel function is deployed and the URL is correct.";
                 if (insightSpinner) insightSpinner.style.display = 'none';
                 console.error("[ERROR] Gemini Insight Cloud Function URL is not set or is default placeholder.");
-                speakAsJarvis("Sir, the AI insight system is currently offline. Please configure the cloud function URL.");
+                speakAsJarvis("Sir Sevindu, the AI insight system is currently offline. Please configure the cloud function URL.");
                 return;
             }
 
@@ -1871,7 +1898,7 @@
                 if (result.personalizedTip && personalizedTipText && personalizedTipDisplay) {
                     personalizedTipText.textContent = result.personalizedTip;
                     personalizedTipDisplay.style.display = 'block';
-                    speakAsJarvis(`Sir, my analysis suggests: ${result.personalizedTip}`);
+                    speakAsJarvis(`Sir Sevindu, my analysis suggests: ${result.personalizedTip}`);
                 } else {
                     if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
                 }
@@ -1881,7 +1908,7 @@
             } catch (e) {
                 if (insightMessageElement) insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
                 console.error("[ERROR] Error calling Cloud Function:", e);
-                speakAsJarvis(`Sir, I encountered an error while generating insight: ${e.message}`);
+                speakAsJarvis(`Sir Sevindu, I encountered an error while generating insight: ${e.message}`);
             } finally {
                 if (insightSpinner) insightSpinner.style.display = 'none'; // Hide spinner
                 console.log("[DEBUG] AI Insight generation process completed.");
@@ -2493,19 +2520,28 @@
             // Voice Command Button Listener
             if (voiceCommandBtn && recognition) { // Only add if both exist
                 voiceCommandBtn.addEventListener('click', () => {
+                    console.log("[DEBUG] Voice command button clicked.");
                     if (isListeningForVoice) { // If currently listening (continuously)
+                        console.log("[DEBUG] Recognition is active, stopping it.");
+                        recognition.manuallyStopped = true; // Set a flag for onend
                         recognition.stop(); // Stop continuous listening
-                        speakAsJarvis("Voice input suspended.");
-                        if (commandTimeoutId) { clearTimeout(commandTimeoutId); commandTimeoutId = null; }
+                        speakAsJarvis("Voice input suspended, Sir Sevindu.");
+                        if (commandTimeoutId) { 
+                            clearTimeout(commandTimeoutId); 
+                            commandTimeoutId = null; 
+                            console.log("[DEBUG] Command timeout cleared on manual stop.");
+                        }
                         awaitingActualCommand = false;
+                        console.log("[DEBUG] Awaiting command mode set to FALSE on manual stop.");
                     } else { // If not listening, start continuous listening
                         try {
+                            console.log("[DEBUG] Recognition is inactive, starting it.");
                             recognition.start();
-                            // Jarvis will announce "Listening, Sir." via onstart event.
+                            // Jarvis will announce "Listening, Sir Sevindu." via onstart event.
                             // The `isListeningForVoice` flag is set by onstart.
                         } catch (e) {
                             console.error("[ERROR] Failed to start recognition:", e);
-                            speakAsJarvis("Pardon me, Sir. I could not activate voice input. Please check microphone permissions.");
+                            speakAsJarvis("Pardon me, Sir Sevindu. I could not activate voice input. Please check microphone permissions.");
                         }
                     }
                 });
@@ -2803,6 +2839,20 @@
             // Attempt to initialize user data and settings now that DOM is ready.
             // This function itself checks if Firebase Auth is also ready.
             initializeUserDataAndSettings();
+
+            // Start continuous listening for wake word if Web Speech API is supported
+            if (recognition) {
+                try {
+                    recognition.start();
+                    console.log("[DEBUG] Initial SpeechRecognition.start() called for continuous wake word listening.");
+                } catch (e) {
+                    console.error("[ERROR] Initial recognition.start() failed:", e);
+                    // This can happen if microphone is not available or permissions are denied initially.
+                    // The onerror will likely catch this and log/handle it.
+                }
+            } else {
+                 console.warn("[WARN] Web Speech API not supported, cannot start continuous listening.");
+            }
 
             console.log("[DEBUG] window.onload complete. Application should now be fully initialized.");
         };
