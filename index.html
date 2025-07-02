@@ -15,101 +15,246 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="dark-theme">
-    <div class="container">
-        <h1 class="text-4xl font-bold text-blue-400 mb-4">Rubik's Cube Timer</h1>
-        <p class="text-lg text-gray-400 mb-6">Cubically AI Edition</p>
-
-        <div id="timer-display" class="timer-display">00:00.000</div>
-
-        <div id="scramble-display" class="scramble-display">Generating scramble...</div>
-
-        <!-- Twisty Player for 3D scramble visualization -->
-        <twisty-player id="twisty-player" alg="R U R' U'" experimental-setup-alg="R U R' U'" puzzle="3x3x3"
-            hint="auto" camera="auto" tempo="3"></twisty-player>
-
-        <div class="controls flex justify-center gap-4 mb-8">
-            <button id="start-stop-button" class="px-6 py-3 rounded-lg font-semibold">Start</button>
-            <button id="reset-button" class="px-6 py-3 rounded-lg font-semibold">Reset</button>
-            <button id="settings-button" class="px-6 py-3 rounded-lg font-semibold">Settings</button>
+<body class="theme-dark"> <!-- Set default theme class here -->
+    <div class="container mx-auto rounded-3xl">
+        <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
+        <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
+            <button id="signInBtn" class="button-primary">Sign In</button>
+            <button id="signUpBtn" class="button-secondary">Sign Up</button>
+            <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
         </div>
 
-        <section class="stats-section">
-            <h2 class="text-2xl font-bold text-blue-400 mb-4">Statistics</h2>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div id="ao5-display" class="stat-value">N/A</div>
-                    <div class="stat-label">Average of 5</div>
-                </div>
-                <div class="stat-item">
-                    <div id="ao12-display" class="stat-value">N/A</div>
-                    <div class="stat-label">Average of 12</div>
-                </div>
-                <div class="stat-item">
-                    <div id="best-time-display" class="stat-value">N/A</div>
-                    <div class="stat-label">Best Time</div>
-                </div>
-                <div class="stat-item">
-                    <div id="total-solves-display" class="stat-value">0</div>
-                    <div class="stat-label">Total Solves</div>
-                </div>
-            </div>
-        </section>
+        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Rubik's Cube Timer</h1>
 
-        <section class="solves-section">
-            <h2 class="text-2xl font-bold text-blue-400 mb-4">Solve History</h2>
-            <div id="solves-list-container" class="solves-list-container">
-                <ul id="solves-list" class="solves-list">
-                    <!-- Solves will be dynamically added here -->
-                    <li class="text-gray-500">No solves recorded yet.</li>
-                </ul>
+        <!-- Username Display -->
+        <div class="text-sm text-center text-gray-400">
+            Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+        </div>
+
+        <!-- Scramble Display (Text) -->
+        <div id="scrambleTextDisplay" class="scramble-display" style="display: block;">
+            Generating scramble...
+        </div>
+
+        <!-- 3D Cube Viewer Container (Initially hidden) -->
+        <div id="cube3DContainer" style="display: none;">
+            <!-- The twisty-player element for 3D visualization -->
+            <twisty-player id="scramble3DViewer" visualization="3D" alg="" puzzle="3x3x3"
+                style="width: 100%; height: 100%;" face-letters="false" control-panel="none" <!-- Important: Disable
+                default controls for custom toolbar -->
+                hint-arrows="none" <!-- Added to hide hint arrows -->
+                camera-latitude="15" <!-- Set default camera angle -->
+                camera-longitude="-45" <!-- Set default camera angle -->
+                background="#0f172a" <!-- Set a default background color that matches dark theme -->
+                ></twisty-player>
+            <!-- Custom Toolbar -->
+            <div id="customPreviewToolbar"
+                class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
+
+                <button id="playPreviewBtn"
+                    class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
+
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+
+                </button>
+
+                <button id="pausePreviewBtn"
+                    class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center">
+
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+
+                </button>
+
+                <button id="restartPreviewBtn"
+                    class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
+
+                    <!-- Corrected SVG path for restart icon -->
+
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+
+                </button>
+
             </div>
-        </section>
+
+        </div>
+
+        <!-- Timer Display -->
+        <div id="timerDisplay" class="timer-display text-center">
+            00:00.000
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <button id="startStopBtn" class="button-primary flex-1">Start / Stop (Space)</button>
+            <button id="resetBtn" class="button-secondary flex-1">Reset</button>
+            <button id="scrambleBtn" class="button-secondary flex-1">New Scramble</button>
+            <button id="settingsBtn" class="button-secondary flex-1">Settings</button>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label text-gray-400">Best Time</div>
+                <div id="bestTime" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Ao5</div>
+                <div id="ao5" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Ao12</div>
+                <div id="ao12" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Solves</div>
+                <div id="solveCount" class="value">0</div>
+            </div>
+        </div>
+
+        <!-- Solve History -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gradient mb-4">Solve History</h2>
+            <div id="solveHistoryList" class="max-h-64 overflow-y-auto pr-2">
+                <!-- Solve times will be dynamically added here -->
+                <p class="text-center text-gray-500" id="noSolvesMessage">No solves yet. Start cubing!</p>
+            </div>
+        </div>
+
     </div>
+
+    <!-- Floating Action Button for Voice Commands -->
+    <button id="voiceCommandBtn" class="fixed bottom-6 right-6 z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path
+                d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.25-2.52 5.8-5.3 5.8S6.7 14.25 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
+        </svg>
+    </button>
 
     <!-- Settings Modal -->
-    <div id="settings-modal-overlay" class="modal-overlay">
-        <div id="settings-modal-content" class="modal-content">
-            <button class="close-button">&times;</button>
-            <h2>Settings</h2>
-            <label for="inspection-time-input" class="block text-left text-gray-400 font-semibold mb-2">Inspection
-                Time (seconds):</label>
-            <input type="range" id="inspection-time-input" min="0" max="30" value="15"
-                class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg">
-            <span id="inspection-time-value" class="text-gray-400 text-sm">15 seconds</span>
+    <div id="settingsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeSettingsModal" aria-label="Close settings">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-6">Settings</h2>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <label for="inspectionToggle" class="text-lg">Enable 15s Inspection</label>
+                    <input type="checkbox" id="inspectionToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
 
-            <label for="sound-volume-input" class="block text-left text-gray-400 font-semibold mb-2">Sound Volume:</label>
-            <input type="range" id="sound-volume-input" min="0" max="1" step="0.05" value="0.5"
-                class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg">
-            <span id="sound-volume-value" class="text-gray-400 text-sm">50%</span>
+                <div class="flex items-center justify-between">
+                    <label for="soundEffectsToggle" class="text-lg">Enable Sound Effects</label>
+                    <input type="checkbox" id="soundEffectsToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
 
-            <label for="wake-word-input" class="block text-left text-gray-400 font-semibold mb-2">Voice Wake Word:</label>
-            <input type="text" id="wake-word-input" value="Jarvis"
-                class="w-full p-3 rounded-lg border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex items-center justify-between">
+                    <label for="cubeTypeSelect" class="text-lg">Cube Type</label>
+                    <select id="cubeTypeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="3x3">3x3</option>
+                        <option value="2x2">2x2</option>
+                        <option value="4x4">4x4</option>
+                        <option value="pyraminx">Pyraminx</option>
+                    </select>
+                </div>
 
-            <label for="theme-select" class="block text-left text-gray-400 font-semibold mb-2">Theme:</label>
-            <select id="theme-select"
-                class="w-full p-3 rounded-lg border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-            </select>
+                <div class="flex items-center justify-between">
+                    <label for="themeSelect" class="text-lg">Theme</label>
+                    <select id="themeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="dark">Dark (Default)</option>
+                        <option value="light">Light</option>
+                        <option value="vibrant">Vibrant</option>
+                    </select>
+                </div>
 
-            <div class="button-group flex justify-end gap-4 mt-6">
-                <button id="save-settings-button" class="save-button">Save</button>
-                <button id="cancel-settings-button" class="cancel-button">Cancel</button>
+                <!-- New: 3D Cube View Toggle -->
+                <div class="flex items-center justify-between">
+                    <label for="cubeViewToggle" class="text-lg">Show 3D Cube Scramble</label>
+                    <input type="checkbox" id="cubeViewToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <h3 class="text-xl font-semibold text-gradient mb-3">Change Username</h3>
+                    <div class="mb-3">
+                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New
+                            Username:</label>
+                        <input type="text" id="settingsUsernameInput"
+                            class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                            placeholder="Enter new username">
+                    </div>
+                    <button id="saveUsernameBtn" class="button-primary w-full">Save Username</button>
+                    <p id="usernameUpdateMessage" class="text-sm mt-2 text-center" style="display:none;"></p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Message Box -->
-    <div id="message-box-overlay" class="message-box-overlay">
-        <div id="message-box-content" class="message-box-content">
-            <h3 id="message-box-title" class="text-xl font-bold text-blue-400 mb-4">Message</h3>
-            <p id="message-box-message" class="text-gray-300 mb-6">This is a message.</p>
-            <div class="button-group">
-                <button id="message-box-confirm-button" class="px-4 py-2 rounded-lg font-semibold">OK</button>
-                <button id="message-box-cancel-button" class="px-4 py-2 rounded-lg font-semibold"
-                    style="display: none;">Cancel</button>
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAuthModal"
+                aria-label="Close authentication modal">&times;</button>
+            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-6 text-center">Sign In</h2>
+
+            <div class="mb-4">
+                <label for="email" class="block text-gray-300 text-sm font-bold mb-2">Email:</label>
+                <input type="email" id="email"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="your@email.com">
+            </div>
+            <div class="mb-4" id="usernameFieldGroup" style="display:none;">
+                <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
+                <input type="text" id="usernameInput"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="Enter your username">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="password"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="********">
+            </div>
+            <p id="authError" class="text-red-500 text-sm mb-4" style="display:none;"></p>
+
+            <div class="flex flex-col gap-3 mb-4">
+                <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
+                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo"
+                        class="w-5 h-5">
+                    Sign In with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insight Modal -->
+    <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
+                <div class="spinner mx-auto my-4" style="display: none;"></div>
+                <p id="insightMessage" class="text-center">Generating insight...</p>
+                <div id="optimalSolutionDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Optimal Solution:</h3>
+                    <p id="optimalSolutionText" class="font-mono text-white text-sm"></p>
+                </div>
+                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
+                    <p id="personalizedTipText" class="text-white text-sm"></p>
+                </div>
             </div>
         </div>
     </div>
