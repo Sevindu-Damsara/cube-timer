@@ -663,6 +663,46 @@ body.theme-vibrant {
 }
 
 
+/* Theme specific variables (kept same) */
+body.theme-dark {
+    --bg-color-primary: #0f172a;
+    --text-color-primary: #e2e8f0;
+    --bg-color-secondary: #1e293b;
+    --button-secondary-bg: #475569;
+    --button-secondary-text: #e2e8f0;
+    --button-secondary-hover-bg: #64748b;
+    --card-bg: #334155;
+    --timer-color: #818cf8;
+    --scramble-color: #a78bfa;
+    --stats-value-color: #67e8f9;
+}
+
+body.theme-light {
+    --bg-color-primary: #f0f2f5;
+    --text-color-primary: #333;
+    --bg-color-secondary: #ffffff;
+    --button-secondary-bg: #e2e8f0;
+    --button-secondary-text: #333;
+    --button-secondary-hover-bg: #cbd5e1;
+    --card-bg: #f9fafb;
+    --timer-color: #3b82f6;
+    --scramble-color: #1d4ed8;
+    --stats-value-color: #0ea5e9;
+}
+
+body.theme-vibrant {
+    --bg-color-primary: #2d0b57;
+    --text-color-primary: #f0f2f5;
+    --bg-color-secondary: #4a148c;
+    --button-secondary-bg: #8e24aa;
+    --button-secondary-text: #f0f2f5;
+    --button-secondary-hover-bg: #ab47bc;
+    --card-bg: #6a1b9a;
+    --timer-color: #e0f7fa;
+    --scramble-color: #ce93d8;
+    --stats-value-color: #80cbc4;
+}
+
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-top: 4px solid #fff;
