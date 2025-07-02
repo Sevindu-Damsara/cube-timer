@@ -135,67 +135,7 @@ def gemini_insight_handler():
                     optimal_solution = parsed_gemini_content.get('optimalSolution', 'Not available.')
                     personalized_tip = parsed_gemini_content.get('personalizedTip', 'No personalized tip generated.')
 
-                    # If Gemini did not provide an optimal solution, try to generate one locally
-                    if optimal_solution.strip().lower() == 'not available':
-                        try:
-                            # Validate scramble format for kociemba
-                            original_scramble = scramble.strip()
-                            print(f"DEBUG: Original scramble received: '{original_scramble}'")
-                            # Transform scramble to kociemba format if needed
-                            # For example, remove unwanted characters, normalize spacing
-                            transformed_scramble = original_scramble.replace('\n', ' ').replace('\r', ' ').strip()
-                            # Remove multiple spaces
-                            import re
-                            transformed_scramble = re.sub(r'\s+', ' ', transformed_scramble)
-                            print(f"DEBUG: Transformed scramble for local solver: '{transformed_scramble}'")
-                            # Validate transformed scramble
-                            if not transformed_scramble or any(c not in "URFDLBMESxyz' 0123456789 " for c in transformed_scramble):
-                                print(f"WARNING: Scramble format may be invalid for local solver: '{transformed_scramble}'")
-                                optimal_solution = "Not available (invalid scramble format for local solver)"
-                            else:
-                                print(f"DEBUG: Valid scramble for local solver: '{transformed_scramble}'")
-                                try:
-                                    # Use pycuber to create a cube and apply scramble
-                                    cube = pc.Cube()
-                                    try:
-                                        scramble_moves = pc.Formula(transformed_scramble)
-                                        print(f"DEBUG: Parsed scramble moves: {scramble_moves}")
-                                    except Exception as e:
-                                        print(f"ERROR: Failed to parse scramble moves: {e}")
-                                        raise e
-                                    cube(scramble_moves)
-                                    # Get cube state string for kociemba
-                                    cube_state = cube.to_kociemba()
-                                    print(f"DEBUG: Cube state string for kociemba: {cube_state} (length: {len(cube_state)})")
-
-                                    def validate_cube_state(state):
-                                        # kociemba expects a 54-character string with only these characters
-                                        valid_chars = set("URFDLB")
-                                        if len(state) != 54:
-                                            return False, f"Invalid length: {len(state)}"
-                                        if any(c not in valid_chars for c in state):
-                                            return False, "Invalid characters in cube state"
-                                        return True, "Valid cube state"
-
-                                    is_valid, validation_msg = validate_cube_state(cube_state)
-                                    print(f"DEBUG: Cube state validation: {validation_msg}")
-                                    if not is_valid:
-                                        raise ValueError(f"Cube state validation failed: {validation_msg}")
-
-                                    try:
-                                        print(f"DEBUG: Passing cube state to kociemba.solve: {cube_state}")
-                                        local_solution = kociemba.solve(cube_state)
-                                        optimal_solution = local_solution
-                                        print(f"DEBUG: Local optimal solution generated: {local_solution}")
-                                    except Exception as e:
-                                        print(f"ERROR: kociemba.solve failed: {e}")
-                                        raise e
-                                except Exception as e:
-                                    print(f"ERROR: Exception in local solver: {e}")
-                                    optimal_solution = f"Not available (local solver error: {e})"
-                        except Exception as e:
-                            print(f"ERROR: Failed to generate local optimal solution: {e}")
-
+                    # Remove local solver fallback to rely solely on Gemini API
                     return jsonify({
                         "insight": insight,
                         "optimalSolution": optimal_solution,
