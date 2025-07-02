@@ -1853,10 +1853,8 @@
                 case '3x3':
                     length = 20 + Math.floor(Math.random() * 2); // 20-21 moves
                     twistyPlayerPuzzleType = '3x3x3';
-                    twistyPlayerPuzzleType = '4x4x4';
-                    // This is a very simplified 4x4 scramble. Real 4x4 scrambles are more complex.
                     for (let i = 0; i < length; i++) {
-                        scrambleMoves.push(getRandomMove(moves4x4, suffixes));
+                        scrambleMoves.push(getRandomMove(moves3x3, suffixes));
                     }
                     break;
                 case 'pyraminx':
@@ -2671,6 +2669,8 @@
                 saveUserSettings();
                 scramble = generateScramble();
                 resetTimer();
+                // Ensure the select value matches the updated cubeType (sync UI)
+                cubeTypeSelect.value = cubeType;
             }); else console.error("[ERROR] cubeTypeSelect not found!");
 
             if (themeSelect) themeSelect.addEventListener('change', (e) => {
