@@ -15,7 +15,7 @@ body {
     padding: 20px;
     /* Desktop padding */
     position: relative;
-    /* For absolute positioning of elements like modals */
+    /* Needed for positioning absolute children */
 }
 
 /* Variables for theming */
@@ -30,171 +30,345 @@ body {
     --button-bg-hover: #475569;
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* NEW Theme variables for light and vibrant */
+    --button-secondary-bg: #475569;
+    --button-secondary-text: #e2e8f0;
+    --button-secondary-hover-bg: #64748b;
+    --card-bg: #334155;
+    --timer-color: #818cf8;
+    --scramble-color: #a78bfa;
+    --stats-value-color: #67e8f9;
+    --solve-time-color: #a78bfa;
 }
 
 /* Light theme */
-body.light-theme {
-    --bg-color-primary: #f8fafc;
-    --bg-color-secondary: #f1f5f9;
-    --text-color-primary: #1e293b;
-    --text-color-secondary: #475569;
-    --button-bg-hover: #e2e8f0;
-    --border-color: #cbd5e1;
+body.theme-light {
+    --bg-color-primary: #f0f2f5;
+    --text-color-primary: #333;
+    --bg-color-secondary: #ffffff;
+    --button-secondary-bg: #e2e8f0;
+    --button-secondary-text: #333;
+    --button-secondary-hover-bg: #cbd5e1;
+    --card-bg: #f9fafb;
+    --timer-color: #3b82f6;
+    --scramble-color: #1d4ed8;
+    --stats-value-color: #0ea5e9;
+    --solve-time-color: #1d4ed8;
+}
+
+/* Vibrant theme */
+body.theme-vibrant {
+    --bg-color-primary: #2d0b57;
+    --text-color-primary: #f0f2f5;
+    --bg-color-secondary: #4a148c;
+    --button-secondary-bg: #8e24aa;
+    --button-secondary-text: #f0f2f5;
+    --button-secondary-hover-bg: #ab47bc;
+    --card-bg: #6a1b9a;
+    --timer-color: #e0f7fa;
+    --scramble-color: #ce93d8;
+    --stats-value-color: #80cbc4;
+    --solve-time-color: #ce93d8;
 }
 
 .container {
     background-color: var(--bg-color-secondary);
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
+    border-radius: 1.5rem;
+    /* Large rounded corners */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    /* Stronger shadow */
+    max-width: 1200px;
+    /* Desktop max-width */
+    width: 90%;
+    /* Desktop relative width */
     padding: 2.5rem;
-    width: 100%;
-    max-width: 900px;
-    text-align: center;
-    border: 1px solid var(--border-color);
+    /* Desktop padding */
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    /* Desktop gap */
+    position: relative;
+    /* For absolute positioning of elements like modals */
+}
+
+/* Authentication buttons in the corner */
+.auth-corner-buttons {
+    position: absolute;
+    top: 1.5rem;
+    right: 2.5rem;
+    z-index: 50;
+    /* Ensure they are above other content */
 }
 
 .timer-display {
-    font-size: 5rem;
+    font-size: 6rem;
+    /* Desktop font size for timer */
     font-weight: 700;
-    color: var(--accent-color-green);
-    margin-bottom: 1.5rem;
+    color: var(--timer-color);
+    text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
     letter-spacing: -0.05em;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+}
+
+.timer-display.inspection {
+    color: #fbbf24;
+    /* Amber for inspection */
+}
+
+.timer-display.ready {
+    color: #22c55e;
+    /* Green when ready */
+}
+
+.button-primary {
+    background: linear-gradient(145deg, #6366f1, #818cf8);
+    /* Gradient button */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    /* Base for desktop */
+}
+
+.button-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
+}
+
+.button-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+}
+
+.button-secondary {
+    background-color: var(--button-secondary-bg);
+    /* Slate gray */
+    color: var(--button-secondary-text);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    /* Base for desktop */
+}
+
+.button-secondary:hover {
+    background-color: var(--button-secondary-hover-bg);
+    transform: translateY(-1px);
+}
+
+.button-secondary:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
 .scramble-display {
-    font-size: 1.5rem;
-    color: var(--text-color-secondary);
-    margin-bottom: 1.5rem;
-    padding: 1rem;
+    background-color: var(--card-bg);
+    /* Darker slate */
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.2rem;
+    /* Desktop font size */
+    font-weight: 500;
+    color: var(--scramble-color);
+    /* Light purple */
+    text-align: center;
+    word-break: break-all;
+}
+
+/* 3D Cube Container Styling */
+#cube3DContainer {
     background-color: var(--bg-color-primary);
     border-radius: 0.75rem;
-    border: 1px dashed var(--border-color);
-    word-break: break-all;
-    white-space: normal;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    /* Desktop height */
+    width: 100%;
+    overflow: hidden;
+    position: relative;
 }
 
-.controls button {
-    background-color: var(--accent-color-blue);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.controls button:hover {
-    background-color: var(--button-bg-hover);
-    transform: translateY(-2px);
-}
-
-.controls button:active {
-    transform: translateY(0);
-    box-shadow: none;
-}
-
-.controls button:disabled {
-    background-color: #64748b;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-.stats-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border-color);
+/* Twisty player needs a height */
+#scramble3DViewer {
+    height: calc(100% - 60px);
+    width: 100%;
 }
 
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    /* Desktop grid layout */
+    gap: 1rem;
 }
 
-.stat-item {
-    background-color: var(--bg-color-primary);
-    padding: 1.25rem;
-    border-radius: 0.75rem;
-    border: 1px solid var(--border-color);
-    text-align: center;
-}
-
-.stat-value {
-    font-size: 2.25rem;
-    font-weight: 700;
-    color: var(--accent-color-green);
-    margin-bottom: 0.5rem;
-}
-
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--text-color-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.solves-list-container {
-    max-height: 300px;
-    overflow-y: auto;
-    background-color: var(--bg-color-primary);
-    border-radius: 0.75rem;
-    border: 1px solid var(--border-color);
+.stat-card {
+    background-color: var(--card-bg);
     padding: 1rem;
-    text-align: left;
+    border-radius: 0.75rem;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-.solves-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.stat-card .value {
+    font-size: 1.8rem;
+    /* Desktop font size */
+    font-weight: 700;
+    color: var(--stats-value-color);
+    /* Cyan */
+    margin-top: 0.5rem;
 }
 
-.solves-list li {
+.solve-history-item {
+    background-color: var(--card-bg);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
     display: flex;
+    /* Default to row for desktop */
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 0.5rem;
-    border-bottom: 1px dashed var(--border-color);
-    color: var(--text-color-primary);
+    transition: all 0.2s ease-in-out;
+    flex-wrap: nowrap;
+    /* Prevent wrapping on desktop */
+    gap: 1rem;
+    /* Desktop gap */
 }
 
-.solves-list li:last-child {
-    border-bottom: none;
+.solve-history-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-.solves-list li span {
+.solve-history-item .time {
+    font-size: 1.2rem;
+    /* Desktop font size */
+    font-weight: 600;
+    color: var(--solve-time-color);
+}
+
+.solve-history-item .penalty-buttons {
+    display: flex;
+    gap: 0.5rem;
+    /* Space between penalty buttons */
+    flex-wrap: nowrap;
+    /* Prevent wrapping on desktop */
+    justify-content: flex-end;
     flex-grow: 1;
 }
 
-.solves-list li button {
-    background: none;
-    border: none;
-    color: var(--accent-color-red);
+.solve-history-item .penalty-buttons button {
+    background-color: #f87171;
+    /* Red for DNF */
+    color: white;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0 0.5rem;
-    transition: color 0.2s ease;
+    border: none;
+    transition: background-color 0.2s;
 }
 
-.solves-list li button:hover {
-    color: #dc2626;
+.solve-history-item .penalty-buttons button.plus2 {
+    background-color: #fbbf24;
+    /* Amber for +2 */
 }
 
-/* Settings Modal */
-.modal-overlay {
+.solve-history-item .penalty-buttons button.clear-penalty {
+    background-color: #60a5fa;
+    /* Blue for clear */
+}
+
+.solve-history-item .penalty-buttons button.delete {
+    background-color: #dc2626;
+    /* Strong red for delete */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.solve-history-item .penalty-buttons button.insight-button {
+    background-color: #4CAF50;
+    /* Green for Insight */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+}
+
+.solve-history-item .penalty-buttons button.insight-button:hover {
+    background-color: #45a049;
+}
+
+/* New Voice Command Button Styling */
+#voiceCommandBtn {
+    background-color: #007bff;
+    /* Blue */
+    color: white;
+    border-radius: 50%;
+    width: 48px;
+    /* Slightly larger touch target */
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    /* Icon size */
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+#voiceCommandBtn:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+#voiceCommandBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+}
+
+#voiceCommandBtn.active {
+    background-color: #dc3545;
+    /* Red when active */
+    animation: pulse-red 1s infinite;
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+.modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -204,7 +378,7 @@ body.light-theme {
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.modal-overlay.show {
+.modal.open {
     opacity: 1;
     visibility: visible;
 }
@@ -212,338 +386,298 @@ body.light-theme {
 .modal-content {
     background-color: var(--bg-color-secondary);
     padding: 2rem;
+    /* Desktop padding */
     border-radius: 1rem;
-    box-shadow: var(--box-shadow);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     width: 90%;
+    /* Desktop width */
     max-width: 500px;
+    /* Desktop max-width */
     position: relative;
-    border: 1px solid var(--border-color);
     color: var(--text-color-primary);
+    max-height: 90vh;
+    /* Prevent content from overflowing screen vertically */
+    overflow-y: auto;
+    /* Allow scrolling within modal if content is too long */
 }
 
-.modal-content h2 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    color: var(--accent-color-blue);
+/* Specifically for AI Insight Modal to take more width on desktop */
+#aiInsightModal .modal-content {
+    max-width: 700px;
+    /* Wider for insight display */
 }
 
-.modal-content label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: var(--text-color-secondary);
-    text-align: left;
-}
 
-.modal-content input[type="range"],
-.modal-content select {
-    width: 100%;
-    padding: 0.75rem;
-    margin-bottom: 1.5rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-color-primary);
-    color: var(--text-color-primary);
-    -webkit-appearance: none;
-    /* Remove default styling for range input */
-    appearance: none;
-}
-
-.modal-content input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--accent-color-blue);
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--accent-color-blue);
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content select {
-    cursor: pointer;
-}
-
-.modal-content button.close-button {
+.modal-close-button {
     position: absolute;
     top: 1rem;
     right: 1rem;
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: var(--text-color-secondary);
+    color: var(--text-color-primary);
     cursor: pointer;
-    transition: color 0.2s ease;
 }
 
-.modal-content button.close-button:hover {
-    color: var(--text-color-primary);
+.text-gradient {
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.modal-content .button-group {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
+/* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
+/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
+@media (max-width: 767px) {
+    body {
+        padding: 16px;
+        /* Reduced padding for mobile */
+    }
 
-.modal-content .button-group button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    border: none;
-}
-
-.modal-content .button-group button.save-button {
-    background-color: var(--accent-color-green);
-    color: white;
-}
-
-.modal-content .button-group button.save-button:hover {
-    background-color: #16a34a;
-}
-
-.modal-content .button-group button.cancel-button {
-    background-color: var(--border-color);
-    color: var(--text-color-primary);
-}
-
-.modal-content .button-group button.cancel-button:hover {
-    background-color: #475569;
-}
-
-/* Message Box Styles */
-.message-box-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1001;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.message-box-overlay.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-.message-box-content {
-    background-color: var(--bg-color-secondary);
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    width: 90%;
-    max-width: 400px;
-    position: relative;
-    border: 1px solid var(--border-color);
-    color: var(--text-color-primary);
-    text-align: center;
-}
-
-.message-box-content h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: var(--accent-color-blue);
-}
-
-.message-box-content p {
-    margin-bottom: 1.5rem;
-    color: var(--text-color-secondary);
-}
-
-.message-box-content .button-group {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-}
-
-.message-box-content .button-group button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    border: none;
-    background-color: var(--accent-color-blue);
-    color: white;
-}
-
-.message-box-content .button-group button:hover {
-    background-color: #1e40af;
-}
-
-/* Toast Notification Styles */
-.toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column-reverse;
-    /* New toasts appear on top */
-    gap: 10px;
-}
-
-.toast {
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-primary);
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-    min-width: 250px;
-    max-width: 350px;
-    border: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.toast.hide {
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-.toast-icon {
-    font-size: 1.5rem;
-}
-
-.toast-icon.success {
-    color: var(--accent-color-green);
-}
-
-.toast-icon.error {
-    color: var(--accent-color-red);
-}
-
-.toast-icon.info {
-    color: var(--accent-color-blue);
-}
-
-.toast-message {
-    flex-grow: 1;
-}
-
-/* Twisty Player adjustments */
-twisty-player {
-    width: 100%;
-    max-width: 300px;
-    height: 300px;
-    margin: 0 auto 1.5rem auto;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    /* Ensures the cube stays within rounded borders */
-    border: 1px solid var(--border-color);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
     .container {
         padding: 1.5rem;
+        /* Reduced padding for mobile */
         gap: 1.5rem;
-    }
-
-    .timer-display {
-        font-size: 3.5rem;
-    }
-
-    .scramble-display {
-        font-size: 1.2rem;
-        padding: 0.75rem;
-    }
-
-    .controls {
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .controls button {
+        /* Reduced gap for mobile */
+        max-width: 100%;
+        /* Take full width on mobile */
         width: 100%;
     }
 
-    .stats-grid {
-        grid-template-columns: 1fr;
+    .auth-corner-buttons {
+        /* On mobile, stack buttons vertically and align to the right, inside the container flow */
+        flex-direction: column;
+        align-items: flex-end;
+        margin-top: 0.5rem;
+        /* Adjust to fit content well */
+        margin-bottom: 0.5rem;
     }
 
-    .stat-value {
-        font-size: 2rem;
+    .auth-corner-buttons button {
+        padding: 0.5rem 1rem;
+        /* Slightly larger touch targets */
+        font-size: 0.875rem;
+        /* Slightly larger font for readability */
+        width: auto;
+        /* Allow buttons to size to content */
     }
 
-    .solves-list li {
-        font-size: 0.9rem;
-    }
-
-    .modal-content {
-        padding: 1.5rem;
-    }
-
-    .modal-content h2 {
-        font-size: 1.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    body {
-        padding: 10px;
-    }
-
-    .container {
-        border-radius: 0.75rem;
+    h1 {
+        font-size: 2.5rem;
+        /* Smaller heading for mobile */
+        margin-bottom: 1rem;
+        /* Adjusted margin */
     }
 
     .timer-display {
-        font-size: 3rem;
+        font-size: 4rem;
+        /* Smaller timer font for mobile */
+        margin-bottom: 0.5rem;
     }
 
     .scramble-display {
         font-size: 1rem;
+        /* Smaller scramble font for mobile */
+        padding: 0.8rem 1rem;
+        /* Adjusted padding */
     }
 
-    .controls button {
-        padding: 0.6rem 1.2rem;
+    #cube3DContainer {
+        height: 250px;
+        /* Adjusted height for mobile */
+    }
+
+    /* Control buttons flex-direction is already column for sm: (which is 640px)
+       but we can specify here for max-width just to be explicit if needed */
+    .flex-col.sm\:flex-row {
+        /* Targeting the control buttons div */
+        flex-direction: column;
+        gap: 0.75rem;
+        /* Adjusted gap */
+    }
+
+    .button-primary,
+    .button-secondary {
+        padding: 0.7rem 1.2rem;
+        /* Ensure good touch target */
+        font-size: 0.95rem;
+        /* Slightly smaller font */
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        /* 2 columns on mobile, adjusts */
+        gap: 0.8rem;
+        /* Smaller gap for stats */
+    }
+
+    .stat-card {
+        padding: 0.7rem;
+        /* Adjusted padding */
+    }
+
+    .stat-card .value {
+        font-size: 1.5rem;
+        /* Smaller stat value font */
+    }
+
+    .solve-history-item {
+        flex-direction: column;
+        /* Stack time and buttons */
+        align-items: flex-start;
+        /* Align contents to start */
+        gap: 0.5rem;
+        /* Gap between time and buttons block */
+        padding: 0.6rem 1rem;
+        /* Smaller padding */
+    }
+
+    .solve-history-item .time {
+        font-size: 1rem;
+        /* Smaller time font */
+        margin-bottom: 0;
+        /* No bottom margin, flex gap handles it */
+    }
+
+    .solve-history-item .penalty-buttons {
+        flex-wrap: wrap;
+        /* Allow buttons to wrap */
+        justify-content: flex-start;
+        /* Align buttons to the left within their block */
+        width: 100%;
+        /* Take full width */
+        margin-top: 0.25rem;
+        /* Small margin above buttons when stacked */
+        gap: 0.4rem;
+        /* Smaller gap between penalty buttons */
+    }
+
+    .solve-history-item .penalty-buttons button {
+        padding: 0.3rem 0.6rem;
+        /* Smaller penalty buttons */
+        font-size: 0.75rem;
+    }
+
+    .solve-history-item .penalty-buttons button.insight-button,
+    .solve-history-item .penalty-buttons button.delete {
+        padding: 0.35rem 0.7rem;
+        /* Slightly larger for main action buttons */
+        font-size: 0.8rem;
+    }
+
+    .modal-content {
+        padding: 1.5rem;
+        /* Adjusted padding for mobile modals */
+        width: 95%;
+        /* Fill almost full width */
+        max-width: none;
+        /* No max width on mobile */
+        max-height: 90vh;
+        /* Control vertical height */
+        overflow-y: auto;
+        /* Allow scrolling within modal */
+    }
+
+    /* Adjust AI Insight Modal for mobile */
+    #aiInsightModal .modal-content {
+        max-width: none;
+        /* No max-width on mobile */
+    }
+
+    .modal-close-button {
+        font-size: 1.75rem;
+        /* Larger close button for touch */
+        padding: 0.5rem;
+        /* Increase touch area */
+    }
+
+    /* Adjustments within settings modal for smaller screens */
+    .modal-content label {
+        font-size: 0.95rem;
+        /* Smaller label font */
+    }
+
+    .modal-content select,
+    .modal-content input[type="text"],
+    .modal-content input[type="email"],
+    .modal-content input[type="password"] {
+        padding: 0.6rem 0.8rem;
+        /* Adjusted input padding */
         font-size: 0.9rem;
+        /* Adjusted input font size */
     }
 
-    .stat-item {
-        padding: 1rem;
+    .modal-content h3 {
+        font-size: 1.1rem;
+        /* Smaller subheading */
+        margin-bottom: 0.75rem;
     }
 
-    .stat-value {
-        font-size: 1.8rem;
+    /* Voice Command Button Mobile Adjustments */
+    #voiceCommandBtn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+        position: fixed;
+        /* Keep it fixed on screen */
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+        /* Ensure it's above other content */
+    }
+}
+
+/* Further specific adjustments for very small screens (e.g., iPhone SE) */
+@media (max-width: 479px) {
+    .timer-display {
+        font-size: 3rem;
+        /* Even smaller timer font for very small screens */
     }
 
-    .solves-list-container {
-        padding: 0.75rem;
+    h1 {
+        font-size: 2rem;
+        /* Even smaller heading for very small screens */
     }
 
-    .solves-list li {
-        padding: 0.6rem 0.4rem;
+    .scramble-display {
+        font-size: 0.9rem;
+        /* Even smaller scramble font */
+    }
+
+    .stat-card .value {
+        font-size: 1.3rem;
+        /* Even smaller stat value font */
+    }
+
+    .button-primary,
+    .button-secondary {
+        font-size: 0.9rem;
+        /* Slightly smaller button font */
+        padding: 0.6rem 1rem;
+        /* Reduced padding */
+    }
+
+    .solve-history-item .penalty-buttons button {
+        font-size: 0.7rem;
+        /* Smallest penalty button font */
+    }
+}
+
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #fff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
     }
 }
