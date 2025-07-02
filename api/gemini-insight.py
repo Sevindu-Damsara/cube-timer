@@ -165,7 +165,40 @@ def gemini_insight_handler():
                                         raise e
                                     cube(scramble_moves)
                                     # Get cube state string for kociemba
-                                    cube_state = cube.to_kociemba()
+                                    # Convert pycuber Cube to kociemba cube string
+                                    def cube_to_kociemba_string(cube):
+                                        # The order of faces for kociemba: U, R, F, D, L, B
+                                        face_order = ['U', 'R', 'F', 'D', 'L', 'B']
+                                        facelet_order = [
+                                            [0,1,2,3,4,5,6,7,8],  # Each face's 9 facelets in row-major order
+                                        ]
+                                        # pycuber Cube facelets can be accessed via cube.get_face(face)
+                                        # Each face is a 3x3 matrix of Cubies with .color attribute
+                                        # We need to flatten each face's colors in the order expected by kociemba
+                                        result = ''
+                                        for face in face_order:
+                                            face_matrix = cube.get_face(face)
+                                            for row in range(3):
+                                                for col in range(3):
+                                                    color = face_matrix[row][col].color
+                                                    # Map color to face letter (U,R,F,D,L,B)
+                                                    # Assuming standard color scheme:
+                                                    # White: U, Red: R, Green: F, Yellow: D, Orange: L, Blue: B
+                                                    color_map = {
+                                                        'white': 'U',
+                                                        'red': 'R',
+                                                        'green': 'F',
+                                                        'yellow': 'D',
+                                                        'orange': 'L',
+                                                        'blue': 'B'
+                                                    }
+                                                    facelet = color_map.get(color.lower())
+                                                    if not facelet:
+                                                        raise ValueError(f"Unknown color '{color}' on face '{face}' at position ({row},{col})")
+                                                    result += facelet
+                                        return result
+
+                                    cube_state = cube_to_kociemba_string(cube)
                                     print(f"DEBUG: Cube state string for kociemba: {cube_state} (length: {len(cube_state)})")
 
                                     def validate_cube_state(state):
