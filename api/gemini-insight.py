@@ -157,11 +157,18 @@ def gemini_insight_handler():
                                 try:
                                     # Use pycuber to create a cube and apply scramble
                                     cube = pc.Cube()
-                                    scramble_moves = pc.Formula(transformed_scramble)
+                                    try:
+                                        scramble_moves = pc.Formula(transformed_scramble)
+                                        print(f"DEBUG: Parsed scramble moves: {scramble_moves}")
+                                    except Exception as e:
+                                        print(f"ERROR: Failed to parse scramble moves: {e}")
+                                        raise e
                                     cube(scramble_moves)
                                     # Get cube state string for kociemba
                                     cube_state = cube.to_kociemba()
-                                    print(f"DEBUG: Cube state string for kociemba: {cube_state}")
+                                    print(f"DEBUG: Cube state string for kociemba: {cube_state} (length: {len(cube_state)})")
+                                    if len(cube_state) != 54:
+                                        raise ValueError(f"Invalid cube state length: {len(cube_state)}")
                                     local_solution = kociemba.solve(cube_state)
                                     optimal_solution = local_solution
                                     print(f"DEBUG: Local optimal solution generated: {local_solution}")
