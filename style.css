@@ -48,8 +48,6 @@ body.theme-dark {
     --timer-color: #818cf8;
     --scramble-color: #a78bfa;
     --stats-value-color: #67e8f9;
-    --modal-bg: #1e293b;
-    --modal-border: #334155;
 }
 
 body.theme-light {
@@ -63,8 +61,6 @@ body.theme-light {
     --timer-color: #3b82f6;
     --scramble-color: #1d4ed8;
     --stats-value-color: #0ea5e9;
-    --modal-bg: #ffffff;
-    --modal-border: #e2e8f0;
 }
 
 body.theme-vibrant {
@@ -91,14 +87,13 @@ body.theme-vibrant {
     /* Vibrant pink */
     --text-gradient-end: #81c784;
     /* Vibrant green */
-    --modal-bg: #4a148c;
-    --modal-border: #6a1b9a;
 }
 
 /* General Layout */
 .container {
     background-color: var(--bg-color-secondary, #1e293b);
     padding: 30px;
+    border-radius: 0.75rem;
     box-shadow: var(--box-shadow);
     max-width: 900px;
     width: 100%;
@@ -346,14 +341,14 @@ h2 {
 }
 
 .modal-content {
-    background-color: var(--modal-bg, #1e293b);
+    background-color: var(--bg-color-secondary, #1e293b); /* Changed to secondary background for consistency */
     padding: 30px;
     border-radius: 1rem;
     box-shadow: var(--box-shadow);
     position: relative;
     width: 90%;
     max-width: 500px;
-    border: 1px solid var(--modal-border, #334155);
+    border: 1px solid var(--border-color, #334155); /* Changed to border-color for consistency */
     transform: translateY(-20px);
     transition: transform 0.3s ease;
 }
