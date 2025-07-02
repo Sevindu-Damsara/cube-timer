@@ -142,10 +142,17 @@ def gemini_insight_handler():
                             # If the scramble is not in expected format, log and skip local solve
                             if not valid_scramble or any(c not in "URFDLBMESxyz' 0123456789" for c in valid_scramble):
                                 print(f"WARNING: Scramble format may be invalid for local solver: '{valid_scramble}'")
+                                # Add debug info to response for troubleshooting
+                                optimal_solution = "Not available (invalid scramble format for local solver)"
                             else:
-                                local_solution = kociemba.solve(valid_scramble)
-                                optimal_solution = local_solution
-                                print(f"DEBUG: Local optimal solution generated: {local_solution}")
+                                print(f"DEBUG: Valid scramble for local solver: '{valid_scramble}'")
+                                try:
+                                    local_solution = kociemba.solve(valid_scramble)
+                                    optimal_solution = local_solution
+                                    print(f"DEBUG: Local optimal solution generated: {local_solution}")
+                                except Exception as e:
+                                    print(f"ERROR: Exception in local solver: {e}")
+                                    optimal_solution = f"Not available (local solver error: {e})"
                         except Exception as e:
                             print(f"ERROR: Failed to generate local optimal solution: {e}")
 
