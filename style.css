@@ -30,8 +30,17 @@ body {
     --button-bg-hover: #475569;
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --text-gradient-start: #a78bfa;
+    --text-gradient-end: #818cf8;
+    --modal-bg: #1e293b;
+    --modal-border: #334155;
+}
 
-    /* NEW Theme variables for light and vibrant */
+/* Theme specific variables (kept same) */
+body.theme-dark {
+    --bg-color-primary: #0f172a;
+    --text-color-primary: #e2e8f0;
+    --bg-color-secondary: #1e293b;
     --button-secondary-bg: #475569;
     --button-secondary-text: #e2e8f0;
     --button-secondary-hover-bg: #64748b;
@@ -39,10 +48,10 @@ body {
     --timer-color: #818cf8;
     --scramble-color: #a78bfa;
     --stats-value-color: #67e8f9;
-    --solve-time-color: #a78bfa;
+    --modal-bg: #1e293b;
+    --modal-border: #334155;
 }
 
-/* Light theme */
 body.theme-light {
     --bg-color-primary: #f0f2f5;
     --text-color-primary: #333;
@@ -54,321 +63,274 @@ body.theme-light {
     --timer-color: #3b82f6;
     --scramble-color: #1d4ed8;
     --stats-value-color: #0ea5e9;
-    --solve-time-color: #1d4ed8;
+    --modal-bg: #ffffff;
+    --modal-border: #e2e8f0;
 }
 
-/* Vibrant theme */
 body.theme-vibrant {
     --bg-color-primary: #2d0b57;
-    --text-color-primary: #f0f2f5;
+    /* Dark purple */
+    --text-color-primary: #e0f2fe;
+    /* Light blue-white */
     --bg-color-secondary: #4a148c;
-    --button-secondary-bg: #8e24aa;
-    --button-secondary-text: #f0f2f5;
-    --button-secondary-hover-bg: #ab47bc;
+    /* Deeper purple */
+    --button-secondary-bg: #6a1b9a;
+    /* Medium purple */
+    --button-secondary-text: #e0f2fe;
+    --button-secondary-hover-bg: #8e24aa;
+    /* Lighter purple */
     --card-bg: #6a1b9a;
-    --timer-color: #e0f7fa;
-    --scramble-color: #ce93d8;
-    --stats-value-color: #80cbc4;
-    --solve-time-color: #ce93d8;
+    /* Card background matching secondary */
+    --timer-color: #ff80ed;
+    /* Pink */
+    --scramble-color: #81c784;
+    /* Light green */
+    --stats-value-color: #4fc3f7;
+    /* Light blue */
+    --text-gradient-start: #ff80ed;
+    /* Vibrant pink */
+    --text-gradient-end: #81c784;
+    /* Vibrant green */
+    --modal-bg: #4a148c;
+    --modal-border: #6a1b9a;
 }
 
+/* General Layout */
 .container {
-    background-color: var(--bg-color-secondary);
-    border-radius: 1.5rem;
-    /* Large rounded corners */
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-    /* Stronger shadow */
-    max-width: 1200px;
-    /* Desktop max-width */
-    width: 90%;
-    /* Desktop relative width */
-    padding: 2.5rem;
-    /* Desktop padding */
+    background-color: var(--bg-color-secondary, #1e293b);
+    padding: 30px;
+    box-shadow: var(--box-shadow);
+    max-width: 900px;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    /* Desktop gap */
+    gap: 20px;
     position: relative;
-    /* For absolute positioning of elements like modals */
+    /* For auth-corner-buttons positioning */
 }
 
-/* Authentication buttons in the corner */
+/* Authentication Corner Buttons */
 .auth-corner-buttons {
     position: absolute;
-    top: 1.5rem;
-    right: 2.5rem;
-    z-index: 50;
-    /* Ensure they are above other content */
+    top: 20px;
+    right: 20px;
+    z-index: 10;
 }
 
+/* Headings and Text */
+h1,
+h2 {
+    color: var(--text-color-primary);
+}
+
+.text-gradient {
+    background: linear-gradient(to right, var(--text-gradient-start, #a78bfa), var(--text-gradient-end, #818cf8));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Cards */
+.card {
+    background-color: var(--card-bg, #334155);
+    padding: 20px;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Timer Display */
 .timer-display {
-    font-size: 6rem;
-    /* Desktop font size for timer */
-    font-weight: 700;
-    color: var(--timer-color);
-    text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
-    letter-spacing: -0.05em;
-    margin-bottom: 1rem;
-}
-
-.timer-display.inspection {
-    color: #fbbf24;
-    /* Amber for inspection */
+    font-size: 3.5rem;
+    font-weight: bold;
+    text-align: center;
+    color: var(--timer-color, #818cf8);
+    margin-bottom: 20px;
+    transition: color 0.2s ease-in-out;
+    /* Smooth transition for color change */
 }
 
 .timer-display.ready {
-    color: #22c55e;
-    /* Green when ready */
+    color: var(--accent-color-green, #22c55e);
+    /* Green when ready to start */
+}
+
+.timer-display.inspection {
+    color: var(--accent-color-red, #ef4444);
+    /* Red during inspection */
+}
+
+/* Scramble Text */
+.scramble-text {
+    font-size: 1.5rem;
+    text-align: center;
+    color: var(--scramble-color, #a78bfa);
+    margin-bottom: 20px;
+    word-break: break-all;
+    user-select: text;
+    /* Allow selection of scramble text */
+}
+
+/* Buttons */
+.button-primary,
+.button-secondary {
+    padding: 10px 20px;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .button-primary {
-    background: linear-gradient(145deg, #6366f1, #818cf8);
-    /* Gradient button */
+    background-color: var(--accent-color-blue, #3b82f6);
     color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
     border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    /* Base for desktop */
 }
 
 .button-primary:hover {
+    background-color: #2563eb;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
-}
-
-.button-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .button-secondary {
-    background-color: var(--button-secondary-bg);
-    /* Slate gray */
-    color: var(--button-secondary-text);
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    /* Base for desktop */
+    background-color: var(--button-secondary-bg, #475569);
+    color: var(--button-secondary-text, #e2e8f0);
+    border: 1px solid var(--border-color, #334155);
 }
 
 .button-secondary:hover {
-    background-color: var(--button-secondary-hover-bg);
-    transform: translateY(-1px);
+    background-color: var(--button-secondary-hover-bg, #64748b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.button-secondary:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
-}
-
-.scramble-display {
-    background-color: var(--card-bg);
-    /* Darker slate */
-    padding: 1rem 1.5rem;
-    border-radius: 0.75rem;
-    font-size: 1.2rem;
-    /* Desktop font size */
-    font-weight: 500;
-    color: var(--scramble-color);
-    /* Light purple */
-    text-align: center;
-    word-break: break-all;
-}
-
-/* 3D Cube Container Styling */
-#cube3DContainer {
-    background-color: var(--bg-color-primary);
-    border-radius: 0.75rem;
-    padding: 1rem;
+/* Specific button groups */
+.button-group {
     display: flex;
-    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    height: 300px;
-    /* Desktop height */
-    width: 100%;
-    overflow: hidden;
-    position: relative;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
-/* Twisty player needs a height */
-#scramble3DViewer {
-    height: calc(100% - 60px);
-    width: 100%;
+.footer-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 20px;
 }
 
+/* Voice Command Button Specific Styling */
+.voice-command-button {
+    font-size: 1.1rem;
+    padding: 12px 25px;
+    /* Slightly larger padding */
+    border-radius: 9999px;
+    /* Pill shape */
+    background-color: var(--accent-color-blue, #3b82f6);
+    color: white;
+    border: none;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    /* Initial shadow for transition */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+}
+
+.voice-command-button:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.voice-command-button.active {
+    background-color: #22c55e;
+    /* Green when active */
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.7), 0 0 30px rgba(34, 197, 94, 0.5);
+    /* Green glow */
+    animation: pulse-glow 1.5s infinite alternate;
+}
+
+@keyframes pulse-glow {
+    from {
+        box-shadow: 0 0 15px rgba(34, 197, 94, 0.7), 0 0 30px rgba(34, 197, 94, 0.5);
+    }
+    to {
+        box-shadow: 0 0 25px rgba(34, 197, 94, 0.9), 0 0 50px rgba(34, 197, 94, 0.7);
+    }
+}
+
+.voice-command-button i {
+    margin-right: 8px;
+}
+
+
+/* Statistics Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    /* Desktop grid layout */
-    gap: 1rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    font-size: 1.1rem;
+    color: var(--text-color-secondary);
 }
 
-.stat-card {
-    background-color: var(--card-bg);
-    padding: 1rem;
-    border-radius: 0.75rem;
-    text-align: center;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+.stats-value {
+    font-weight: bold;
+    color: var(--stats-value-color, #67e8f9);
 }
 
-.stat-card .value {
-    font-size: 1.8rem;
-    /* Desktop font size */
-    font-weight: 700;
-    color: var(--stats-value-color);
-    /* Cyan */
-    margin-top: 0.5rem;
+/* Solve History */
+.solve-history-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+    /* For scrollbar */
 }
 
 .solve-history-item {
-    background-color: var(--card-bg);
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.5rem;
-    margin-bottom: 0.75rem;
     display: flex;
-    /* Default to row for desktop */
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s ease-in-out;
-    flex-wrap: nowrap;
-    /* Prevent wrapping on desktop */
-    gap: 1rem;
-    /* Desktop gap */
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
 }
 
-.solve-history-item:hover {
-    transform: translateX(5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+.solve-history-item:last-child {
+    border-bottom: none;
 }
 
 .solve-history-item .time {
     font-size: 1.2rem;
-    /* Desktop font size */
-    font-weight: 600;
-    color: var(--solve-time-color);
+    font-weight: 500;
+    color: var(--text-color-primary);
+    flex-grow: 1;
+    /* Allows time to take available space */
 }
 
 .solve-history-item .penalty-buttons {
     display: flex;
-    gap: 0.5rem;
+    gap: 8px;
     /* Space between penalty buttons */
-    flex-wrap: nowrap;
-    /* Prevent wrapping on desktop */
+    flex-wrap: wrap;
+    /* Allow buttons to wrap on smaller screens */
     justify-content: flex-end;
-    flex-grow: 1;
+    /* Align buttons to the right */
 }
 
-.solve-history-item .penalty-buttons button {
-    background-color: #f87171;
-    /* Red for DNF */
-    color: white;
-    padding: 0.3rem 0.7rem;
-    border-radius: 0.375rem;
+.solve-history-item .penalty-buttons .button-secondary {
+    padding: 5px 10px;
     font-size: 0.8rem;
-    cursor: pointer;
-    border: none;
-    transition: background-color 0.2s;
 }
 
-.solve-history-item .penalty-buttons button.plus2 {
-    background-color: #fbbf24;
-    /* Amber for +2 */
-}
-
-.solve-history-item .penalty-buttons button.clear-penalty {
-    background-color: #60a5fa;
-    /* Blue for clear */
-}
-
-.solve-history-item .penalty-buttons button.delete {
-    background-color: #dc2626;
-    /* Strong red for delete */
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-}
-
-.solve-history-item .penalty-buttons button.insight-button {
-    background-color: #4CAF50;
-    /* Green for Insight */
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
-}
-
-.solve-history-item .penalty-buttons button.insight-button:hover {
-    background-color: #45a049;
-}
-
-/* New Voice Command Button Styling */
-#voiceCommandBtn {
-    background-color: #007bff;
-    /* Blue */
-    color: white;
-    border-radius: 50%;
-    width: 48px;
-    /* Slightly larger touch target */
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    /* Icon size */
-    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
-}
-
-#voiceCommandBtn:hover {
-    background-color: #0056b3;
-    transform: translateY(-1px);
-}
-
-#voiceCommandBtn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
-}
-
-#voiceCommandBtn.active {
-    background-color: #dc3545;
-    /* Red when active */
-    animation: pulse-red 1s infinite;
-}
-
-@keyframes pulse-red {
-    0% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-    }
-}
-
+/* Modals */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -384,340 +346,341 @@ body.theme-vibrant {
 }
 
 .modal-content {
-    background-color: var(--bg-color-secondary);
-    padding: 2rem;
-    /* Desktop padding */
+    background-color: var(--modal-bg, #1e293b);
+    padding: 30px;
     border-radius: 1rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    width: 90%;
-    /* Desktop width */
-    max-width: 500px;
-    /* Desktop max-width */
+    box-shadow: var(--box-shadow);
     position: relative;
-    color: var(--text-color-primary);
-    max-height: 90vh;
-    /* Prevent content from overflowing screen vertically */
-    overflow-y: auto;
-    /* Allow scrolling within modal if content is too long */
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid var(--modal-border, #334155);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
 }
 
-/* Specifically for AI Insight Modal to take more width on desktop */
-#aiInsightModal .modal-content {
-    max-width: 700px;
-    /* Wider for insight display */
+.modal.open .modal-content {
+    transform: translateY(0);
 }
-
 
 .modal-close-button {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 15px;
+    right: 15px;
     background: none;
     border: none;
-    font-size: 1.5rem;
-    color: var(--text-color-primary);
+    font-size: 1.8rem;
+    color: var(--text-color-secondary);
     cursor: pointer;
+    transition: color 0.2s ease;
 }
 
-.text-gradient {
-    background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.modal-close-button:hover {
+    color: var(--accent-color-red);
 }
 
-/* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
-/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
-@media (max-width: 767px) {
-    body {
-        padding: 16px;
-        /* Reduced padding for mobile */
-    }
-
-    .container {
-        padding: 1.5rem;
-        /* Reduced padding for mobile */
-        gap: 1.5rem;
-        /* Reduced gap for mobile */
-        max-width: 100%;
-        /* Take full width on mobile */
-        width: 100%;
-    }
-
-    .auth-corner-buttons {
-        /* On mobile, stack buttons vertically and align to the right, inside the container flow */
-        flex-direction: column;
-        align-items: flex-end;
-        margin-top: 0.5rem;
-        /* Adjust to fit content well */
-        margin-bottom: 0.5rem;
-    }
-
-    .auth-corner-buttons button {
-        padding: 0.5rem 1rem;
-        /* Slightly larger touch targets */
-        font-size: 0.875rem;
-        /* Slightly larger font for readability */
-        width: auto;
-        /* Allow buttons to size to content */
-    }
-
-    h1 {
-        font-size: 2.5rem;
-        /* Smaller heading for mobile */
-        margin-bottom: 1rem;
-        /* Adjusted margin */
-    }
-
-    .timer-display {
-        font-size: 4rem;
-        /* Smaller timer font for mobile */
-        margin-bottom: 0.5rem;
-    }
-
-    .scramble-display {
-        font-size: 1rem;
-        /* Smaller scramble font for mobile */
-        padding: 0.8rem 1rem;
-        /* Adjusted padding */
-    }
-
-    #cube3DContainer {
-        height: 250px;
-        /* Adjusted height for mobile */
-    }
-
-    /* Control buttons flex-direction is already column for sm: (which is 640px)
-       but we can specify here for max-width just to be explicit if needed */
-    .flex-col.sm\:flex-row {
-        /* Targeting the control buttons div */
-        flex-direction: column;
-        gap: 0.75rem;
-        /* Adjusted gap */
-    }
-
-    .button-primary,
-    .button-secondary {
-        padding: 0.7rem 1.2rem;
-        /* Ensure good touch target */
-        font-size: 0.95rem;
-        /* Slightly smaller font */
-    }
-
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        /* 2 columns on mobile, adjusts */
-        gap: 0.8rem;
-        /* Smaller gap for stats */
-    }
-
-    .stat-card {
-        padding: 0.7rem;
-        /* Adjusted padding */
-    }
-
-    .stat-card .value {
-        font-size: 1.5rem;
-        /* Smaller stat value font */
-    }
-
-    .solve-history-item {
-        flex-direction: column;
-        /* Stack time and buttons */
-        align-items: flex-start;
-        /* Align contents to start */
-        gap: 0.5rem;
-        /* Gap between time and buttons block */
-        padding: 0.6rem 1rem;
-        /* Smaller padding */
-    }
-
-    .solve-history-item .time {
-        font-size: 1rem;
-        /* Smaller time font */
-        margin-bottom: 0;
-        /* No bottom margin, flex gap handles it */
-    }
-
-    .solve-history-item .penalty-buttons {
-        flex-wrap: wrap;
-        /* Allow buttons to wrap */
-        justify-content: flex-start;
-        /* Align buttons to the left within their block */
-        width: 100%;
-        /* Take full width */
-        margin-top: 0.25rem;
-        /* Small margin above buttons when stacked */
-        gap: 0.4rem;
-        /* Smaller gap between penalty buttons */
-    }
-
-    .solve-history-item .penalty-buttons button {
-        padding: 0.3rem 0.6rem;
-        /* Smaller penalty buttons */
-        font-size: 0.75rem;
-    }
-
-    .solve-history-item .penalty-buttons button.insight-button,
-    .solve-history-item .penalty-buttons button.delete {
-        padding: 0.35rem 0.7rem;
-        /* Slightly larger for main action buttons */
-        font-size: 0.8rem;
-    }
-
-    .modal-content {
-        padding: 1.5rem;
-        /* Adjusted padding for mobile modals */
-        width: 95%;
-        /* Fill almost full width */
-        max-width: none;
-        /* No max width on mobile */
-        max-height: 90vh;
-        /* Control vertical height */
-        overflow-y: auto;
-        /* Allow scrolling within modal */
-    }
-
-    /* Adjust AI Insight Modal for mobile */
-    #aiInsightModal .modal-content {
-        max-width: none;
-        /* No max-width on mobile */
-    }
-
-    .modal-close-button {
-        font-size: 1.75rem;
-        /* Larger close button for touch */
-        padding: 0.5rem;
-        /* Increase touch area */
-    }
-
-    /* Adjustments within settings modal for smaller screens */
-    .modal-content label {
-        font-size: 0.95rem;
-        /* Smaller label font */
-    }
-
-    .modal-content select,
-    .modal-content input[type="text"],
-    .modal-content input[type="email"],
-    .modal-content input[type="password"] {
-        padding: 0.6rem 0.8rem;
-        /* Adjusted input padding */
-        font-size: 0.9rem;
-        /* Adjusted input font size */
-    }
-
-    .modal-content h3 {
-        font-size: 1.1rem;
-        /* Smaller subheading */
-        margin-bottom: 0.75rem;
-    }
-
-    /* Voice Command Button Mobile Adjustments */
-    #voiceCommandBtn {
-        width: 44px;
-        height: 44px;
-        font-size: 1.3rem;
-        position: fixed;
-        /* Keep it fixed on screen */
-        bottom: 20px;
-        right: 20px;
-        z-index: 100;
-        /* Ensure it's above other content */
-    }
+/* Settings Specific */
+.settings-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-/* Further specific adjustments for very small screens (e.g., iPhone SE) */
-@media (max-width: 479px) {
-    .timer-display {
-        font-size: 3rem;
-        /* Even smaller timer font for very small screens */
-    }
-
-    h1 {
-        font-size: 2rem;
-        /* Even smaller heading for very small screens */
-    }
-
-    .scramble-display {
-        font-size: 0.9rem;
-        /* Even smaller scramble font */
-    }
-
-    .stat-card .value {
-        font-size: 1.3rem;
-        /* Even smaller stat value font */
-    }
-
-    .button-primary,
-    .button-secondary {
-        font-size: 0.9rem;
-        /* Slightly smaller button font */
-        padding: 0.6rem 1rem;
-        /* Reduced padding */
-    }
-
-    .solve-history-item .penalty-buttons button {
-        font-size: 0.7rem;
-        /* Smallest penalty button font */
-    }
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
 }
 
-
-/* Theme specific variables (kept same) */
-body.theme-dark {
-    --bg-color-primary: #0f172a;
-    --text-color-primary: #e2e8f0;
-    --bg-color-secondary: #1e293b;
-    --button-secondary-bg: #475569;
-    --button-secondary-text: #e2e8f0;
-    --button-secondary-hover-bg: #64748b;
-    --card-bg: #334155;
-    --timer-color: #818cf8;
-    --scramble-color: #a78bfa;
-    --stats-value-color: #67e8f9;
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
 }
 
-body.theme-light {
-    --bg-color-primary: #f0f2f5;
-    --text-color-primary: #333;
-    --bg-color-secondary: #ffffff;
-    --button-secondary-bg: #e2e8f0;
-    --button-secondary-text: #333;
-    --button-secondary-hover-bg: #cbd5e1;
-    --card-bg: #f9fafb;
-    --timer-color: #3b82f6;
-    --scramble-color: #1d4ed8;
-    --stats-value-color: #0ea5e9;
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--button-secondary-bg);
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 34px;
 }
 
-body.theme-vibrant {
-    --bg-color-primary: #2d0b57;
-    --text-color-primary: #f0f2f5;
-    --bg-color-secondary: #4a148c;
-    --button-secondary-bg: #8e24aa;
-    --button-secondary-text: #f0f2f5;
-    --button-secondary-hover-bg: #ab47bc;
-    --card-bg: #6a1b9a;
-    --timer-color: #e0f7fa;
-    --scramble-color: #ce93d8;
-    --stats-value-color: #80cbc4;
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
 }
 
+input:checked+.slider {
+    background-color: var(--accent-color-blue);
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px var(--accent-color-blue);
+}
+
+input:checked+.slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.select-box,
+.input-field {
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-color-primary);
+    padding: 8px 12px;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.select-box:focus,
+.input-field:focus {
+    border-color: var(--accent-color-blue);
+}
+
+/* Toast Notification */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    min-width: 250px;
+    text-align: center;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Spinner for AI Insight */
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid #fff;
+    border-top: 4px solid var(--accent-color-blue);
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     animation: spin 1s linear infinite;
+    margin: 20px auto;
 }
 
 @keyframes spin {
     0% {
         transform: rotate(0deg);
     }
-
     100% {
         transform: rotate(360deg);
+    }
+}
+
+/* Twisty Player Container */
+.twisty-player-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    background-color: var(--card-bg);
+    border-radius: 0.75rem;
+    padding: 15px;
+}
+
+.twisty-player-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.twisty-player-controls .button-secondary {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+}
+
+/* NEW: Voice Feedback Display Styling */
+.voice-feedback-display {
+    position: fixed;
+    top: 20px;
+    /* Adjust as needed */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Darker, semi-transparent */
+    color: white;
+    padding: 12px 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    font-size: 1.1rem;
+    font-weight: 500;
+    z-index: 1002;
+    /* Above modals */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 200px;
+    justify-content: center;
+    text-align: center;
+}
+
+.voice-feedback-display.listening-active {
+    opacity: 1;
+    visibility: visible;
+    /* Remove fade-out on listening state */
+    transition: none;
+    /* Disable transition for immediate appearance */
+}
+
+/* Listening Indicator Dots */
+.listening-indicator {
+    display: flex;
+    gap: 5px;
+}
+
+.listening-indicator .dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-color-green);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.listening-indicator .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.listening-indicator .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.listening-indicator .dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.3;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+
+/* Responsive Adjustments (Mobile First) */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    .container {
+        padding: 20px;
+        gap: 15px;
+    }
+
+    .auth-corner-buttons {
+        position: static;
+        /* Revert to static for flow */
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    .timer-display {
+        font-size: 2.8rem;
+    }
+
+    .scramble-text {
+        font-size: 1.2rem;
+    }
+
+    .button-group,
+    .footer-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .voice-command-button {
+        width: 100%;
+        /* Full width on mobile */
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        font-size: 1rem;
+    }
+
+    .solve-history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .solve-history-item .time {
+        width: 100%;
+        text-align: center;
+    }
+
+    .solve-history-item .penalty-buttons {
+        width: 100%;
+        justify-content: center;
+        /* Center buttons on mobile */
+    }
+
+    .solve-history-item .penalty-buttons .button-secondary {
+        font-size: 0.7rem;
+        /* Smallest penalty button font */
+    }
+
+    .modal-content {
+        padding: 20px;
+    }
+
+    .voice-feedback-display {
+        width: 90%;
+        /* Take more width on mobile */
+        font-size: 1rem;
+        padding: 10px 15px;
     }
 }
