@@ -199,11 +199,17 @@ def gemini_insight_handler():
                                                     # White: U, Red: R, Green: F, Yellow: D, Orange: L, Blue: B
                                                     color_map = {
                                                         'white': 'U',
+                                                        'w': 'U',
                                                         'red': 'R',
+                                                        'r': 'R',
                                                         'green': 'F',
+                                                        'g': 'F',
                                                         'yellow': 'D',
+                                                        'y': 'D',
                                                         'orange': 'L',
-                                                        'blue': 'B'
+                                                        'o': 'L',
+                                                        'blue': 'B',
+                                                        'b': 'B'
                                                     }
                                                     facelet = color_map.get(color_str)
                                                     if not facelet:
