@@ -7,6 +7,7 @@ import requests
 import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
+import kociemba
 
 # Initialize the Flask app for Vercel.
 app = Flask(__name__)
@@ -131,6 +132,16 @@ def gemini_insight_handler():
                     insight = parsed_gemini_content.get('insight', 'No insight generated.')
                     optimal_solution = parsed_gemini_content.get('optimalSolution', 'Not available.')
                     personalized_tip = parsed_gemini_content.get('personalizedTip', 'No personalized tip generated.')
+
+                    # If Gemini did not provide an optimal solution, try to generate one locally
+                    if optimal_solution.strip().lower() == 'not available':
+                        try:
+                            # Use kociemba to solve the scramble
+                            local_solution = kociemba.solve(scramble)
+                            optimal_solution = local_solution
+                            print(f"DEBUG: Local optimal solution generated: {local_solution}")
+                        except Exception as e:
+                            print(f"ERROR: Failed to generate local optimal solution: {e}")
 
                     return jsonify({
                         "insight": insight,

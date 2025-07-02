@@ -4,3 +4,4 @@
 Flask==3.*
 requests==2.*
 flask-cors==4.* # This is the crucial missing dependency for CORS handling
+kociemba
