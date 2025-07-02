@@ -37,6 +37,7 @@ def gemini_insight_handler():
 
         # Extract data from the request
         scramble = request_json.get('scramble', 'unknown scramble')
+        print(f"DEBUG: Scramble received in request: '{scramble}'")
         cube_type = request_json.get('cubeType', '3x3')
         solve_time_ms = request_json.get('solveTimeMs')
         penalty = request_json.get('penalty', 'none')
