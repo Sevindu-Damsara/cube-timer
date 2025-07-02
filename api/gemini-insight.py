@@ -8,6 +8,7 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
 import kociemba
+import pycuber as pc
 
 # Initialize the Flask app for Vercel.
 app = Flask(__name__)
@@ -154,7 +155,14 @@ def gemini_insight_handler():
                             else:
                                 print(f"DEBUG: Valid scramble for local solver: '{transformed_scramble}'")
                                 try:
-                                    local_solution = kociemba.solve(transformed_scramble)
+                                    # Use pycuber to create a cube and apply scramble
+                                    cube = pc.Cube()
+                                    scramble_moves = pc.Formula(transformed_scramble)
+                                    cube(scramble_moves)
+                                    # Get cube state string for kociemba
+                                    cube_state = cube.to_kociemba()
+                                    print(f"DEBUG: Cube state string for kociemba: {cube_state}")
+                                    local_solution = kociemba.solve(cube_state)
                                     optimal_solution = local_solution
                                     print(f"DEBUG: Local optimal solution generated: {local_solution}")
                                 except Exception as e:

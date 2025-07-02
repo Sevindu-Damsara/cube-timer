@@ -1,7 +1,8 @@
-# api/requirements.txt for your Vercel Python Function
+-# api/requirements.txt for your Vercel Python Function
 # This file specifies Python dependencies for your Vercel Cloud Function.
 
 Flask==3.*
 requests==2.*
 flask-cors==4.* # This is the crucial missing dependency for CORS handling
 kociemba
+pycuber
