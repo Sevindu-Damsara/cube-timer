@@ -190,7 +190,10 @@ def gemini_insight_handler():
                                                         color = square.color_name
                                                     else:
                                                         color = str(square)
-                                                    print(f"DEBUG: Extracted color value: {color} (type: {type(color)}) on face '{face}' at position ({row},{col})")
+                                                    print(f"DEBUG: Extracted color value: {repr(color)} (type: {type(color)}) on face '{face}' at position ({row},{col})")
+                                                    # Convert color to string and clean it
+                                                    color_str = str(color).strip("[]'\"").lower()
+                                                    print(f"DEBUG: Converted color string: {color_str}")
                                                     # Map color to face letter (U,R,F,D,L,B)
                                                     # Assuming standard color scheme:
                                                     # White: U, Red: R, Green: F, Yellow: D, Orange: L, Blue: B
@@ -202,9 +205,9 @@ def gemini_insight_handler():
                                                         'orange': 'L',
                                                         'blue': 'B'
                                                     }
-                                                    facelet = color_map.get(color.lower())
+                                                    facelet = color_map.get(color_str)
                                                     if not facelet:
-                                                        raise ValueError(f"Unknown color '{color}' on face '{face}' at position ({row},{col})")
+                                                        raise ValueError(f"Unknown color '{color_str}' on face '{face}' at position ({row},{col})")
                                                     result += facelet
                                         return result
 
