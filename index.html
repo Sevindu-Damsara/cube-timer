@@ -1412,11 +1412,14 @@
                 if (awaitingActualCommand) {
                     console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
                     recognitionStopInitiated = true;
-                    console.log("[DEBUG] Calling recognition.stop() for command processing.");
-                    recognition.stop();
+                    // Delay recognition.stop() slightly to ensure full command capture
+                    setTimeout(() => {
+                        console.log("[DEBUG] Calling recognition.stop() for command processing after delay.");
+                        recognition.stop();
+                    }, 200);
                     awaitingActualCommand = false;
                     setTimeout(() => processVoiceCommandWithGemini(transcript), 50);
-                    console.log("[DEBUG] Recognition stopped and awaitingActualCommand set to FALSE after command processing.");
+                    console.log("[DEBUG] Recognition stop scheduled and awaitingActualCommand set to FALSE after command processing.");
                 } else if (transcript.includes('jarvis')) {
                     console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
                     speakAsJarvis("At your service, Sir Sevindu. Your command?");
@@ -1428,7 +1431,7 @@
                         recognitionStopInitiated = true;
                         console.log("[DEBUG] Calling recognition.stop() due to command timeout.");
                         recognition.stop();
-                    }, 5000);
+                    }, 10000); // Increased timeout to 10 seconds for command input
                 } else {
                     console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
                 }
