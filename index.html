@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,32 +16,45 @@
         /* BASE STYLES: These apply by default, effectively serving as the DESKTOP-FIRST layout. */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color-primary, #0f172a); /* Dark blue-gray background */
-            color: var(--text-color-primary, #e2e8f0); /* Light text color */
+            background-color: var(--bg-color-primary, #0f172a);
+            /* Dark blue-gray background */
+            color: var(--text-color-primary, #e2e8f0);
+            /* Light text color */
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow-y: auto; /* Allow scrolling for content */
-            padding: 20px; /* Desktop padding */
-            position: relative; /* Needed for positioning absolute children */
+            overflow-y: auto;
+            /* Allow scrolling for content */
+            padding: 20px;
+            /* Desktop padding */
+            position: relative;
+            /* Needed for positioning absolute children */
         }
 
         .container {
-            background-color: var(--bg-color-secondary, #1e293b); /* Slightly lighter dark blue-gray */
-            border-radius: 1.5rem; /* Large rounded corners */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); /* Stronger shadow */
-            max-width: 1200px; /* Desktop max-width */
-            width: 90%; /* Desktop relative width */
-            padding: 2.5rem; /* Desktop padding */
+            background-color: var(--bg-color-secondary, #1e293b);
+            /* Slightly lighter dark blue-gray */
+            border-radius: 1.5rem;
+            /* Large rounded corners */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            /* Stronger shadow */
+            max-width: 1200px;
+            /* Desktop max-width */
+            width: 90%;
+            /* Desktop relative width */
+            padding: 2.5rem;
+            /* Desktop padding */
             display: flex;
             flex-direction: column;
-            gap: 2rem; /* Desktop gap */
+            gap: 2rem;
+            /* Desktop gap */
             position: relative;
         }
 
         .timer-display {
-            font-size: 6rem; /* Desktop font size for timer */
+            font-size: 6rem;
+            /* Desktop font size for timer */
             font-weight: 700;
             color: var(--timer-color, #818cf8);
             text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
@@ -49,15 +63,18 @@
         }
 
         .timer-display.inspection {
-            color: #fbbf24; /* Amber for inspection */
+            color: #fbbf24;
+            /* Amber for inspection */
         }
 
         .timer-display.ready {
-            color: #22c55e; /* Green when ready */
+            color: #22c55e;
+            /* Green when ready */
         }
 
         .button-primary {
-            background: linear-gradient(145deg, #6366f1, #818cf8); /* Gradient button */
+            background: linear-gradient(145deg, #6366f1, #818cf8);
+            /* Gradient button */
             color: white;
             padding: 0.75rem 1.5rem;
             border-radius: 0.75rem;
@@ -69,7 +86,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem; /* Base for desktop */
+            font-size: 1rem;
+            /* Base for desktop */
         }
 
         .button-primary:hover {
@@ -83,7 +101,8 @@
         }
 
         .button-secondary {
-            background-color: var(--button-secondary-bg, #475569); /* Slate gray */
+            background-color: var(--button-secondary-bg, #475569);
+            /* Slate gray */
             color: var(--button-secondary-text, #e2e8f0);
             padding: 0.75rem 1.5rem;
             border-radius: 0.75rem;
@@ -92,7 +111,8 @@
             box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
             border: none;
             cursor: pointer;
-            font-size: 1rem; /* Base for desktop */
+            font-size: 1rem;
+            /* Base for desktop */
         }
 
         .button-secondary:hover {
@@ -106,12 +126,15 @@
         }
 
         .scramble-display {
-            background-color: var(--card-bg, #334155); /* Darker slate */
+            background-color: var(--card-bg, #334155);
+            /* Darker slate */
             padding: 1rem 1.5rem;
             border-radius: 0.75rem;
-            font-size: 1.2rem; /* Desktop font size */
+            font-size: 1.2rem;
+            /* Desktop font size */
             font-weight: 500;
-            color: var(--scramble-color, #a78bfa); /* Light purple */
+            color: var(--scramble-color, #a78bfa);
+            /* Light purple */
             text-align: center;
             word-break: break-all;
         }
@@ -125,7 +148,8 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 300px; /* Desktop height */
+            height: 300px;
+            /* Desktop height */
             width: 100%;
             overflow: hidden;
             position: relative;
@@ -139,7 +163,8 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Desktop grid layout */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            /* Desktop grid layout */
             gap: 1rem;
         }
 
@@ -152,9 +177,11 @@
         }
 
         .stat-card .value {
-            font-size: 1.8rem; /* Desktop font size */
+            font-size: 1.8rem;
+            /* Desktop font size */
             font-weight: 700;
-            color: var(--stats-value-color, #67e8f9); /* Cyan */
+            color: var(--stats-value-color, #67e8f9);
+            /* Cyan */
             margin-top: 0.5rem;
         }
 
@@ -163,12 +190,15 @@
             padding: 0.75rem 1.25rem;
             border-radius: 0.5rem;
             margin-bottom: 0.75rem;
-            display: flex; /* Default to row for desktop */
+            display: flex;
+            /* Default to row for desktop */
             justify-content: space-between;
             align-items: center;
             transition: all 0.2s ease-in-out;
-            flex-wrap: nowrap; /* Prevent wrapping on desktop */
-            gap: 1rem; /* Desktop gap */
+            flex-wrap: nowrap;
+            /* Prevent wrapping on desktop */
+            gap: 1rem;
+            /* Desktop gap */
         }
 
         .solve-history-item:hover {
@@ -177,21 +207,25 @@
         }
 
         .solve-history-item .time {
-            font-size: 1.2rem; /* Desktop font size */
+            font-size: 1.2rem;
+            /* Desktop font size */
             font-weight: 600;
             color: var(--solve-time-color, #a78bfa);
         }
 
         .solve-history-item .penalty-buttons {
             display: flex;
-            gap: 0.5rem; /* Space between penalty buttons */
-            flex-wrap: nowrap; /* Prevent wrapping on desktop */
+            gap: 0.5rem;
+            /* Space between penalty buttons */
+            flex-wrap: nowrap;
+            /* Prevent wrapping on desktop */
             justify-content: flex-end;
             flex-grow: 1;
         }
 
         .solve-history-item .penalty-buttons button {
-            background-color: #f87171; /* Red for DNF */
+            background-color: #f87171;
+            /* Red for DNF */
             color: white;
             padding: 0.3rem 0.7rem;
             border-radius: 0.375rem;
@@ -200,58 +234,83 @@
             border: none;
             transition: background-color 0.2s;
         }
+
         .solve-history-item .penalty-buttons button.plus2 {
-            background-color: #fbbf24; /* Amber for +2 */
+            background-color: #fbbf24;
+            /* Amber for +2 */
         }
+
         .solve-history-item .penalty-buttons button.clear-penalty {
-            background-color: #60a5fa; /* Blue for clear */
+            background-color: #60a5fa;
+            /* Blue for clear */
         }
+
         .solve-history-item .penalty-buttons button.delete {
-            background-color: #dc2626; /* Strong red for delete */
+            background-color: #dc2626;
+            /* Strong red for delete */
             font-size: 0.9rem;
             padding: 0.4rem 0.8rem;
         }
+
         .solve-history-item .penalty-buttons button.insight-button {
-            background-color: #4CAF50; /* Green for Insight */
+            background-color: #4CAF50;
+            /* Green for Insight */
             font-size: 0.9rem;
             padding: 0.4rem 0.8rem;
             box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
         }
+
         .solve-history-item .penalty-buttons button.insight-button:hover {
             background-color: #45a049;
         }
+
         /* New Voice Command Button Styling */
         #voiceCommandBtn {
-            background-color: #007bff; /* Blue */
+            background-color: #007bff;
+            /* Blue */
             color: white;
             border-radius: 50%;
-            width: 48px; /* Slightly larger touch target */
+            width: 48px;
+            /* Slightly larger touch target */
             height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem; /* Icon size */
+            font-size: 1.5rem;
+            /* Icon size */
             box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
             cursor: pointer;
             transition: background-color 0.2s, transform 0.2s;
         }
+
         #voiceCommandBtn:hover {
             background-color: #0056b3;
             transform: translateY(-1px);
         }
+
         #voiceCommandBtn:active {
             transform: translateY(0);
             box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
         }
+
         #voiceCommandBtn.active {
-            background-color: #dc3545; /* Red when active */
+            background-color: #dc3545;
+            /* Red when active */
             animation: pulse-red 1s infinite;
         }
 
         @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+            0% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+            }
         }
 
         .modal {
@@ -277,19 +336,26 @@
 
         .modal-content {
             background-color: var(--bg-color-secondary, #1e293b);
-            padding: 2rem; /* Desktop padding */
+            padding: 2rem;
+            /* Desktop padding */
             border-radius: 1rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            width: 90%; /* Desktop width */
-            max-width: 500px; /* Desktop max-width */
+            width: 90%;
+            /* Desktop width */
+            max-width: 500px;
+            /* Desktop max-width */
             position: relative;
             color: var(--text-color-primary, #e2e8f0);
-            max-height: 90vh; /* Prevent content from overflowing screen vertically */
-            overflow-y: auto; /* Allow scrolling within modal if content is too long */
+            max-height: 90vh;
+            /* Prevent content from overflowing screen vertically */
+            overflow-y: auto;
+            /* Allow scrolling within modal if content is too long */
         }
+
         /* Specifically for AI Insight Modal to take more width on desktop */
         #aiInsightModal .modal-content {
-            max-width: 700px; /* Wider for insight display */
+            max-width: 700px;
+            /* Wider for insight display */
         }
 
 
@@ -314,13 +380,17 @@
         /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
         @media (max-width: 767px) {
             body {
-                padding: 16px; /* Reduced padding for mobile */
+                padding: 16px;
+                /* Reduced padding for mobile */
             }
 
             .container {
-                padding: 1.5rem; /* Reduced padding for mobile */
-                gap: 1.5rem; /* Reduced gap for mobile */
-                max-width: 100%; /* Take full width on mobile */
+                padding: 1.5rem;
+                /* Reduced padding for mobile */
+                gap: 1.5rem;
+                /* Reduced gap for mobile */
+                max-width: 100%;
+                /* Take full width on mobile */
                 width: 100%;
             }
 
@@ -328,144 +398,218 @@
                 /* On mobile, stack buttons vertically and align to the right, inside the container flow */
                 flex-direction: column;
                 align-items: flex-end;
-                margin-top: 0.5rem; /* Adjust to fit content well */
+                margin-top: 0.5rem;
+                /* Adjust to fit content well */
                 margin-bottom: 0.5rem;
             }
+
             .auth-corner-buttons button {
-                padding: 0.5rem 1rem; /* Slightly larger touch targets */
-                font-size: 0.875rem; /* Slightly larger font for readability */
-                width: auto; /* Allow buttons to size to content */
+                padding: 0.5rem 1rem;
+                /* Slightly larger touch targets */
+                font-size: 0.875rem;
+                /* Slightly larger font for readability */
+                width: auto;
+                /* Allow buttons to size to content */
             }
 
             h1 {
-                font-size: 2.5rem; /* Smaller heading for mobile */
-                margin-bottom: 1rem; /* Adjusted margin */
+                font-size: 2.5rem;
+                /* Smaller heading for mobile */
+                margin-bottom: 1rem;
+                /* Adjusted margin */
             }
 
             .timer-display {
-                font-size: 4rem; /* Smaller timer font for mobile */
+                font-size: 4rem;
+                /* Smaller timer font for mobile */
                 margin-bottom: 0.5rem;
             }
 
             .scramble-display {
-                font-size: 1rem; /* Smaller scramble font for mobile */
-                padding: 0.8rem 1rem; /* Adjusted padding */
+                font-size: 1rem;
+                /* Smaller scramble font for mobile */
+                padding: 0.8rem 1rem;
+                /* Adjusted padding */
             }
 
             #cube3DContainer {
-                height: 250px; /* Adjusted height for mobile */
+                height: 250px;
+                /* Adjusted height for mobile */
             }
 
             /* Control buttons flex-direction is already column for sm: (which is 640px)
                but we can specify here for max-width just to be explicit if needed */
-            .flex-col.sm\:flex-row { /* Targeting the control buttons div */
+            .flex-col.sm\:flex-row {
+                /* Targeting the control buttons div */
                 flex-direction: column;
-                gap: 0.75rem; /* Adjusted gap */
+                gap: 0.75rem;
+                /* Adjusted gap */
             }
-            .button-primary, .button-secondary {
-                padding: 0.7rem 1.2rem; /* Ensure good touch target */
-                font-size: 0.95rem; /* Slightly smaller font */
+
+            .button-primary,
+            .button-secondary {
+                padding: 0.7rem 1.2rem;
+                /* Ensure good touch target */
+                font-size: 0.95rem;
+                /* Slightly smaller font */
             }
 
             .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* 2 columns on mobile, adjusts */
-                gap: 0.8rem; /* Smaller gap for stats */
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                /* 2 columns on mobile, adjusts */
+                gap: 0.8rem;
+                /* Smaller gap for stats */
             }
+
             .stat-card {
-                padding: 0.7rem; /* Adjusted padding */
+                padding: 0.7rem;
+                /* Adjusted padding */
             }
+
             .stat-card .value {
-                font-size: 1.5rem; /* Smaller stat value font */
+                font-size: 1.5rem;
+                /* Smaller stat value font */
             }
 
             .solve-history-item {
-                flex-direction: column; /* Stack time and buttons */
-                align-items: flex-start; /* Align contents to start */
-                gap: 0.5rem; /* Gap between time and buttons block */
-                padding: 0.6rem 1rem; /* Smaller padding */
+                flex-direction: column;
+                /* Stack time and buttons */
+                align-items: flex-start;
+                /* Align contents to start */
+                gap: 0.5rem;
+                /* Gap between time and buttons block */
+                padding: 0.6rem 1rem;
+                /* Smaller padding */
             }
+
             .solve-history-item .time {
-                font-size: 1rem; /* Smaller time font */
-                margin-bottom: 0; /* No bottom margin, flex gap handles it */
+                font-size: 1rem;
+                /* Smaller time font */
+                margin-bottom: 0;
+                /* No bottom margin, flex gap handles it */
             }
+
             .solve-history-item .penalty-buttons {
-                flex-wrap: wrap; /* Allow buttons to wrap */
-                justify-content: flex-start; /* Align buttons to the left within their block */
-                width: 100%; /* Take full width */
-                margin-top: 0.25rem; /* Small margin above buttons when stacked */
-                gap: 0.4rem; /* Smaller gap between penalty buttons */
+                flex-wrap: wrap;
+                /* Allow buttons to wrap */
+                justify-content: flex-start;
+                /* Align buttons to the left within their block */
+                width: 100%;
+                /* Take full width */
+                margin-top: 0.25rem;
+                /* Small margin above buttons when stacked */
+                gap: 0.4rem;
+                /* Smaller gap between penalty buttons */
             }
+
             .solve-history-item .penalty-buttons button {
-                padding: 0.3rem 0.6rem; /* Smaller penalty buttons */
+                padding: 0.3rem 0.6rem;
+                /* Smaller penalty buttons */
                 font-size: 0.75rem;
             }
+
             .solve-history-item .penalty-buttons button.insight-button,
             .solve-history-item .penalty-buttons button.delete {
-                padding: 0.35rem 0.7rem; /* Slightly larger for main action buttons */
+                padding: 0.35rem 0.7rem;
+                /* Slightly larger for main action buttons */
                 font-size: 0.8rem;
             }
 
             .modal-content {
-                padding: 1.5rem; /* Adjusted padding for mobile modals */
-                width: 95%; /* Fill almost full width */
-                max-width: none; /* No max width on mobile */
-                max-height: 90vh; /* Control vertical height */
-                overflow-y: auto; /* Allow scrolling within modal */
+                padding: 1.5rem;
+                /* Adjusted padding for mobile modals */
+                width: 95%;
+                /* Fill almost full width */
+                max-width: none;
+                /* No max width on mobile */
+                max-height: 90vh;
+                /* Control vertical height */
+                overflow-y: auto;
+                /* Allow scrolling within modal */
             }
+
             /* Adjust AI Insight Modal for mobile */
             #aiInsightModal .modal-content {
-                max-width: none; /* No max-width on mobile */
+                max-width: none;
+                /* No max-width on mobile */
             }
 
             .modal-close-button {
-                font-size: 1.75rem; /* Larger close button for touch */
-                padding: 0.5rem; /* Increase touch area */
+                font-size: 1.75rem;
+                /* Larger close button for touch */
+                padding: 0.5rem;
+                /* Increase touch area */
             }
 
             /* Adjustments within settings modal for smaller screens */
             .modal-content label {
-                font-size: 0.95rem; /* Smaller label font */
+                font-size: 0.95rem;
+                /* Smaller label font */
             }
-            .modal-content select, .modal-content input[type="text"], .modal-content input[type="email"], .modal-content input[type="password"] {
-                padding: 0.6rem 0.8rem; /* Adjusted input padding */
-                font-size: 0.9rem; /* Adjusted input font size */
+
+            .modal-content select,
+            .modal-content input[type="text"],
+            .modal-content input[type="email"],
+            .modal-content input[type="password"] {
+                padding: 0.6rem 0.8rem;
+                /* Adjusted input padding */
+                font-size: 0.9rem;
+                /* Adjusted input font size */
             }
+
             .modal-content h3 {
-                font-size: 1.1rem; /* Smaller subheading */
+                font-size: 1.1rem;
+                /* Smaller subheading */
                 margin-bottom: 0.75rem;
             }
+
             /* Voice Command Button Mobile Adjustments */
             #voiceCommandBtn {
                 width: 44px;
                 height: 44px;
                 font-size: 1.3rem;
-                position: fixed; /* Keep it fixed on screen */
+                position: fixed;
+                /* Keep it fixed on screen */
                 bottom: 20px;
                 right: 20px;
-                z-index: 100; /* Ensure it's above other content */
+                z-index: 100;
+                /* Ensure it's above other content */
             }
         }
 
         /* Further specific adjustments for very small screens (e.g., iPhone SE) */
         @media (max-width: 479px) {
             .timer-display {
-                font-size: 3rem; /* Even smaller timer font for very small screens */
+                font-size: 3rem;
+                /* Even smaller timer font for very small screens */
             }
+
             h1 {
-                font-size: 2rem; /* Even smaller heading for very small screens */
+                font-size: 2rem;
+                /* Even smaller heading for very small screens */
             }
+
             .scramble-display {
-                font-size: 0.9rem; /* Even smaller scramble font */
+                font-size: 0.9rem;
+                /* Even smaller scramble font */
             }
+
             .stat-card .value {
-                font-size: 1.3rem; /* Even smaller stat value font */
+                font-size: 1.3rem;
+                /* Even smaller stat value font */
             }
-            .button-primary, .button-secondary {
-                font-size: 0.9rem; /* Slightly smaller button font */
-                padding: 0.6rem 1rem; /* Reduced padding */
+
+            .button-primary,
+            .button-secondary {
+                font-size: 0.9rem;
+                /* Slightly smaller button font */
+                padding: 0.6rem 1rem;
+                /* Reduced padding */
             }
+
             .solve-history-item .penalty-buttons button {
-                font-size: 0.7rem; /* Smallest penalty button font */
+                font-size: 0.7rem;
+                /* Smallest penalty button font */
             }
         }
 
@@ -520,11 +664,17 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body class="theme-dark"> <!-- Set default theme class here -->
     <div class="container mx-auto rounded-3xl">
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
@@ -549,31 +699,55 @@
         <!-- 3D Cube Viewer Container (Initially hidden) -->
         <div id="cube3DContainer" style="display: none;">
             <!-- The twisty-player element for 3D visualization -->
-            <twisty-player id="scramble3DViewer"
-                visualization="3D"
-                alg=""
-                puzzle="3x3x3"
-                style="width: 100%; height: 100%;"
-                face-letters="false"
-                control-panel="none" <!-- Important: Disable default controls for custom toolbar -->
-                hint-arrows="none"             <!-- Added to hide hint arrows -->
-                camera-latitude="15"           <!-- Set default camera angle -->
-                camera-longitude="-45"         <!-- Set default camera angle -->
-                background="#0f172a"           <!-- Set a default background color that matches dark theme -->
-            ></twisty-player>
+            <twisty-player id="scramble3DViewer" visualization="3D" alg="" puzzle="3x3x3"
+                style="width: 100%; height: 100%;" face-letters="false" control-panel="none" <!-- Important: Disable
+                default controls for custom toolbar -->
+                hint-arrows="none" <!-- Added to hide hint arrows -->
+                camera-latitude="15" <!-- Set default camera angle -->
+                camera-longitude="-45" <!-- Set default camera angle -->
+                background="#0f172a" <!-- Set a default background color that matches dark theme -->
+                ></twisty-player>
             <!-- Custom Toolbar -->
-<div id="customPreviewToolbar" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
-    <button id="playPreviewBtn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
-    </button>
-    <button id="pausePreviewBtn" class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-    </button>
-    <button id="restartPreviewBtn" class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-    </button>
-</div>
+            <div id="customPreviewToolbar"
+                class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity:70 rounded-full shadow-lg z-10">
 
+                <button id="playPreviewBtn"
+                    class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
+
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+
+                </button>
+
+                <button id="pausePreviewBtn"
+                    class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center">
+
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+
+                </button>
+
+                <button id="restartPreviewBtn"
+                    class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
+
+                    <!-- Corrected SVG path for restart icon -->
+
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+
+                </button>
+
+            </div>
+
+        </div>
 
         <!-- Timer Display -->
         <div id="timerDisplay" class="timer-display text-center">
@@ -621,7 +795,10 @@
 
     <!-- Floating Action Button for Voice Commands -->
     <button id="voiceCommandBtn" class="fixed bottom-6 right-6 z-50">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.25-2.52 5.8-5.3 5.8S6.7 14.25 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path
+                d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3.25-2.52 5.8-5.3 5.8S6.7 14.25 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
+        </svg>
     </button>
 
     <!-- Settings Modal -->
@@ -632,12 +809,14 @@
             <div class="flex flex-col gap-4">
                 <div class="flex items-center justify-between">
                     <label for="inspectionToggle" class="text-lg">Enable 15s Inspection</label>
-                    <input type="checkbox" id="inspectionToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                    <input type="checkbox" id="inspectionToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
 
                 <div class="flex items-center justify-between">
                     <label for="soundEffectsToggle" class="text-lg">Enable Sound Effects</label>
-                    <input type="checkbox" id="soundEffectsToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                    <input type="checkbox" id="soundEffectsToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
 
                 <div class="flex items-center justify-between">
@@ -662,14 +841,18 @@
                 <!-- New: 3D Cube View Toggle -->
                 <div class="flex items-center justify-between">
                     <label for="cubeViewToggle" class="text-lg">Show 3D Cube Scramble</label>
-                    <input type="checkbox" id="cubeViewToggle" class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                    <input type="checkbox" id="cubeViewToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
 
                 <div class="mt-4 pt-4 border-t border-gray-600">
                     <h3 class="text-xl font-semibold text-gradient mb-3">Change Username</h3>
                     <div class="mb-3">
-                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New Username:</label>
-                        <input type="text" id="settingsUsernameInput" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="Enter new username">
+                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New
+                            Username:</label>
+                        <input type="text" id="settingsUsernameInput"
+                            class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                            placeholder="Enter new username">
                     </div>
                     <button id="saveUsernameBtn" class="button-primary w-full">Save Username</button>
                     <p id="usernameUpdateMessage" class="text-sm mt-2 text-center" style="display:none;"></p>
@@ -681,27 +864,35 @@
     <!-- Auth Modal -->
     <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
-            <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication modal">&times;</button>
+            <button class="modal-close-button" id="closeAuthModal"
+                aria-label="Close authentication modal">&times;</button>
             <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-6 text-center">Sign In</h2>
 
             <div class="mb-4">
                 <label for="email" class="block text-gray-300 text-sm font-bold mb-2">Email:</label>
-                <input type="email" id="email" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="your@email.com">
+                <input type="email" id="email"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="your@email.com">
             </div>
             <div class="mb-4" id="usernameFieldGroup" style="display:none;">
                 <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
-                <input type="text" id="usernameInput" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="Enter your username">
+                <input type="text" id="usernameInput"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="Enter your username">
             </div>
             <div class="mb-6">
                 <label for="password" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
-                <input type="password" id="password" class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200" placeholder="********">
+                <input type="password" id="password"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="********">
             </div>
             <p id="authError" class="text-red-500 text-sm mb-4" style="display:none;"></p>
 
             <div class="flex flex-col gap-3 mb-4">
                 <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
                 <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo"
+                        class="w-5 h-5">
                     Sign In with Google
                 </button>
             </div>
@@ -732,8 +923,10 @@
     <script type="module">
         console.log("[DEBUG] Script execution started.");
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged,
-                 createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getAuth, onAuthStateChanged,
+            createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         console.log("[DEBUG] Firebase imports completed.");
 
@@ -789,7 +982,7 @@
         };
         // The URL for your deployed Vercel Serverless Function for AI insights.
         // This will be provided AFTER you deploy the function to Vercel and then updated here.
-        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight"; 
+        const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight";
         // NEW: The URL for your deployed Vercel Serverless Function for Gemini NLU.
         // You will need to deploy api/gemini-nlu.py and update this URL.
         const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-nlu"; // <<< IMPORTANT: Update this after deployment!
@@ -865,17 +1058,17 @@
                         customUsername = defaultUsername;
                     }
                     // MODIFIED: Removed "User: " prefix from authenticated display
-                    usernameDisplayElement.textContent = `${customUsername}`; 
+                    usernameDisplayElement.textContent = `${customUsername}`;
                     console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
 
                 } catch (e) {
                     console.error("[ERROR] Error fetching or setting username:", e);
                     // MODIFIED: Removed "User: " prefix from error fallback
-                    usernameDisplayElement.textContent = `${uid} (Error fetching username)`; 
+                    usernameDisplayElement.textContent = `${uid} (Error fetching username)`;
                 }
             } else { // Guest user (local storage)
                 // MODIFIED: Ensured it only sets 'Guest' directly
-                usernameDisplayElement.textContent = 'Guest'; 
+                usernameDisplayElement.textContent = 'Guest';
                 console.log(`[DEBUG] Username display updated to: Guest (Local Mode)`);
             }
             console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
@@ -887,14 +1080,14 @@
         const initializeUserDataAndSettings = async () => {
             console.log("[DEBUG] initializeUserDataAndSettings called.");
             if (!domElementsReady) {
-                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready. Waiting.");
-                 return;
+                console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready. Waiting.");
+                return;
             }
             if (!isAuthReady) {
-                 console.log("[DEBUG] Deferred initializeUserDataAndSettings: Auth not ready. Waiting.");
-                 return;
+                console.log("[DEBUG] Deferred initializeUserDataAndSettings: Auth not ready. Waiting.");
+                return;
             }
-            
+
             // NEW: Conditional initialization based on authentication status
             if (isUserAuthenticated && db && userId) {
                 console.log("[DEBUG] Authenticated user. Proceeding with Firestore data initialization.");
@@ -919,7 +1112,7 @@
                 }
             }
             // Ensure timer/scramble are reset/generated regardless of auth state
-            resetTimer(); 
+            resetTimer();
             console.log("[DEBUG] initializeUserDataAndSettings completed.");
         };
 
@@ -967,7 +1160,7 @@
                     // Update UI for guest user
                     const usernameDisplayElement = document.getElementById('usernameDisplay');
                     // MODIFIED: Simplified Guest display
-                    if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest'; 
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest';
                     const signInBtn = document.getElementById('signInBtn');
                     const signUpBtn = document.getElementById('signUpBtn');
                     const signOutBtn = document.getElementById('signOutBtn');
@@ -985,10 +1178,10 @@
             userId = `guest-${crypto.randomUUID()}`; // Fallback for no Firebase config/validity
             isUserAuthenticated = false; // Not authenticated
             isAuthReady = true; // Auth state determined (offline)
-            
+
             const usernameDisplayElement = document.getElementById('usernameDisplay');
             // MODIFIED: Simplified Offline Guest display
-            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline Mode)'; 
+            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline Mode)';
             const signInBtn = document.getElementById('signInBtn');
             const signUpBtn = document.getElementById('signUpBtn');
             const signOutBtn = document.getElementById('signOutBtn');
@@ -1022,7 +1215,7 @@
          * Fetches an AI-generated insight for a specific solve from the Cloud Function.
          * @param {string} solveId - The ID of the solve for which to generate an insight.
          */
-        window.getSolveInsight = async function(solveId) {
+        window.getSolveInsight = async function (solveId) {
             console.log(`[DEBUG] Requesting AI insight for solve ID: ${solveId}`);
             const solve = solves.find(s => s.id === solveId);
 
@@ -1061,7 +1254,7 @@
             const apiUrl = geminiInsightFunctionUrl; // Corrected to use the variable directly
 
             // Now, this check truly verifies if the URL is set.
-            if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") { 
+            if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
                 if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please ensure your Vercel function is deployed and the URL is correct.";
                 if (insightSpinner) insightSpinner.style.display = 'none';
                 console.error("[ERROR] Gemini Insight Cloud Function URL is not set or is default placeholder.");
@@ -1108,7 +1301,7 @@
                 } else {
                     if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
                 }
-                
+
                 console.log("[DEBUG] Cloud Function response received and displayed.");
 
             } catch (e) {
@@ -1132,7 +1325,7 @@
         let scramble = '';
         let solves = []; // Array to store solve objects: [{ id: uuid, time: ms, penalty: null|'+2'|'DNF', timestamp: date, scramble: string }]
         let spaceDownTime = 0; // Initialize here, directly in the module scope.
-        
+
         // Declare DOM element variables globally, assign them in window.onload
         let timerDisplay;
         let scrambleTextDisplay; // Renamed
@@ -1285,14 +1478,14 @@
                 clearTimeout(commandTimeoutId);
                 commandTimeoutId = null;
             }
-            
+
             const wasProgrammaticStop = recognitionStopInitiated; // Capture current state before resetting
             recognitionStopInitiated = false; // Always reset this flag AFTER onend logic
 
             // Only attempt restart if it was NOT a programmatic stop (e.g., from button click or after a command)
             if (!wasProgrammaticStop) {
                 console.log("[DEBUG] recognition.onend: Not a programmatic stop. Attempting controlled restart for continuous listening.");
-                attemptRestartRecognition(); 
+                attemptRestartRecognition();
             } else {
                 console.log("[DEBUG] recognition.onend: Programmatic stop detected. Not restarting from onend.");
             }
@@ -1308,9 +1501,9 @@
                 clearTimeout(commandTimeoutId);
                 commandTimeoutId = null;
             }
-            
+
             // Reset flags immediately on error, regardless of type, before deciding on restart
-            isStartingRecognition = false; 
+            isStartingRecognition = false;
             const wasProgrammaticStop = recognitionStopInitiated; // Capture current state before resetting
             recognitionStopInitiated = false; // Reset for next cycle
 
@@ -1337,7 +1530,7 @@
                     // Attempt restart for unexpected aborts with a more significant delay
                     if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
                     recognitionRestartTimeoutId = setTimeout(() => {
-                        attemptRestartRecognition(); 
+                        attemptRestartRecognition();
                     }, 2000 + Math.random() * 1000); // Increased delay to 2-3 seconds with jitter
                 }
             } else { // Handle other errors
@@ -1350,14 +1543,14 @@
                 } else {
                     speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
                 }
-                
+
                 // For any unexpected error (not a permission error), attempt a restart.
                 // If the error is 'no-speech', we still want to try to restart to keep continuous listening.
                 if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
                     console.log("[DEBUG] recognition.onerror: Non-critical/unexpected error. Attempting controlled restart with delay.");
                     if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
                     recognitionRestartTimeoutId = setTimeout(() => {
-                        attemptRestartRecognition(); 
+                        attemptRestartRecognition();
                     }, 1000 + Math.random() * 500); // Delay restart after an error with jitter
                 }
             }
@@ -1457,15 +1650,15 @@
             console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
             // Only speak if sound effects are enabled AND AudioContext has been resumed by user gesture
             // AND Tone.context.state is explicitly 'running'
-            if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') { 
+            if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') {
                 // Ensure voices are loaded before trying to find one
                 if (synth.getVoices().length === 0) {
                     synth.onvoiceschanged = () => {
                         const voices = synth.getVoices();
                         const utterance = new SpeechSynthesis(text);
                         utterance.voice = voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
-                                          voices.find(voice => voice.lang === 'en-US') ||
-                                          voices[0]; // Fallback to first available voice
+                            voices.find(voice => voice.lang === 'en-US') ||
+                            voices[0]; // Fallback to first available voice
                         utterance.pitch = 1;
                         utterance.rate = 1;
                         synth.speak(utterance);
@@ -1475,8 +1668,8 @@
                     const voices = synth.getVoices();
                     const utterance = new SpeechSynthesis(text);
                     utterance.voice = voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
-                                      voices.find(voice => voice.lang === 'en-US') ||
-                                      voices[0]; // Fallback to first available voice
+                        voices.find(voice => voice.lang === 'en-US') ||
+                        voices[0]; // Fallback to first available voice
                     utterance.pitch = 1;
                     utterance.rate = 1;
                     synth.speak(utterance);
@@ -1493,7 +1686,7 @@
          */
         async function processVoiceCommandWithGemini(rawTranscript) {
             console.log(`[DEBUG] Sending raw transcript to Gemini NLU: "${rawTranscript}"`);
-            
+
             if (!geminiNluFunctionUrl || geminiNluFunctionUrl === "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL") {
                 speakAsJarvis("Sir Sevindu, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
                 console.error("[ERROR] Gemini NLU Cloud Function URL is not configured.");
@@ -1883,14 +2076,14 @@
             }
             if (scramble3DViewer) { // Ensure the element is available
                 // Always set puzzle type explicitly.
-                scramble3DViewer.puzzle = twistyPlayerPuzzleType; 
+                scramble3DViewer.puzzle = twistyPlayerPuzzleType;
                 // Set algorithm after a very short delay if puzzle type is pyraminx
                 // to give the component a moment to fully reconfigure its parser.
                 // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
                 // due to timing sensitivities with twisty-player's internal parsing.
                 if (cubeType === 'pyraminx') {
                     // Clear alg first to ensure a fresh parse.
-                    scramble3DViewer.alg = ''; 
+                    scramble3DViewer.alg = '';
                     setTimeout(() => {
                         scramble3DViewer.alg = generated;
                         console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
@@ -1954,7 +2147,7 @@
             } else {
                 console.log("[DEBUG] calculateAverage: Not enough times to drop best/worst after filtering or N is too small.");
             }
-            
+
 
             if (timesForAvg.length === 0) {
                 console.log("[DEBUG] calculateAverage: No valid times for average. Returning '--:--.--'.");
@@ -2036,8 +2229,8 @@
             console.log("[DEBUG] Entering updateStatistics.");
             // Ensure elements are defined
             if (!bestTimeDisplay || !ao5Display || !ao12Display || !solveCountDisplay) {
-                 console.warn("[WARN] updateStatistics called before all display elements are initialized. Skipping update.");
-                 return;
+                console.warn("[WARN] updateStatistics called before all display elements are initialized. Skipping update.");
+                return;
             }
 
             const validSolves = solves.filter(s => s.penalty !== 'DNF');
@@ -2076,7 +2269,7 @@
                 try {
                     const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
                     // Firestore will generate its own ID, so we remove the local 'id' for addDoc
-                    const { id, ...solveDataToSave } = newSolve; 
+                    const { id, ...solveDataToSave } = newSolve;
                     const docRef = await addDoc(solvesCollectionRef, solveDataToSave);
                     console.log("[DEBUG] Document written to Firestore with ID: ", docRef.id);
                     // The onSnapshot listener will update the 'solves' array and re-render
@@ -2099,12 +2292,12 @@
             // Automatically trigger AI insight after a solve
             // Check if AI Insight function URL is configured before calling
             // This is the correct constant to check, not a hardcoded string
-            if (geminiInsightFunctionUrl) { 
-                 speakAsJarvis("Your solve is complete, Sir Sevindu. Analyzing your performance.");
-                 // Use the latest solve (which is the newSolve just added)
-                 getSolveInsight(newSolve.id); 
+            if (geminiInsightFunctionUrl) {
+                speakAsJarvis("Your solve is complete, Sir Sevindu. Analyzing your performance.");
+                // Use the latest solve (which is the newSolve just added)
+                getSolveInsight(newSolve.id);
             } else {
-                 console.warn("[WARN] Gemini Insight function URL not configured, skipping automatic insight generation.");
+                console.warn("[WARN] Gemini Insight function URL not configured, skipping automatic insight generation.");
             }
         }
 
@@ -2114,7 +2307,7 @@
          * @param {string} id - The ID of the solve to update.
          * @param {string|null} penaltyType - '+2', 'DNF', or null to clear.
          */
-        window.applyPenalty = async function(id, penaltyType) {
+        window.applyPenalty = async function (id, penaltyType) {
             console.log(`[DEBUG] Entering applyPenalty for ID: ${id}, Penalty: ${penaltyType}`);
             if (isUserAuthenticated && db && userId) { // Authenticated user
                 const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
@@ -2154,7 +2347,7 @@
          * Uses Firestore for authenticated users, Local Storage for guests.
          * @param {string} id - The ID of the solve to delete.
          */
-        window.deleteSolve = async function(id) {
+        window.deleteSolve = async function (id) {
             console.log(`[DEBUG] Entering deleteSolve for ID: ${id}`);
             if (isUserAuthenticated && db && userId) { // Authenticated user
                 const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
@@ -2199,7 +2392,7 @@
                 const q = query(solvesCollectionRef /*, orderBy('timestamp', 'desc')*/);
 
                 // Clear previous local data if any from guest mode
-                solves = []; 
+                solves = [];
                 renderSolveHistory(); // Render empty list while Firestore data loads
 
                 onSnapshot(q, (snapshot) => {
@@ -2215,11 +2408,11 @@
                     // Handle error, maybe display a message to the user
                     // Fallback to local if permissions error occurs on a previously working connection
                     if (error.code === 'permission-denied') {
-                         console.warn("[WARN] Firestore permission denied for solves listener. Falling back to local storage for solves.");
-                         isUserAuthenticated = false; // Treat as signed out if permissions fail
-                         // Re-init with local storage for solves to ensure functionality
-                         loadLocalSolves();
-                         renderSolveHistory();
+                        console.warn("[WARN] Firestore permission denied for solves listener. Falling back to local storage for solves.");
+                        isUserAuthenticated = false; // Treat as signed out if permissions fail
+                        // Re-init with local storage for solves to ensure functionality
+                        loadLocalSolves();
+                        renderSolveHistory();
                     }
                 });
             } else {
@@ -2236,8 +2429,8 @@
             console.log("[DEBUG] Entering loadUserSettings.");
             // Ensure DOM elements are initialized before proceeding
             if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-                 console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Skipping load.");
-                 return;
+                console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Skipping load.");
+                return;
             }
 
             if (isUserAuthenticated && db && userId) { // Authenticated user
@@ -2261,14 +2454,14 @@
                 catch (e) {
                     console.error("[ERROR] Error loading user settings from Firestore: ", e);
                     if (e.code === 'permission-denied') {
-                         console.warn("[WARN] Firestore permission denied for settings. Falling back to local storage for settings.");
-                         // Fallback to local if permissions fail
-                         loadLocalUserSettings();
+                        console.warn("[WARN] Firestore permission denied for settings. Falling back to local storage for settings.");
+                        // Fallback to local if permissions fail
+                        loadLocalUserSettings();
                     }
                 }
             } else { // Guest user
-                 console.log("[DEBUG] loadUserSettings: Guest user. Loading settings from local storage.");
-                 loadLocalUserSettings(); // Load from local storage
+                console.log("[DEBUG] loadUserSettings: Guest user. Loading settings from local storage.");
+                loadLocalUserSettings(); // Load from local storage
             }
             applySettingsToUI();
             console.log("[DEBUG] Exiting loadUserSettings.");
@@ -2301,8 +2494,8 @@
                     console.warn("[WARN] Firestore failed to save settings, saved to local storage (non-persistent).");
                 }
             } else { // Guest user
-                 console.log("[DEBUG] saveUserSettings: Guest user. Saving settings to local storage.");
-                 saveLocalUserSettings(); // Save to local storage
+                console.log("[DEBUG] saveUserSettings: Guest user. Saving settings to local storage.");
+                saveLocalUserSettings(); // Save to local storage
             }
             console.log("[DEBUG] Exiting saveUserSettings.");
         }
@@ -2332,8 +2525,8 @@
             console.log("[DEBUG] Entering applySettingsToUI.");
             // Ensure UI elements are initialized before trying to apply settings to them
             if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-                 console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. Skipping apply.");
-                 return;
+                console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. Skipping apply.");
+                return;
             }
 
             if (inspectionToggle) inspectionToggle.checked = enableInspection;
@@ -2390,11 +2583,11 @@
                         usernameUpdateMessage.style.display = 'block';
                     }
                     console.log("[DEBUG] Username updated successfully in Firestore.");
-                    
+
                     // Update the displayed username immediately
                     // MODIFIED: Direct assignment of username without "User:" prefix
                     const usernameDisplayElement = document.getElementById('usernameDisplay'); // Ensure this is defined
-                    if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`; 
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`;
                     console.log("[DEBUG] Displayed username refreshed after update.");
 
                     setTimeout(() => {
@@ -2402,7 +2595,7 @@
                         console.log("[DEBUG] Username update message hidden.");
                     }, 3000); // Hide message after 3 seconds
 
-                } catch (e) { 
+                } catch (e) {
                     console.error("[ERROR] Error updating username in Firestore: ", e);
                     if (usernameUpdateMessage) {
                         usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
@@ -2413,7 +2606,7 @@
                     saveLocalUsername(newUsername);
                     // MODIFIED: Direct assignment for fallback
                     const usernameDisplayElement = document.getElementById('usernameDisplay');
-                    if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`; 
+                    if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`;
                     console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
                 }
             } else { // Guest user
@@ -2426,7 +2619,7 @@
                 }
                 // MODIFIED: Direct assignment for guest username
                 const usernameDisplayElement = document.getElementById('usernameDisplay');
-                if (usernameDisplayElement) usernameDisplayElement.textContent = `Guest: ${newUsername}`; 
+                if (usernameDisplayElement) usernameDisplayElement.textContent = `Guest: ${newUsername}`;
                 setTimeout(() => {
                     if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
                     console.log("[DEBUG] Username update message hidden.");
@@ -2603,7 +2796,7 @@
                 scramble = generateScramble();
                 resetTimer();
             }); else console.error("[ERROR] scrambleBtn not found!");
-            if (settingsBtn) settingsBtn.addEventListener('click', () => { 
+            if (settingsBtn) settingsBtn.addEventListener('click', () => {
                 const settingsModal = document.getElementById('settingsModal');
                 if (settingsModal) {
                     settingsModal.classList.add('open');
@@ -2701,7 +2894,7 @@
                     // Jump to the start of the animation (effectively rewinds)
                     scramble3DViewer.jumpToStart();
                     // Play from the beginning
-                    scramble3DViewer.play(); 
+                    scramble3DViewer.play();
                     console.log("[DEBUG] Restart preview button clicked. Cube animation restarted from beginning.");
                 }
             }); else console.error("[ERROR] restartPreviewBtn not found!");
@@ -2720,9 +2913,9 @@
                         console.log("[DEBUG] Calling recognition.stop() from button click.");
                         recognition.stop(); // Stop continuous listening
                         speakAsJarvis("Voice input suspended, Sir Sevindu.");
-                        if (commandTimeoutId) { 
-                            clearTimeout(commandTimeoutId); 
-                            commandTimeoutId = null; 
+                        if (commandTimeoutId) {
+                            clearTimeout(commandTimeoutId);
+                            commandTimeoutId = null;
                             console.log("[DEBUG] Command timeout cleared on manual stop.");
                         }
                         awaitingActualCommand = false;
@@ -2746,9 +2939,9 @@
                     }
                 });
             } else if (voiceCommandBtn) {
-                 // Hide if SpeechRecognition API is not supported
-                 voiceCommandBtn.style.display = 'none';
-                 console.warn("[WARN] Voice command button hidden as Web Speech API is not supported.");
+                // Hide if SpeechRecognition API is not supported
+                voiceCommandBtn.style.display = 'none';
+                console.warn("[WARN] Voice command button hidden as Web Speech API is not supported.");
             }
 
 
@@ -2831,7 +3024,7 @@
                 }
             }
 
-            if (signInBtn) signInBtn.addEventListener('click', () => { 
+            if (signInBtn) signInBtn.addEventListener('click', () => {
                 if (authModal) {
                     authModal.classList.add('open');
                     authModal.focus();
@@ -2843,11 +3036,11 @@
                 }
                 if (emailInput) emailInput.value = '';
                 if (passwordInput) passwordInput.value = '';
-                if(usernameFieldGroup) usernameFieldGroup.style.display = 'none';
+                if (usernameFieldGroup) usernameFieldGroup.style.display = 'none';
                 clearAuthError();
             }); else console.error("[ERROR] signInBtn not found!");
 
-            if (signUpBtn) signUpBtn.addEventListener('click', () => { 
+            if (signUpBtn) signUpBtn.addEventListener('click', () => {
                 if (authModal) {
                     authModal.classList.add('open');
                     authModal.focus();
@@ -2859,12 +3052,12 @@
                 }
                 if (emailInput) emailInput.value = '';
                 if (passwordInput) passwordInput.value = '';
-                if(usernameInputField) usernameInputField.value = '';
-                if(usernameFieldGroup) usernameFieldGroup.style.display = 'block';
+                if (usernameInputField) usernameInputField.value = '';
+                if (usernameFieldGroup) usernameFieldGroup.style.display = 'block';
                 clearAuthError();
             }); else console.error("[ERROR] signUpBtn not found!");
 
-            if (signOutBtn) signOutBtn.addEventListener('click', async () => { 
+            if (signOutBtn) signOutBtn.addEventListener('click', async () => {
                 if (auth) { // Only attempt sign out if auth object is initialized
                     try {
                         await signOut(auth);
@@ -2889,7 +3082,7 @@
                 try {
                     const userCredential = await signInWithPopup(auth, provider);
                     const user = userCredential.user;
-                    
+
                     if (db) { // Ensure db is initialized
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
                         const docSnap = await getDoc(userProfileRef);
@@ -2948,7 +3141,7 @@
                 try {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
-                    
+
                     if (db) { // Ensure db is initialized
                         const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
                         await setDoc(userProfileRef, { username: username }, { merge: true });
@@ -2965,7 +3158,7 @@
 
         // --- Initialization on Window Load ---
         // This callback runs only after the entire DOM is loaded.
-        window.onload = function() {
+        window.onload = function () {
             console.log("[DEBUG] window.onload triggered. Initializing DOM elements and listeners.");
             // Assign DOM elements to variables after the document is loaded
             timerDisplay = document.getElementById('timerDisplay');
@@ -3006,7 +3199,7 @@
 
 
             // Set the flag to indicate DOM elements are ready
-            domElementsReady = true; 
+            domElementsReady = true;
 
             // Initialize core features that need DOM elements ready
             scramble = generateScramble(); // Generates initial scramble and updates displays
@@ -3027,7 +3220,7 @@
                     // The onerror will likely catch this and log/handle it.
                 }
             } else {
-                 console.warn("[WARN] Web Speech API not supported, cannot start continuous listening.");
+                console.warn("[WARN] Web Speech API not supported, cannot start continuous listening.");
             }
 
             console.log("[DEBUG] window.onload complete. Application should now be fully initialized.");
@@ -3035,4 +3228,5 @@
 
     </script>
 </body>
+
 </html>
