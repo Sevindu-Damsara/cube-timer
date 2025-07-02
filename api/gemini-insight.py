@@ -180,7 +180,16 @@ def gemini_insight_handler():
                                             face_matrix = cube.get_face(face)
                                             for row in range(3):
                                                 for col in range(3):
-                                                    color = face_matrix[row][col].color
+                                                    # Access color name correctly from Square object
+                                                    square = face_matrix[row][col]
+                                                    if hasattr(square, 'color'):
+                                                        color = square.color
+                                                    elif hasattr(square, 'sticker'):
+                                                        color = square.sticker.color
+                                                    elif hasattr(square, 'color_name'):
+                                                        color = square.color_name
+                                                    else:
+                                                        color = str(square)
                                                     # Map color to face letter (U,R,F,D,L,B)
                                                     # Assuming standard color scheme:
                                                     # White: U, Red: R, Green: F, Yellow: D, Orange: L, Blue: B
