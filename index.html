@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<body class="theme-dark">
+<body class="theme-dark"> <!-- Set default theme class here -->
     <div class="container mx-auto rounded-3xl">
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
         <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
@@ -26,72 +26,108 @@
             <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
         </div>
 
-        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Cubically AI Edition</h1>
-        <div class="text-center text-gray-400 mb-4">Welcome, <span id="usernameDisplay" class="font-semibold text-white">Guest</span>!</div>
+        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Rubik's Cube Timer</h1>
 
-        <div class="main-content-area">
-            <div class="timer-card card">
-                <div id="timerDisplay" class="timer-display">00:00.000</div>
-                <div class="button-group">
-                    <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
-                    <button id="resetBtn" class="button-secondary">Reset</button>
-                </div>
-            </div>
+        <!-- Username Display -->
+        <div class="text-sm text-center text-gray-400">
+            Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+        </div>
 
-            <div class="scramble-card card">
-                <h2 class="text-xl font-semibold text-gradient mb-2">Scramble</h2>
-                <div id="scrambleTextDisplay" class="scramble-text"></div>
-                <!-- 3D Cube Container (initially hidden by default via JS/CSS) -->
-                <div id="cube3DContainer" class="twisty-player-container" style="display: none;">
-                    <twisty-player
-                        id="scramble3DViewer"
-                        alg=""
-                        puzzle="3x3x3"
-                        control-panel="none"
-                        background="linear-gradient(to bottom right, #0f172a, #1e293b)"
-                        hint-facelets="none"
-                        camera-latitude="30"
-                        camera-longitude="-150"
-                        style="width: 100%; height: 200px; border-radius: 0.75rem; overflow: hidden;"
-                    ></twisty-player>
-                    <div class="twisty-player-controls">
-                        <button id="playPreviewBtn" class="button-secondary"><i class="fas fa-play"></i> Play</button>
-                        <button id="pausePreviewBtn" class="button-secondary"><i class="fas fa-pause"></i> Pause</button>
-                        <button id="restartPreviewBtn" class="button-secondary"><i class="fas fa-redo"></i> Restart</button>
-                    </div>
-                </div>
-                <button id="scrambleBtn" class="button-secondary mt-4">New Scramble</button>
+        <!-- Scramble Display (Text) -->
+        <div id="scrambleTextDisplay" class="scramble-display" style="display: block;">
+            Generating scramble...
+        </div>
+
+        <!-- 3D Cube Viewer Container (Initially hidden) -->
+        <div id="cube3DContainer" style="display: none;">
+            <!-- The twisty-player element for 3D visualization -->
+            <twisty-player id="scramble3DViewer" visualization="3D" alg="" puzzle="3x3x3"
+                style="width: 100%; height: 100%;" face-letters="false" control-panel="none"
+                hint-arrows="none"
+                camera-latitude="15"
+                camera-longitude="-45"
+                background="#0f172a"
+                ></twisty-player>
+            <!-- Custom Toolbar -->
+            <div id="customPreviewToolbar"
+                class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
+
+                <button id="playPreviewBtn"
+                    class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+
+                <button id="pausePreviewBtn"
+                    class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+
+                <button id="restartPreviewBtn"
+                    class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+                </button>
             </div>
         </div>
 
-        <div class="stats-history-area">
-            <div class="stats-card card">
-                <h2 class="text-xl font-semibold text-gradient mb-2">Statistics</h2>
-                <div class="stats-grid">
-                    <div>Best Time: <span id="bestTime" class="stats-value">--:--.--</span></div>
-                    <div>Ao5: <span id="ao5" class="stats-value">--:--.--</span></div>
-                    <div>Ao12: <span id="ao12" class="stats-value">--:--.--</span></div>
-                    <div>Solves: <span id="solveCount" class="stats-value">0</span></div>
-                </div>
-            </div>
+        <!-- Timer Display -->
+        <div id="timerDisplay" class="timer-display text-center">
+            00:00.000
+        </div>
 
-            <div class="history-card card">
-                <h2 class="text-xl font-semibold text-gradient mb-2">Solve History</h2>
-                <div id="noSolvesMessage" class="text-center text-gray-500 py-4" style="display: block;">No solves yet. Start cubing!</div>
-                <div id="solveHistoryList" class="solve-history-list">
-                    <!-- Solve items will be dynamically added here -->
-                </div>
+        <!-- Control Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <button id="startStopBtn" class="button-primary flex-1">Start / Stop (Space)</button>
+            <button id="resetBtn" class="button-secondary flex-1">Reset</button>
+            <button id="scrambleBtn" class="button-secondary flex-1">New Scramble</button>
+            <button id="settingsBtn" class="button-secondary flex-1">Settings</button>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label text-gray-400">Best Time</div>
+                <div id="bestTime" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Ao5</div>
+                <div id="ao5" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Ao12</div>
+                <div id="ao12" class="value">--:--.--</div>
+            </div>
+            <div class="stat-card">
+                <div class="label text-gray-400">Solves</div>
+                <div id="solveCount" class="value">0</div>
             </div>
         </div>
 
-        <div class="footer-buttons">
-            <button id="settingsBtn" class="button-primary">Settings</button>
-            <!-- Voice Command Button - Modernized -->
-            <button id="voiceCommandBtn" class="button-primary voice-command-button">
-                <i class="fas fa-microphone"></i> Voice Command
-            </button>
+        <!-- Solve History -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gradient mb-4">Solve History</h2>
+            <div id="solveHistoryList" class="max-h-64 overflow-y-auto pr-2">
+                <!-- Solve times will be dynamically added here -->
+                <p class="text-center text-gray-500" id="noSolvesMessage">No solves yet. Start cubing!</p>
+            </div>
         </div>
+
     </div>
+
+    <!-- Floating Action Button for Voice Commands -->
+    <button id="voiceCommandBtn" class="fixed bottom-6 right-6 z-50">
+        <i class="fas fa-microphone"></i>
+    </button>
 
     <!-- Voice Feedback Display (NEW) -->
     <div id="voiceFeedbackDisplay" class="voice-feedback-display">
@@ -107,78 +143,97 @@
     <div id="settingsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
             <button class="modal-close-button" id="closeSettingsModal" aria-label="Close settings">&times;</button>
-            <h2 class="text-2xl font-bold text-gradient mb-4">Settings</h2>
-
-            <div class="settings-section">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="inspectionToggle">
-                    <span class="slider"></span>
-                </label>
-                <span class="ml-3 text-lg">Enable Inspection Time (15s)</span>
-            </div>
-
-            <div class="settings-section">
-                <label for="cubeTypeSelect" class="text-lg mr-3">Cube Type:</label>
-                <select id="cubeTypeSelect" class="select-box">
-                    <option value="3x3">3x3</option>
-                    <option value="2x2">2x2</option>
-                    <option value="pyraminx">Pyraminx</option>
-                    <!-- <option value="4x4">4x4</option> -->
-                </select>
-            </div>
-
-            <div class="settings-section">
-                <label for="themeSelect" class="text-lg mr-3">Theme:</label>
-                <select id="themeSelect" class="select-box">
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                    <option value="vibrant">Vibrant</option>
-                </select>
-            </div>
-
-            <div class="settings-section">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="cubeViewToggle">
-                    <span class="slider"></span>
-                </label>
-                <span class="ml-3 text-lg">Show 3D Cube Scramble</span>
-            </div>
-
-            <div class="settings-section mt-6">
-                <h3 class="text-xl font-semibold text-gradient mb-2">User Profile</h3>
-                <div class="flex items-center space-x-3 mb-2">
-                    <label for="settingsUsernameInput" class="text-lg">Username:</label>
-                    <input type="text" id="settingsUsernameInput" class="input-field flex-grow" placeholder="Enter your username">
+            <h2 class="text-2xl font-bold text-gradient mb-6">Settings</h2>
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <label for="inspectionToggle" class="text-lg">Enable 15s Inspection</label>
+                    <input type="checkbox" id="inspectionToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
                 </div>
-                <button id="saveUsernameBtn" class="button-primary">Save Username</button>
-                <p id="usernameUpdateMessage" class="text-sm mt-2" style="display: none;"></p>
+
+                <div class="flex items-center justify-between">
+                    <label for="soundEffectsToggle" class="text-lg">Enable Sound Effects</label>
+                    <input type="checkbox" id="soundEffectsToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label for="cubeTypeSelect" class="text-lg">Cube Type</label>
+                    <select id="cubeTypeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="3x3">3x3</option>
+                        <option value="2x2">2x2</option>
+                        <option value="4x4">4x4</option>
+                        <option value="pyraminx">Pyraminx</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label for="themeSelect" class="text-lg">Theme</label>
+                    <select id="themeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="dark">Dark (Default)</option>
+                        <option value="light">Light</option>
+                        <option value="vibrant">Vibrant</option>
+                    </select>
+                </div>
+
+                <!-- New: 3D Cube View Toggle -->
+                <div class="flex items-center justify-between">
+                    <label for="cubeViewToggle" class="text-lg">Show 3D Cube Scramble</label>
+                    <input type="checkbox" id="cubeViewToggle"
+                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <h3 class="text-xl font-semibold text-gradient mb-3">Change Username</h3>
+                    <div class="mb-3">
+                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New
+                            Username:</label>
+                        <input type="text" id="settingsUsernameInput"
+                            class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                            placeholder="Enter new username">
+                    </div>
+                    <button id="saveUsernameBtn" class="button-primary w-full">Save Username</button>
+                    <p id="usernameUpdateMessage" class="text-sm mt-2 text-center" style="display:none;"></p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Authentication Modal -->
+    <!-- Auth Modal -->
     <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
-            <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication">&times;</button>
-            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-4">Sign In</h2>
+            <button class="modal-close-button" id="closeAuthModal"
+                aria-label="Close authentication modal">&times;</button>
+            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-6 text-center">Sign In</h2>
+
             <div class="mb-4">
                 <label for="email" class="block text-gray-300 text-sm font-bold mb-2">Email:</label>
-                <input type="email" id="email" class="input-field" placeholder="your@example.com">
+                <input type="email" id="email"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="your@email.com">
             </div>
-            <div id="usernameFieldGroup" class="mb-4" style="display:none;">
+            <div class="mb-4" id="usernameFieldGroup" style="display:none;">
                 <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
-                <input type="text" id="usernameInput" class="input-field" placeholder="Choose a username">
+                <input type="text" id="usernameInput"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="Enter your username">
             </div>
             <div class="mb-6">
                 <label for="password" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
-                <input type="password" id="password" class="input-field" placeholder="********">
+                <input type="password" id="password"
+                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
+                    placeholder="********">
             </div>
             <p id="authError" class="text-red-500 text-sm mb-4" style="display:none;"></p>
-            <button id="emailAuthBtn" class="button-primary w-full mb-3">Sign In</button>
-            <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2">
-                Sign In with Google
-            </button>
+
+            <div class="flex flex-col gap-3 mb-4">
+                <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
+                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo"
+                        class="w-5 h-5">
+                    Sign In with Google
+                </button>
+            </div>
         </div>
     </div>
 
