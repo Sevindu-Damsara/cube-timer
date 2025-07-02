@@ -137,17 +137,23 @@ def gemini_insight_handler():
                     if optimal_solution.strip().lower() == 'not available':
                         try:
                             # Validate scramble format for kociemba
-                            valid_scramble = scramble.strip()
-                            # kociemba expects scrambles in standard notation, e.g. "R U R' U'"
-                            # If the scramble is not in expected format, log and skip local solve
-                            if not valid_scramble or any(c not in "URFDLBMESxyz' 0123456789" for c in valid_scramble):
-                                print(f"WARNING: Scramble format may be invalid for local solver: '{valid_scramble}'")
-                                # Add debug info to response for troubleshooting
+                            original_scramble = scramble.strip()
+                            print(f"DEBUG: Original scramble received: '{original_scramble}'")
+                            # Transform scramble to kociemba format if needed
+                            # For example, remove unwanted characters, normalize spacing
+                            transformed_scramble = original_scramble.replace('\n', ' ').replace('\r', ' ').strip()
+                            # Remove multiple spaces
+                            import re
+                            transformed_scramble = re.sub(r'\s+', ' ', transformed_scramble)
+                            print(f"DEBUG: Transformed scramble for local solver: '{transformed_scramble}'")
+                            # Validate transformed scramble
+                            if not transformed_scramble or any(c not in "URFDLBMESxyz' 0123456789 " for c in transformed_scramble):
+                                print(f"WARNING: Scramble format may be invalid for local solver: '{transformed_scramble}'")
                                 optimal_solution = "Not available (invalid scramble format for local solver)"
                             else:
-                                print(f"DEBUG: Valid scramble for local solver: '{valid_scramble}'")
+                                print(f"DEBUG: Valid scramble for local solver: '{transformed_scramble}'")
                                 try:
-                                    local_solution = kociemba.solve(valid_scramble)
+                                    local_solution = kociemba.solve(transformed_scramble)
                                     optimal_solution = local_solution
                                     print(f"DEBUG: Local optimal solution generated: {local_solution}")
                                 except Exception as e:
