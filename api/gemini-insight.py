@@ -75,7 +75,7 @@ def gemini_insight_handler():
 
         Important instructions for your response:
         1.  **General Insight:** Provide a brief, overall observation about the solve (e.g., "A solid solve," "Room for improvement in F2L"). Keep this under 30 words.
-        2.  **Optimal Solution:** Provide the optimal solution algorithm for the provided scramble. This should be the shortest possible sequence of moves to solve the cube from the scrambled state. If you cannot determine the optimal solution, state 'Not available'.
+        2.  **Optimal Solution:** Provide the optimal solution algorithm for the provided scramble. This should be the shortest possible sequence of moves to solve the cube from the scrambled state. For example: "F U R U' R' F'". If you cannot determine the optimal solution, state 'Not available'.
         3.  **Personalized Tip:** Offer one specific, actionable recommendation tailored to the user's current skill level ({user_level}) and the characteristics of this particular solve (e.g., "Consider practicing cross solutions," "Focus on look-ahead during OLL"). This should be a single, clear recommendation, under 40 words.
         4.  **Tone:** Maintain a formal, respectful, and helpful tone throughout the generated text. Do not include specific salutations or direct addresses like "Sir Sevindu" within the 'insight', 'optimalSolution', or 'personalizedTip' fields.
 
