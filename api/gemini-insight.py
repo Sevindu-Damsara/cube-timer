@@ -169,9 +169,14 @@ def gemini_insight_handler():
                                     print(f"DEBUG: Cube state string for kociemba: {cube_state} (length: {len(cube_state)})")
                                     if len(cube_state) != 54:
                                         raise ValueError(f"Invalid cube state length: {len(cube_state)}")
-                                    local_solution = kociemba.solve(cube_state)
-                                    optimal_solution = local_solution
-                                    print(f"DEBUG: Local optimal solution generated: {local_solution}")
+                                    try:
+                                        print(f"DEBUG: Passing cube state to kociemba.solve: {cube_state}")
+                                        local_solution = kociemba.solve(cube_state)
+                                        optimal_solution = local_solution
+                                        print(f"DEBUG: Local optimal solution generated: {local_solution}")
+                                    except Exception as e:
+                                        print(f"ERROR: kociemba.solve failed: {e}")
+                                        raise e
                                 except Exception as e:
                                     print(f"ERROR: Exception in local solver: {e}")
                                     optimal_solution = f"Not available (local solver error: {e})"
