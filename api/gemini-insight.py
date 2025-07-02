@@ -190,6 +190,7 @@ def gemini_insight_handler():
                                                         color = square.color_name
                                                     else:
                                                         color = str(square)
+                                                    print(f"DEBUG: Extracted color value: {color} (type: {type(color)}) on face '{face}' at position ({row},{col})")
                                                     # Map color to face letter (U,R,F,D,L,B)
                                                     # Assuming standard color scheme:
                                                     # White: U, Red: R, Green: F, Yellow: D, Orange: L, Blue: B
