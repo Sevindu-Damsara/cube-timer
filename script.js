@@ -137,11 +137,17 @@ function generateScramble() {
         newScramble.push(moves[moveIndex] + modifier);
         lastMoveAxis = moveAxis;
     }
-    const generatedScramble = newScramble.join(" ");
-    scrambleDisplay.textContent = generatedScramble;
-    updateTwistyPlayer(generatedScramble);
-    console.log("[DEBUG] Generated scramble:", generatedScramble);
-    return generatedScramble;
+    // Ensure scrambleDisplay is not null before setting textContent
+    if (scrambleDisplay) {
+        const generatedScramble = newScramble.join(" ");
+        scrambleDisplay.textContent = generatedScramble;
+        updateTwistyPlayer(generatedScramble);
+        console.log("[DEBUG] Generated scramble:", generatedScramble);
+        return generatedScramble;
+    } else {
+        console.error("[ERROR] scrambleDisplay is not defined when trying to generateScramble.");
+        return "Error: Scramble display not ready.";
+    }
 }
 
 /**
@@ -168,15 +174,15 @@ function updateTwistyPlayer(scrambleText) {
 function startInspection() {
     console.log("[DEBUG] Starting inspection timer.");
     inspectionCountdown = userSettings.inspectionTime || 15;
-    timerDisplay.textContent = `Inspection: ${inspectionCountdown.toString().padStart(2, '0')}`;
-    startStopButton.textContent = 'Ready!';
-    startStopButton.disabled = false; // Enable button for inspection
-    resetButton.disabled = false; // Enable reset during inspection
+    if (timerDisplay) timerDisplay.textContent = `Inspection: ${inspectionCountdown.toString().padStart(2, '0')}`;
+    if (startStopButton) startStopButton.textContent = 'Ready!';
+    if (startStopButton) startStopButton.disabled = false; // Enable button for inspection
+    if (resetButton) resetButton.disabled = false; // Enable reset during inspection
 
     inspectionTimerId = setInterval(() => {
         inspectionCountdown--;
         if (inspectionCountdown >= 0) {
-            timerDisplay.textContent = `Inspection: ${inspectionCountdown.toString().padStart(2, '0')}`;
+            if (timerDisplay) timerDisplay.textContent = `Inspection: ${inspectionCountdown.toString().padStart(2, '0')}`;
             if (inspectionCountdown <= 3 && inspectionCountdown > 0) {
                 playSound(countdownBeep); // Play beep for last 3 seconds
             } else if (inspectionCountdown === 0) {
@@ -184,7 +190,7 @@ function startInspection() {
             }
         } else {
             clearInterval(inspectionTimerId);
-            timerDisplay.textContent = `+2 Penalty!`; // Indicate penalty
+            if (timerDisplay) timerDisplay.textContent = `+2 Penalty!`; // Indicate penalty
             playSound(dingSound); // Play ding for penalty
             // Automatically start timer after penalty if not manually started
             startTimer(true); // Pass true to indicate +2 penalty
@@ -205,14 +211,14 @@ function startTimer(addTwoPenalty = false) {
         startTime -= 2000; // Apply +2 penalty by adjusting start time
         showToast("+2 Penalty applied!", "info");
     }
-    startStopButton.textContent = 'Stop';
-    startStopButton.disabled = false;
-    resetButton.disabled = true; // Disable reset while timer is running
+    if (startStopButton) startStopButton.textContent = 'Stop';
+    if (startStopButton) startStopButton.disabled = false;
+    if (resetButton) resetButton.disabled = true; // Disable reset while timer is running
     playSound(startSound);
 
     timer = setInterval(() => {
         const elapsedTime = Date.now() - startTime;
-        timerDisplay.textContent = formatTime(elapsedTime);
+        if (timerDisplay) timerDisplay.textContent = formatTime(elapsedTime);
     }, 10); // Update every 10ms for smooth display
 }
 
@@ -224,9 +230,9 @@ async function stopTimer() {
     clearInterval(timer);
     running = false;
     const solveTime = Date.now() - startTime;
-    startStopButton.textContent = 'Start';
-    startStopButton.disabled = false;
-    resetButton.disabled = false;
+    if (startStopButton) startStopButton.textContent = 'Start';
+    if (startStopButton) startStopButton.disabled = false;
+    if (resetButton) resetButton.disabled = false;
     playSound(stopSound);
 
     const newSolve = {
@@ -250,10 +256,10 @@ function resetTimer() {
     clearInterval(timer);
     clearInterval(inspectionTimerId);
     running = false;
-    timerDisplay.textContent = '00:00.000';
-    startStopButton.textContent = 'Start';
-    startStopButton.disabled = false;
-    resetButton.disabled = false;
+    if (timerDisplay) timerDisplay.textContent = '00:00.000';
+    if (startStopButton) startStopButton.textContent = 'Start';
+    if (startStopButton) startStopButton.disabled = false;
+    if (resetButton) resetButton.disabled = false;
     inspectionCountdown = userSettings.inspectionTime || 15; // Reset inspection countdown
     scramble = generateScramble(); // Generate new scramble
     console.log("[DEBUG] Timer reset complete.");
@@ -263,6 +269,11 @@ function resetTimer() {
  * Updates all displayed statistics (Ao5, Ao12, Best Time, Total Solves).
  */
 function updateStatistics() {
+    if (!ao5Display || !ao12Display || !bestTimeDisplay || !totalSolvesDisplay) {
+        console.warn("[WARN] Statistics display elements not ready for update.");
+        return;
+    }
+
     if (userSolves.length === 0) {
         ao5Display.textContent = 'N/A';
         ao12Display.textContent = 'N/A';
@@ -302,7 +313,19 @@ function updateStatistics() {
  * Renders the list of recorded solves in the UI.
  */
 function renderSolvesList() {
+    if (!solvesList) {
+        console.warn("[WARN] Solves list element not ready for rendering.");
+        return;
+    }
     solvesList.innerHTML = ''; // Clear existing list
+    if (userSolves.length === 0) {
+        const li = document.createElement('li');
+        li.className = "text-gray-500";
+        li.textContent = "No solves recorded yet.";
+        solvesList.appendChild(li);
+        return;
+    }
+
     userSolves.slice().reverse().forEach((solve, index) => { // Display most recent first
         const li = document.createElement('li');
         // Use a unique ID for each solve item for deletion, ideally from Firestore doc ID
@@ -328,6 +351,11 @@ function renderSolvesList() {
  */
 function showMessageBox(title, message, showCancel = false) {
     return new Promise(resolve => {
+        if (!messageBoxTitle || !messageBoxMessage || !messageBoxCancelButton || !messageBoxOverlay || !messageBoxConfirmButton) {
+            console.error("[ERROR] Message box elements not ready.");
+            resolve(false); // Cannot show message box if elements are missing
+            return;
+        }
         messageBoxTitle.textContent = title;
         messageBoxMessage.textContent = message;
         messageBoxCancelButton.style.display = showCancel ? 'inline-block' : 'none';
@@ -801,11 +829,11 @@ function speak(text) {
  */
 function showSettingsModal() {
     // Populate modal inputs with current settings
-    inspectionTimeInput.value = userSettings.inspectionTime || 15;
-    soundVolumeInput.value = userSettings.soundVolume || 0.5;
-    wakeWordInput.value = userSettings.wakeWord || "Jarvis";
-    themeSelect.value = userSettings.theme || "dark";
-    settingsModalOverlay.classList.add('show');
+    if (inspectionTimeInput) inspectionTimeInput.value = userSettings.inspectionTime || 15;
+    if (soundVolumeInput) soundVolumeInput.value = userSettings.soundVolume || 0.5;
+    if (wakeWordInput) wakeWordInput.value = userSettings.wakeWord || "Jarvis";
+    if (themeSelect) themeSelect.value = userSettings.theme || "dark";
+    if (settingsModalOverlay) settingsModalOverlay.classList.add('show');
     console.log("[DEBUG] Settings modal shown.");
 }
 
@@ -813,7 +841,7 @@ function showSettingsModal() {
  * Hides the settings modal.
  */
 function hideSettingsModal() {
-    settingsModalOverlay.classList.remove('show');
+    if (settingsModalOverlay) settingsModalOverlay.classList.remove('show');
     console.log("[DEBUG] Settings modal hidden.");
 }
 
@@ -853,51 +881,61 @@ function setupEventListeners() {
 
 
     // Event Listeners
-    startStopButton.addEventListener('click', () => {
-        if (running) {
-            stopTimer();
-        } else {
-            if (userSettings.inspectionTime > 0) {
-                startInspection();
+    if (startStopButton) {
+        startStopButton.addEventListener('click', () => {
+            if (running) {
+                stopTimer();
             } else {
-                startTimer();
+                if (userSettings.inspectionTime > 0) {
+                    startInspection();
+                } else {
+                    startTimer();
+                }
             }
-        }
-    });
+        });
+    }
 
-    resetButton.addEventListener('click', resetTimer);
-    settingsButton.addEventListener('click', showSettingsModal);
+    if (resetButton) resetButton.addEventListener('click', resetTimer);
+    if (settingsButton) settingsButton.addEventListener('click', showSettingsModal);
 
     // Close settings modal
-    settingsModalOverlay.addEventListener('click', (e) => {
-        if (e.target === settingsModalOverlay) {
-            hideSettingsModal();
-        }
-    });
-    settingsModalContent.querySelector('.close-button').addEventListener('click', hideSettingsModal);
-    cancelSettingsButton.addEventListener('click', hideSettingsModal);
+    if (settingsModalOverlay) {
+        settingsModalOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsModalOverlay) {
+                hideSettingsModal();
+            }
+        });
+    }
+    if (settingsModalContent && settingsModalContent.querySelector('.close-button')) {
+        settingsModalContent.querySelector('.close-button').addEventListener('click', hideSettingsModal);
+    }
+    if (cancelSettingsButton) cancelSettingsButton.addEventListener('click', hideSettingsModal);
 
     // Save settings
-    saveSettingsButton.addEventListener('click', () => {
-        const newSettings = {
-            inspectionTime: parseInt(inspectionTimeInput.value),
-            soundVolume: parseFloat(soundVolumeInput.value),
-            wakeWord: wakeWordInput.value.trim(),
-            theme: themeSelect.value
-        };
-        saveSettingsToFirestore(newSettings);
-        hideSettingsModal();
-    });
+    if (saveSettingsButton) {
+        saveSettingsButton.addEventListener('click', () => {
+            const newSettings = {
+                inspectionTime: parseInt(inspectionTimeInput.value),
+                soundVolume: parseFloat(soundVolumeInput.value),
+                wakeWord: wakeWordInput.value.trim(),
+                theme: themeSelect.value
+            };
+            saveSettingsToFirestore(newSettings);
+            hideSettingsModal();
+        });
+    }
 
     // Delegate event for deleting solves
-    solvesList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-solve-button')) {
-            const solveId = e.target.dataset.id;
-            if (solveId) {
-                deleteSolveFromFirestore(solveId);
+    if (solvesList) {
+        solvesList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-solve-button')) {
+                const solveId = e.target.dataset.id;
+                if (solveId) {
+                    deleteSolveFromFirestore(solveId);
+                }
             }
-        }
-    });
+        });
+    }
 
     // Theme toggle via settings, but also a direct toggle for convenience
     if (themeToggle) {
@@ -921,6 +959,7 @@ window.onload = function () {
     domElementsReady = true;
 
     // CRITICAL FIX: Ensure DOM elements are assigned BEFORE they are used.
+    // This function now also includes null checks for elements before use.
     setupEventListeners(); // Attaches all event listeners to DOM elements and assigns global variables
 
     // Now that DOM elements are assigned, generate scramble and update displays
