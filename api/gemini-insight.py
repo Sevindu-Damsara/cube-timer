@@ -167,8 +167,21 @@ def gemini_insight_handler():
                                     # Get cube state string for kociemba
                                     cube_state = cube.to_kociemba()
                                     print(f"DEBUG: Cube state string for kociemba: {cube_state} (length: {len(cube_state)})")
-                                    if len(cube_state) != 54:
-                                        raise ValueError(f"Invalid cube state length: {len(cube_state)}")
+
+                                    def validate_cube_state(state):
+                                        # kociemba expects a 54-character string with only these characters
+                                        valid_chars = set("URFDLB")
+                                        if len(state) != 54:
+                                            return False, f"Invalid length: {len(state)}"
+                                        if any(c not in valid_chars for c in state):
+                                            return False, "Invalid characters in cube state"
+                                        return True, "Valid cube state"
+
+                                    is_valid, validation_msg = validate_cube_state(cube_state)
+                                    print(f"DEBUG: Cube state validation: {validation_msg}")
+                                    if not is_valid:
+                                        raise ValueError(f"Cube state validation failed: {validation_msg}")
+
                                     try:
                                         print(f"DEBUG: Passing cube state to kociemba.solve: {cube_state}")
                                         local_solution = kociemba.solve(cube_state)
