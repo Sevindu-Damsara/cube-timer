@@ -63,10 +63,10 @@ async function initializeAudio() {
         console.log("Tone.js audio context started.");
 
         // Create audio players for sound effects
-        dingSound = new Tone.Player("./assets/ding.mp3").toDestination();
-        countdownBeep = new Tone.Player("./assets/beep.mp3").toDestination();
-        startSound = new Tone.Player("./assets/start.mp3").toDestination();
-        stopSound = new Tone.Player("./assets/stop.mp3").toDestination();
+        dingSound = new Tone.Player("https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/assets/audio/ding.mp3").toDestination();
+        countdownBeep = new Tone.Player("https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/assets/audio/beep.mp3").toDestination();
+        startSound = new Tone.Player("https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/assets/audio/start.mp3").toDestination();
+        stopSound = new Tone.Player("https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/assets/audio/stop.mp3").toDestination();
 
         // Adjust volume based on user settings
         updateSoundVolume(userSettings.soundVolume || 0.5); // Default to 0.5 if not set
@@ -920,9 +920,11 @@ window.onload = function () {
     // Set flag that DOM elements are ready
     domElementsReady = true;
 
-    // Initialize core features that need DOM elements ready
+    // CRITICAL FIX: Ensure DOM elements are assigned BEFORE they are used.
+    setupEventListeners(); // Attaches all event listeners to DOM elements and assigns global variables
+
+    // Now that DOM elements are assigned, generate scramble and update displays
     scramble = generateScramble(); // Generates initial scramble and updates displays
-    setupEventListeners(); // Attaches all event listeners to DOM elements
 
     // Attempt to initialize user data and settings now that DOM is ready.
     // This function itself checks if Firebase Auth is also ready.
