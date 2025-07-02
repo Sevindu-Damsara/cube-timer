@@ -136,7 +136,7 @@ def gemini_insight_handler():
                     personalized_tip = parsed_gemini_content.get('personalizedTip', 'No personalized tip generated.')
 
                     # If Gemini did not provide an optimal solution, try to generate one locally
-                    if optimal_solution.strip().lower() == 'not available':
+                    if 'not available' in optimal_solution.strip().lower():
                         try:
                             # Validate scramble format for kociemba
                             original_scramble = scramble.strip()
