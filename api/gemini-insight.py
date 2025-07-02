@@ -136,10 +136,16 @@ def gemini_insight_handler():
                     # If Gemini did not provide an optimal solution, try to generate one locally
                     if optimal_solution.strip().lower() == 'not available':
                         try:
-                            # Use kociemba to solve the scramble
-                            local_solution = kociemba.solve(scramble)
-                            optimal_solution = local_solution
-                            print(f"DEBUG: Local optimal solution generated: {local_solution}")
+                            # Validate scramble format for kociemba
+                            valid_scramble = scramble.strip()
+                            # kociemba expects scrambles in standard notation, e.g. "R U R' U'"
+                            # If the scramble is not in expected format, log and skip local solve
+                            if not valid_scramble or any(c not in "URFDLBMESxyz' 0123456789" for c in valid_scramble):
+                                print(f"WARNING: Scramble format may be invalid for local solver: '{valid_scramble}'")
+                            else:
+                                local_solution = kociemba.solve(valid_scramble)
+                                optimal_solution = local_solution
+                                print(f"DEBUG: Local optimal solution generated: {local_solution}")
                         except Exception as e:
                             print(f"ERROR: Failed to generate local optimal solution: {e}")
 
