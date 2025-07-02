@@ -460,11 +460,6 @@ const SpeechSynthesis = window.SpeechSynthesisUtterance;
 const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 const synth = window.speechSynthesis;
 
-// NEW: DOM elements for voice feedback and listening indicator
-let voiceFeedbackDisplay;
-let voiceListeningIndicator;
-let voiceListeningText;
-
 /**
  * Attempts to start or restart SpeechRecognition after a delay.
  * Ensures only one start attempt is active at a time to prevent InvalidStateError.
@@ -480,7 +475,6 @@ function attemptRestartRecognition() {
         speakAsJarvis("Voice recognition has been paused due to repeated silence. Please speak or disable voice commands.");
         if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
         isListeningForVoice = false;
-        hideVoiceFeedback(); // Hide any listening indicator
         return; // Do not restart recognition
     }
 
@@ -502,13 +496,11 @@ function attemptRestartRecognition() {
         console.log("[DEBUG] Recognition already starting/listening or stop initiated. Aborting redundant restart attempt.");
         isListeningForVoice = true; // Keep visual consistent
         if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
-        showVoiceFeedback("Listening for 'Jarvis'...", true); // Show listening indicator
         return;
     }
 
     isStartingRecognition = true;
     if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Indicate active state while trying to start
-    showVoiceFeedback("Starting voice recognition...", true); // Show starting indicator
 
     // Temporarily clear handlers to prevent re-entry during state transitions
     recognition.onend = null;
@@ -534,13 +526,11 @@ function attemptRestartRecognition() {
                 console.log("[DEBUG] SpeechRecognition.start() called after delay and state check.");
             } else {
                 console.warn(`[WARN] Recognition in unexpected readyState (${recognition.readyState}). Not attempting start.`);
-                hideVoiceFeedback(); // Hide feedback if not starting
             }
 
         } catch (e) {
             console.error("[ERROR] Failed to start recognition after delay:", e);
             speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
-            hideVoiceFeedback(); // Hide feedback on error
         } finally {
             isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
             recognitionRestartTimeoutId = null; // Clear the timeout ID
@@ -560,7 +550,6 @@ const recognitionOnEndHandler = () => {
     isListeningForVoice = false; // No longer continuously listening
     awaitingActualCommand = false; // Reset command mode
     if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-    hideVoiceFeedback(); // Hide any listening indicator
     if (commandTimeoutId) {
         console.log("[DEBUG] Clearing command timeout on recognition END.");
         clearTimeout(commandTimeoutId);
@@ -584,7 +573,6 @@ const recognitionOnErrorHandler = (event) => {
     isListeningForVoice = false;
     awaitingActualCommand = false;
     if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-    hideVoiceFeedback(); // Hide any listening indicator
     if (commandTimeoutId) {
         console.log("[DEBUG] Clearing command timeout on recognition ERROR.");
         clearTimeout(commandTimeoutId);
@@ -608,7 +596,6 @@ const recognitionOnErrorHandler = (event) => {
             speakAsJarvis("Voice recognition has been paused due to repeated silence. Please speak or disable voice commands.");
             if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
             isListeningForVoice = false;
-            hideVoiceFeedback(); // Hide feedback
             return; // Do not restart recognition
         }
     } else if (event.error === 'aborted') {
@@ -663,7 +650,6 @@ if (recognition) {
             clearTimeout(recognitionRestartTimeoutId);
             recognitionRestartTimeoutId = null;
         }
-        showVoiceFeedback("Listening for 'Jarvis'...", true); // Show listening indicator
     };
 
     recognition.onresult = (event) => {
@@ -683,7 +669,6 @@ if (recognition) {
             console.log("[DEBUG] Transcript is empty or undefined.");
         } else {
             console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
-            showVoiceFeedback(transcript); // Display the detected transcript
         }
 
         if (commandTimeoutId) {
@@ -694,27 +679,26 @@ if (recognition) {
 
         if (awaitingActualCommand) {
             console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
-            recognitionStopInitiated = true; // Mark this stop as programmatic
-            // Stop recognition immediately to prevent further results for this command session
-            recognition.stop();
+            recognitionStopInitiated = true;
+            // Delay recognition.stop() slightly to ensure full command capture
+            setTimeout(() => {
+                console.log("[DEBUG] Calling recognition.stop() for command processing after delay.");
+                recognition.stop();
+            }, 200);
             awaitingActualCommand = false;
-            // Delay processing the command slightly to allow recognition.onend to fire
-            setTimeout(() => processVoiceCommandWithGemini(transcript), 100);
-            console.log("[DEBUG] Recognition stop initiated and awaitingActualCommand set to FALSE after command processing.");
+            setTimeout(() => processVoiceCommandWithGemini(transcript), 50);
+            console.log("[DEBUG] Recognition stop scheduled and awaitingActualCommand set to FALSE after command processing.");
         } else if (transcript.includes('jarvis')) {
             console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
-            playWakeWordSound(); // Play the new wake word sound
-            speakAsJarvis("At your service, Sir Sevindu. Your command?"); // Keep the spoken prompt
+            speakAsJarvis("At your service, Sir Sevindu. Your command?");
             awaitingActualCommand = true;
-            showVoiceFeedback("Command?", true); // Update visual feedback
             commandTimeoutId = setTimeout(() => {
                 awaitingActualCommand = false;
                 speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
                 console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
-                recognitionStopInitiated = true; // Mark this stop as programmatic
+                recognitionStopInitiated = true;
                 console.log("[DEBUG] Calling recognition.stop() due to command timeout.");
                 recognition.stop();
-                hideVoiceFeedback(); // Hide feedback on timeout
             }, 10000); // Increased timeout to 10 seconds for command input
         } else {
             console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
@@ -731,11 +715,6 @@ if (recognition) {
         const voiceBtn = document.getElementById('voiceCommandBtn');
         if (voiceBtn) {
             voiceBtn.style.display = 'none';
-        }
-        // Also hide the voice feedback display if API is not supported
-        const voiceFeedback = document.getElementById('voiceFeedbackDisplay');
-        if (voiceFeedback) {
-            voiceFeedback.style.display = 'none';
         }
     });
 }
@@ -779,83 +758,6 @@ function speakAsJarvis(text) {
 }
 
 /**
- * NEW: Plays a distinct sound when the wake word "Jarvis" is detected.
- */
-const wakeWordSound = new Tone.Synth({
-    oscillator: { type: "sine" },
-    envelope: {
-        attack: 0.01,
-        decay: 0.1,
-        sustain: 0.0,
-        release: 0.2,
-    }
-}).toDestination();
-
-function playWakeWordSound() {
-    if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
-        console.log("[DEBUG] Playing wake word sound.");
-        wakeWordSound.triggerAttackRelease("G5", "8n"); // A higher-pitched, short tone
-    }
-}
-
-/**
- * NEW: Displays voice feedback (transcript or listening status) temporarily.
- * @param {string} message - The text to display.
- * @param {boolean} isListeningState - True if displaying a listening status (e.g., "Listening...", "Command?").
- */
-let voiceFeedbackTimeoutId = null;
-function showVoiceFeedback(message, isListeningState = false) {
-    if (!voiceFeedbackDisplay) {
-        console.warn("[WARN] showVoiceFeedback: voiceFeedbackDisplay element not found.");
-        return;
-    }
-
-    // Clear any existing fade-out timeout
-    if (voiceFeedbackTimeoutId) {
-        clearTimeout(voiceFeedbackTimeoutId);
-        voiceFeedbackTimeoutId = null;
-    }
-
-    voiceFeedbackDisplay.textContent = message;
-    voiceFeedbackDisplay.style.opacity = '1';
-    voiceFeedbackDisplay.style.display = 'block';
-
-    if (isListeningState) {
-        // For listening states, keep it visible until explicitly hidden or new input
-        voiceFeedbackDisplay.classList.add('listening-active');
-    } else {
-        // For transcripts, fade out after a short delay
-        voiceFeedbackDisplay.classList.remove('listening-active');
-        voiceFeedbackTimeoutId = setTimeout(() => {
-            voiceFeedbackDisplay.style.opacity = '0';
-            // Wait for transition to complete before hiding fully
-            setTimeout(() => {
-                voiceFeedbackDisplay.style.display = 'none';
-            }, 500); // Match CSS transition duration
-        }, 3000); // Display transcript for 3 seconds
-    }
-}
-
-/**
- * NEW: Hides the voice feedback display.
- */
-function hideVoiceFeedback() {
-    if (voiceFeedbackDisplay) {
-        voiceFeedbackDisplay.style.opacity = '0';
-        voiceFeedbackDisplay.classList.remove('listening-active');
-        if (voiceFeedbackTimeoutId) {
-            clearTimeout(voiceFeedbackTimeoutId);
-            voiceFeedbackTimeoutId = null;
-        }
-        // Wait for transition to complete before hiding fully
-        setTimeout(() => {
-            if (voiceFeedbackDisplay) voiceFeedbackDisplay.style.display = 'none';
-        }, 500); // Match CSS transition duration
-    }
-}
-
-
-/**
  * Sends the raw voice transcript to Gemini NLU Cloud Function for interpretation.
  * @param {string} rawTranscript - The raw, unparsed transcript from speech recognition.
  */
@@ -865,12 +767,10 @@ async function processVoiceCommandWithGemini(rawTranscript) {
     if (!geminiNluFunctionUrl || geminiNluFunctionUrl === "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL") {
         speakAsJarvis("Sir Sevindu, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
         console.error("[ERROR] Gemini NLU Cloud Function URL is not configured.");
-        hideVoiceFeedback(); // Hide feedback if NLU is not configured
         return;
     }
 
     speakAsJarvis("Interpreting command, Sir Sevindu.");
-    showVoiceFeedback("Interpreting...", true); // Show interpreting status
 
     try {
         const response = await fetch(geminiNluFunctionUrl, {
@@ -900,7 +800,6 @@ async function processVoiceCommandWithGemini(rawTranscript) {
         speakAsJarvis(`Sir Sevindu, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
         console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
     } finally {
-        hideVoiceFeedback(); // Hide feedback after processing
         // After processing command, ensure recognition restarts to listen for wake word
         // Use the centralized restart function
         console.log("[DEBUG] processVoiceCommandWithGemini: Initiating controlled recognition restart after command processing.");
@@ -1993,6 +1892,7 @@ function setupEventListeners() {
     aiInsightModal = document.getElementById('aiInsightModal');
     closeAiInsightModalBtn = document.getElementById('closeAiInsightModal');
     aiInsightContentDisplay = document.getElementById('aiInsightContent');
+    insightMessageElement = document.getElementById('insightMessage');
     insightSpinner = aiInsightContentDisplay ? aiInsightContentDisplay.querySelector('.spinner') : null; // Safely query
     optimalSolutionDisplay = document.getElementById('optimalSolutionDisplay');
     optimalSolutionText = document.getElementById('optimalSolutionText');
@@ -2002,13 +1902,6 @@ function setupEventListeners() {
     pausePreviewBtn = document.getElementById('pausePreviewBtn');
     restartPreviewBtn = document.getElementById('restartPreviewBtn');
     voiceCommandBtn = document.getElementById('voiceCommandBtn');
-    insightMessageElement = document.getElementById('insightMessage'); // Ensure this is also assigned
-
-    // NEW: Assign voice feedback elements
-    voiceFeedbackDisplay = document.getElementById('voiceFeedbackDisplay');
-    voiceListeningIndicator = document.getElementById('voiceListeningIndicator');
-    voiceListeningText = document.getElementById('voiceListeningText');
-
 
     // Authentication related elements
     const authModal = document.getElementById('authModal');
@@ -2154,7 +2047,6 @@ function setupEventListeners() {
                     console.log("[DEBUG] Command timeout cleared on manual stop.");
                 }
                 awaitingActualCommand = false;
-                hideVoiceFeedback(); // Hide feedback on manual stop
                 console.log("[DEBUG] Awaiting command mode set to FALSE on manual stop.");
                 // Re-assign handlers after a short delay to allow internal state to settle
                 setTimeout(() => {
@@ -2166,12 +2058,21 @@ function setupEventListeners() {
                 try {
                     console.log("[DEBUG] Recognition is inactive, attempting to start for continuous listening.");
                     attemptRestartRecognition(); // Use the controlled restart
-                    // Jarvis will announce "Listening, Sir Sevindu." via onstart event.
-                    // The `isListeningForVoice` flag is set by onstart.
+                    // Immediately enter command mode for a short duration after manual start
+                    awaitingActualCommand = true;
+                    speakAsJarvis("Listening for your command, Sir Sevindu."); // Immediate feedback
+                    if (commandTimeoutId) clearTimeout(commandTimeoutId); // Clear any old timeout
+                    commandTimeoutId = setTimeout(() => {
+                        awaitingActualCommand = false;
+                        speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                        console.log("[DEBUG] Manual command mode timed out. Reverted to wake word listening.");
+                        recognitionStopInitiated = true; // Mark as programmatic stop to prevent onend restart
+                        console.log("[DEBUG] Calling recognition.stop() due to manual command timeout.");
+                        recognition.stop(); // Stop and let onend handle restart (or not, if programmatic)
+                    }, 5000); // 5 seconds to give a command after manual start
                 } catch (e) {
                     console.error("[ERROR] Failed to start recognition from button click:", e);
                     speakAsJarvis("Pardon me, Sir Sevindu. I could not activate voice input. Please check microphone permissions.");
-                    hideVoiceFeedback(); // Hide feedback on error
                 }
             }
         });
