@@ -11,8 +11,691 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <!-- Cubing.js for 3D scramble visualization - Using the recommended twisty player module -->
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
-    <!-- CRITICAL: Link to external CSS file. Ensure style.css is in the SAME directory as index.html -->
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Custom CSS for a modern, colorful look */
+        /* BASE STYLES: These apply by default, effectively serving as the DESKTOP-FIRST layout. */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color-primary, #0f172a);
+            /* Dark blue-gray background */
+            color: var(--text-color-primary, #e2e8f0);
+            /* Light text color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-y: auto;
+            /* Allow scrolling for content */
+            padding: 20px;
+            /* Desktop padding */
+            position: relative;
+            /* Needed for positioning absolute children */
+        }
+
+        /* Variables for theming */
+        :root {
+            --bg-color-primary: #0f172a;
+            --bg-color-secondary: #1e293b;
+            --text-color-primary: #e2e8f0;
+            --text-color-secondary: #94a3b8;
+            --accent-color-blue: #3b82f6;
+            --accent-color-green: #22c55e;
+            --accent-color-red: #ef4444;
+            --button-bg-hover: #475569;
+            --border-color: #334155;
+            --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+            /* NEW Theme variables for light and vibrant */
+            --button-secondary-bg: #475569;
+            --button-secondary-text: #e2e8f0;
+            --button-secondary-hover-bg: #64748b;
+            --card-bg: #334155;
+            --timer-color: #818cf8;
+            --scramble-color: #a78bfa;
+            --stats-value-color: #67e8f9;
+            --solve-time-color: #a78bfa;
+        }
+
+        /* Light theme */
+        body.theme-light {
+            --bg-color-primary: #f0f2f5;
+            --text-color-primary: #333;
+            --bg-color-secondary: #ffffff;
+            --button-secondary-bg: #e2e8f0;
+            --button-secondary-text: #333;
+            --button-secondary-hover-bg: #cbd5e1;
+            --card-bg: #f9fafb;
+            --timer-color: #3b82f6;
+            --scramble-color: #1d4ed8;
+            --stats-value-color: #0ea5e9;
+            --solve-time-color: #1d4ed8;
+        }
+
+        /* Vibrant theme */
+        body.theme-vibrant {
+            --bg-color-primary: #2d0b57;
+            --text-color-primary: #f0f2f5;
+            --bg-color-secondary: #4a148c;
+            --button-secondary-bg: #8e24aa;
+            --button-secondary-text: #f0f2f5;
+            --button-secondary-hover-bg: #ab47bc;
+            --card-bg: #6a1b9a;
+            --timer-color: #e0f7fa;
+            --scramble-color: #ce93d8;
+            --stats-value-color: #80cbc4;
+            --solve-time-color: #ce93d8;
+        }
+
+        .container {
+            background-color: var(--bg-color-secondary);
+            border-radius: 1.5rem;
+            /* Large rounded corners */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            /* Stronger shadow */
+            max-width: 1200px;
+            /* Desktop max-width */
+            width: 90%;
+            /* Desktop relative width */
+            padding: 2.5rem;
+            /* Desktop padding */
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            /* Desktop gap */
+            position: relative;
+            /* For absolute positioning of elements like modals */
+        }
+
+        /* Authentication buttons in the corner */
+        .auth-corner-buttons {
+            position: absolute;
+            top: 1.5rem;
+            right: 2.5rem;
+            z-index: 50;
+            /* Ensure they are above other content */
+        }
+
+        .timer-display {
+            font-size: 6rem;
+            /* Desktop font size for timer */
+            font-weight: 700;
+            color: var(--timer-color);
+            text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
+            letter-spacing: -0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .timer-display.inspection {
+            color: #fbbf24;
+            /* Amber for inspection */
+        }
+
+        .timer-display.ready {
+            color: #22c55e;
+            /* Green when ready */
+        }
+
+        .button-primary {
+            background: linear-gradient(145deg, #6366f1, #818cf8);
+            /* Gradient button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            /* Base for desktop */
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .button-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+        }
+
+        .button-secondary {
+            background-color: var(--button-secondary-bg);
+            /* Slate gray */
+            color: var(--button-secondary-text);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            /* Base for desktop */
+        }
+
+        .button-secondary:hover {
+            background-color: var(--button-secondary-hover-bg);
+            transform: translateY(-1px);
+        }
+
+        .button-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
+        }
+
+        .scramble-display {
+            background-color: var(--card-bg);
+            /* Darker slate */
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            font-size: 1.2rem;
+            /* Desktop font size */
+            font-weight: 500;
+            color: var(--scramble-color);
+            /* Light purple */
+            text-align: center;
+            word-break: break-all;
+        }
+
+        /* 3D Cube Container Styling */
+        #cube3DContainer {
+            background-color: var(--bg-color-primary);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            /* Desktop height */
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Twisty player needs a height */
+        #scramble3DViewer {
+            height: calc(100% - 60px);
+            width: 100%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            /* Desktop grid layout */
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background-color: var(--card-bg);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            /* Desktop font size */
+            font-weight: 700;
+            color: var(--stats-value-color);
+            /* Cyan */
+            margin-top: 0.5rem;
+        }
+
+        .solve-history-item {
+            background-color: var(--card-bg);
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            /* Default to row for desktop */
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease-in-out;
+            flex-wrap: nowrap;
+            /* Prevent wrapping on desktop */
+            gap: 1rem;
+            /* Desktop gap */
+        }
+
+        .solve-history-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .solve-history-item .time {
+            font-size: 1.2rem;
+            /* Desktop font size */
+            font-weight: 600;
+            color: var(--solve-time-color);
+        }
+
+        .solve-history-item .penalty-buttons {
+            display: flex;
+            gap: 0.5rem;
+            /* Space between penalty buttons */
+            flex-wrap: nowrap;
+            /* Prevent wrapping on desktop */
+            justify-content: flex-end;
+            flex-grow: 1;
+        }
+
+        .solve-history-item .penalty-buttons button {
+            background-color: #f87171;
+            /* Red for DNF */
+            color: white;
+            padding: 0.3rem 0.7rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+
+        .solve-history-item .penalty-buttons button.plus2 {
+            background-color: #fbbf24;
+            /* Amber for +2 */
+        }
+
+        .solve-history-item .penalty-buttons button.clear-penalty {
+            background-color: #60a5fa;
+            /* Blue for clear */
+        }
+
+        .solve-history-item .penalty-buttons button.delete {
+            background-color: #dc2626;
+            /* Strong red for delete */
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .solve-history-item .penalty-buttons button.insight-button {
+            background-color: #4CAF50;
+            /* Green for Insight */
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
+            box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+        }
+
+        .solve-history-item .penalty-buttons button.insight-button:hover {
+            background-color: #45a049;
+        }
+
+        /* New Voice Command Button Styling */
+        #voiceCommandBtn {
+            background-color: #007bff;
+            /* Blue */
+            color: white;
+            border-radius: 50%;
+            width: 48px;
+            /* Slightly larger touch target */
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            /* Icon size */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        #voiceCommandBtn:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        #voiceCommandBtn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+        }
+
+        #voiceCommandBtn.active {
+            background-color: #dc3545;
+            /* Red when active */
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+            }
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--bg-color-secondary);
+            padding: 2rem;
+            /* Desktop padding */
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            /* Desktop width */
+            max-width: 500px;
+            /* Desktop max-width */
+            position: relative;
+            color: var(--text-color-primary);
+            max-height: 90vh;
+            /* Prevent content from overflowing screen vertically */
+            overflow-y: auto;
+            /* Allow scrolling within modal if content is too long */
+        }
+
+        /* Specifically for AI Insight Modal to take more width on desktop */
+        #aiInsightModal .modal-content {
+            max-width: 700px;
+            /* Wider for insight display */
+        }
+
+
+        .modal-close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-color-primary);
+            cursor: pointer;
+        }
+
+        .text-gradient {
+            background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
+        /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
+        @media (max-width: 767px) {
+            body {
+                padding: 16px;
+                /* Reduced padding for mobile */
+            }
+
+            .container {
+                padding: 1.5rem;
+                /* Reduced padding for mobile */
+                gap: 1.5rem;
+                /* Reduced gap for mobile */
+                max-width: 100%;
+                /* Take full width on mobile */
+                width: 100%;
+            }
+
+            .auth-corner-buttons {
+                /* On mobile, stack buttons vertically and align to the right, inside the container flow */
+                flex-direction: column;
+                align-items: flex-end;
+                margin-top: 0.5rem;
+                /* Adjust to fit content well */
+                margin-bottom: 0.5rem;
+            }
+
+            .auth-corner-buttons button {
+                padding: 0.5rem 1rem;
+                /* Slightly larger touch targets */
+                font-size: 0.875rem;
+                /* Slightly larger font for readability */
+                width: auto;
+                /* Allow buttons to size to content */
+            }
+
+            h1 {
+                font-size: 2.5rem;
+                /* Smaller heading for mobile */
+                margin-bottom: 1rem;
+                /* Adjusted margin */
+            }
+
+            .timer-display {
+                font-size: 4rem;
+                /* Smaller timer font for mobile */
+                margin-bottom: 0.5rem;
+            }
+
+            .scramble-display {
+                font-size: 1rem;
+                /* Smaller scramble font for mobile */
+                padding: 0.8rem 1rem;
+                /* Adjusted padding */
+            }
+
+            #cube3DContainer {
+                height: 250px;
+                /* Adjusted height for mobile */
+            }
+
+            /* Control buttons flex-direction is already column for sm: (which is 640px)
+               but we can specify here for max-width just to be explicit if needed */
+            .flex-col.sm\:flex-row {
+                /* Targeting the control buttons div */
+                flex-direction: column;
+                gap: 0.75rem;
+                /* Adjusted gap */
+            }
+
+            .button-primary,
+            .button-secondary {
+                padding: 0.7rem 1.2rem;
+                /* Ensure good touch target */
+                font-size: 0.95rem;
+                /* Slightly smaller font */
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                /* 2 columns on mobile, adjusts */
+                gap: 0.8rem;
+                /* Smaller gap for stats */
+            }
+
+            .stat-card {
+                padding: 0.7rem;
+                /* Adjusted padding */
+            }
+
+            .stat-card .value {
+                font-size: 1.5rem;
+                /* Smaller stat value font */
+            }
+
+            .solve-history-item {
+                flex-direction: column;
+                /* Stack time and buttons */
+                align-items: flex-start;
+                /* Align contents to start */
+                gap: 0.5rem;
+                /* Gap between time and buttons block */
+                padding: 0.6rem 1rem;
+                /* Smaller padding */
+            }
+
+            .solve-history-item .time {
+                font-size: 1rem;
+                /* Smaller time font */
+                margin-bottom: 0;
+                /* No bottom margin, flex gap handles it */
+            }
+
+            .solve-history-item .penalty-buttons {
+                flex-wrap: wrap;
+                /* Allow buttons to wrap */
+                justify-content: flex-start;
+                /* Align buttons to the left within their block */
+                width: 100%;
+                /* Take full width */
+                margin-top: 0.25rem;
+                /* Small margin above buttons when stacked */
+                gap: 0.4rem;
+                /* Smaller gap between penalty buttons */
+            }
+
+            .solve-history-item .penalty-buttons button {
+                padding: 0.3rem 0.6rem;
+                /* Smaller penalty buttons */
+                font-size: 0.75rem;
+            }
+
+            .solve-history-item .penalty-buttons button.insight-button,
+            .solve-history-item .penalty-buttons button.delete {
+                padding: 0.35rem 0.7rem;
+                /* Slightly larger for main action buttons */
+                font-size: 0.8rem;
+            }
+
+            .modal-content {
+                padding: 1.5rem;
+                /* Adjusted padding for mobile modals */
+                width: 95%;
+                /* Fill almost full width */
+                max-width: none;
+                /* No max width on mobile */
+                max-height: 90vh;
+                /* Control vertical height */
+                overflow-y: auto;
+                /* Allow scrolling within modal */
+            }
+
+            /* Adjust AI Insight Modal for mobile */
+            #aiInsightModal .modal-content {
+                max-width: none;
+                /* No max-width on mobile */
+            }
+
+            .modal-close-button {
+                font-size: 1.75rem;
+                /* Larger close button for touch */
+                padding: 0.5rem;
+                /* Increase touch area */
+            }
+
+            /* Adjustments within settings modal for smaller screens */
+            .modal-content label {
+                font-size: 0.95rem;
+                /* Smaller label font */
+            }
+
+            .modal-content select,
+            .modal-content input[type="text"],
+            .modal-content input[type="email"],
+            .modal-content input[type="password"] {
+                padding: 0.6rem 0.8rem;
+                /* Adjusted input padding */
+                font-size: 0.9rem;
+                /* Adjusted input font size */
+            }
+
+            .modal-content h3 {
+                font-size: 1.1rem;
+                /* Smaller subheading */
+                margin-bottom: 0.75rem;
+            }
+
+            /* Voice Command Button Mobile Adjustments */
+            #voiceCommandBtn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+                position: fixed;
+                /* Keep it fixed on screen */
+                bottom: 20px;
+                right: 20px;
+                z-index: 100;
+                /* Ensure it's above other content */
+            }
+        }
+
+        /* Further specific adjustments for very small screens (e.g., iPhone SE) */
+        @media (max-width: 479px) {
+            .timer-display {
+                font-size: 3rem;
+                /* Even smaller timer font for very small screens */
+            }
+
+            h1 {
+                font-size: 2rem;
+                /* Even smaller heading for very small screens */
+            }
+
+            .scramble-display {
+                font-size: 0.9rem;
+                /* Even smaller scramble font */
+            }
+
+            .stat-card .value {
+                font-size: 1.3rem;
+                /* Even smaller stat value font */
+            }
+
+            .button-primary,
+            .button-secondary {
+                font-size: 0.9rem;
+                /* Slightly smaller button font */
+                padding: 0.6rem 1rem;
+                /* Reduced padding */
+            }
+
+            .solve-history-item .penalty-buttons button {
+                font-size: 0.7rem;
+                /* Smallest penalty button font */
+            }
+        }
+
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body class="theme-dark"> <!-- Set default theme class here -->
