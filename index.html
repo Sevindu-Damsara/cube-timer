@@ -1386,43 +1386,49 @@
 
             recognition.onresult = (event) => {
                 console.log("[DEBUG] Voice recognition ONRESULT triggered. Current awaitingActualCommand:", awaitingActualCommand);
-                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-                console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
+                // Log full event.results for debugging
+                console.log("[DEBUG] Full event.results:", event.results);
+
+                // Extract transcript from last result
+                let transcript = '';
+                try {
+                    transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                } catch (e) {
+                    console.warn("[WARN] Failed to extract transcript from event.results:", e);
+                }
+
+                if (!transcript) {
+                    console.log("[DEBUG] Transcript is empty or undefined.");
+                } else {
+                    console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
+                }
 
                 if (commandTimeoutId) {
                     console.log("[DEBUG] Clearing existing command timeout on new transcript.");
-                    clearTimeout(commandTimeoutId); // Clear any pending command timeout
+                    clearTimeout(commandTimeoutId);
                     commandTimeoutId = null;
                 }
 
                 if (awaitingActualCommand) {
-                    // We are in command mode, process this as a direct command
                     console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
-                    // Before processing, explicitly stop recognition to avoid re-triggering on subsequent speech
-                    recognitionStopInitiated = true; // Mark that we are initiating a stop
+                    recognitionStopInitiated = true;
                     console.log("[DEBUG] Calling recognition.stop() for command processing.");
-                    recognition.stop(); 
-                    awaitingActualCommand = false; // Reset immediately
-                    // Process command after a short delay to allow `onend` to fire if it needs to.
-                    setTimeout(() => processVoiceCommandWithGemini(transcript), 50); 
+                    recognition.stop();
+                    awaitingActualCommand = false;
+                    setTimeout(() => processVoiceCommandWithGemini(transcript), 50);
                     console.log("[DEBUG] Recognition stopped and awaitingActualCommand set to FALSE after command processing.");
-                } else if (transcript.includes('jarvis')) { // Check for wake word
+                } else if (transcript.includes('jarvis')) {
                     console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
-                    
                     speakAsJarvis("At your service, Sir Sevindu. Your command?");
-
-                    awaitingActualCommand = true; // Enter command mode
-                    // Set a timeout to exit command mode if no command follows quickly
+                    awaitingActualCommand = true;
                     commandTimeoutId = setTimeout(() => {
                         awaitingActualCommand = false;
                         speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                        
                         console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
-                        // Force a restart of recognition to ensure continuous listening resumes
-                        recognitionStopInitiated = true; // Mark that we are initiating a stop
+                        recognitionStopInitiated = true;
                         console.log("[DEBUG] Calling recognition.stop() due to command timeout.");
-                        recognition.stop(); // Stop current recognition, onend will handle restart
-                    }, 5000); // 5 seconds to give a command
+                        recognition.stop();
+                    }, 5000);
                 } else {
                     console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
                 }
@@ -1844,12 +1850,6 @@
                 case '3x3':
                     length = 20 + Math.floor(Math.random() * 2); // 20-21 moves
                     twistyPlayerPuzzleType = '3x3x3';
-                    for (let i = 0; i < length; i++) {
-                        scrambleMoves.push(getRandomMove(moves3x3, suffixes));
-                    }
-                    break;
-                case '4x4':
-                    length = 40 + Math.floor(Math.random() * 6); // 40-45 moves
                     twistyPlayerPuzzleType = '4x4x4';
                     // This is a very simplified 4x4 scramble. Real 4x4 scrambles are more complex.
                     for (let i = 0; i < length; i++) {
