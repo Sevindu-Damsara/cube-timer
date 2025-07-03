@@ -167,7 +167,7 @@ def gemini_insight_handler():
             
             # Ensure optimalSolution from Kociemba is prioritized if Gemini didn't provide a better one
             final_optimal_solution = parsed_insight.get('optimalSolution', optimal_solution)
-            if cube_type == '3x3' and "Kociemba" in optimal_solution and "optimalSolution" in parsed_insight and "not available" in parsed_insight["optimalSolution"].lower():
+            if cube_type == '3x3' and "Kociemba" in optimal_solution and "not available" in parsed_insight["optimalSolution"].lower():
                  final_optimal_solution = optimal_solution # Use Kociemba if Gemini says not available
 
             return jsonify({
