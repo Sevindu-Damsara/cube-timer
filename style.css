@@ -174,6 +174,42 @@ body.theme-vibrant {
     box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
+/* NEW: Styling for preview control buttons to make them colorful */
+.button-preview-control {
+    background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
+    color: white;
+    padding: 0.5rem; /* Smaller padding */
+    border-radius: 50%; /* Circular */
+    width: 40px; /* Fixed size */
+    height: 40px; /* Fixed size */
+    font-size: 1.2rem; /* Icon size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
+    transition: all 0.2s ease-in-out;
+}
+
+.button-preview-control:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(34, 197, 94, 0.6);
+}
+
+.button-preview-control:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(34, 197, 94, 0.3);
+}
+
+/* Specific colors for play/pause/restart if needed, otherwise rely on general .button-preview-control */
+/* Example:
+#playPreviewBtn { background: linear-gradient(145deg, #3b82f6, #60a5fa); }
+#pausePreviewBtn { background: linear-gradient(145deg, #fbbf24, #fcd34d); }
+#restartPreviewBtn { background: linear-gradient(145deg, #ef4444, #f87171); }
+*/
+
+
 .scramble-display {
     background-color: var(--card-bg);
     /* Darker slate */
@@ -313,42 +349,36 @@ body.theme-vibrant {
     background-color: #45a049;
 }
 
-/* New Voice Command Button Styling */
-#voiceCommandBtn {
-    background-color: #007bff;
-    /* Blue */
+/* Voice Command Button Styling (fixed position) */
+#voiceCommandBtn, #openChatBtn {
+    background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
     color: white;
-    border-radius: 50%;
-    width: 48px;
-    /* Slightly larger touch target */
-    height: 48px;
+    border-radius: 50%; /* Circular */
+    width: 56px; /* Larger touch target */
+    height: 56px; /* Larger touch target */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    /* Icon size */
-    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+    font-size: 1.8rem; /* Icon size */
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Shadow from primary color */
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
-    /* Position fixed to float above content */
-    bottom: 20px; /* Adjust as needed */
-    right: 20px; /* Adjust as needed */
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
     z-index: 100; /* Ensure it's above other content */
+    border: none; /* No border */
 }
 
-#voiceCommandBtn:hover {
-    background-color: #0056b3;
-    transform: translateY(-1px);
+#voiceCommandBtn:hover, #openChatBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
 }
 
-#voiceCommandBtn:active {
+#voiceCommandBtn:active, #openChatBtn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
 }
 
 #voiceCommandBtn.active {
-    background-color: #dc3545;
-    /* Red when active */
+    background-color: #dc3545; /* Red when active */
     animation: pulse-red 1s infinite;
 }
 
@@ -409,6 +439,9 @@ body.theme-vibrant {
 #aiInsightModal .modal-content {
     max-width: 700px;
     /* Wider for insight display */
+    background: linear-gradient(135deg, var(--bg-color-secondary), #101520); /* Subtle gradient for AI modal */
+    border: 1px solid #334155; /* Light border */
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); /* Enhanced shadow */
 }
 
 
@@ -528,6 +561,9 @@ body.theme-vibrant {
     max-height: 80vh; /* Controlled height */
     display: flex;
     flex-direction: column;
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for chat */
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
 }
 
 #chatHistory {
@@ -538,21 +574,32 @@ body.theme-vibrant {
     border-radius: 0.5rem;
     margin-bottom: 1rem;
     scroll-behavior: smooth; /* Smooth scrolling for new messages */
+    border: 1px solid #2d3748;
 }
 
 .chat-message {
     margin-bottom: 0.5rem;
     line-height: 1.4;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    max-width: 85%; /* Limit width for messages */
+    word-wrap: break-word; /* Ensure long words break */
 }
 
 .user-message {
     text-align: right;
     color: #e2e8f0; /* Light text for user */
+    background-color: #3b82f6; /* Blue background for user messages */
+    margin-left: auto; /* Push to right */
+    border-bottom-right-radius: 0; /* Flat corner on sender side */
 }
 
 .jarvis-message {
     text-align: left;
     color: #cbd5e1; /* Slightly darker text for Jarvis */
+    background-color: #475569; /* Slate background for Jarvis messages */
+    margin-right: auto; /* Push to left */
+    border-bottom-left-radius: 0; /* Flat corner on sender side */
 }
 
 .chat-message .font-bold {
@@ -564,7 +611,7 @@ body.theme-vibrant {
 }
 
 .chat-message .text-green-400 {
-    color: #4ade80; /* User's name color */
+    color: #d1fae5; /* Lighter green for user's name on blue background */
 }
 
 .chat-input-container {
@@ -800,17 +847,19 @@ body.theme-vibrant {
     }
 
     /* Voice Command Button Mobile Adjustments */
-    #voiceCommandBtn {
-        width: 44px;
-        height: 44px;
-        font-size: 1.3rem;
-        position: fixed;
-        /* Keep it fixed on screen */
-        bottom: 20px;
-        right: 20px;
-        z-index: 100;
-        /* Ensure it's above other content */
+    #voiceCommandBtn, #openChatBtn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+        bottom: 16px; /* Slightly lower for mobile */
     }
+    #voiceCommandBtn {
+        right: 16px;
+    }
+    #openChatBtn {
+        left: 16px;
+    }
+
 
     /* Voice Feedback Display Mobile Adjustments */
     .voice-feedback-display {
