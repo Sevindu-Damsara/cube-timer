@@ -18,7 +18,7 @@
 </head>
 
 <body class="theme-dark">
-    <div class="container mx-auto rounded-3xl">
+    <div class="container mx-auto rounded-3xl p-6 max-w-5xl w-full"> <!-- Added p-6, max-w-5xl, w-full for better layout control -->
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
         <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
             <button id="signInBtn" class="button-primary">Sign In</button>
@@ -33,7 +33,7 @@
         <h1 class="text-4xl font-bold text-center mb-6">Cubically AI Timer</h1>
 
         <!-- Main Timer and Scramble Section -->
-        <div class="timer-scramble-section">
+        <div class="timer-scramble-section mb-6"> <!-- Added mb-6 for spacing -->
             <div id="timerDisplay" class="timer-display">00:00.000</div>
             <div id="scrambleTextDisplay" class="scramble-display">Generating Scramble...</div>
             <div id="cube3DContainer" class="cube-3d-container" style="display: none;">
@@ -47,42 +47,45 @@
         </div>
 
         <!-- Timer Controls -->
-        <div class="timer-controls">
+        <div class="timer-controls mb-6"> <!-- Added mb-6 for spacing -->
             <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
             <button id="resetBtn" class="button-secondary">Reset</button>
             <button id="scrambleBtn" class="button-secondary">New Scramble</button>
             <button id="settingsBtn" class="button-secondary">Settings</button>
         </div>
 
-        <!-- Statistics Section -->
-        <div class="stats-section">
-            <h2 class="text-xl font-semibold mb-3">Statistics</h2>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <span class="stat-label">Best Time:</span>
-                    <span id="bestTime" class="stat-value">--:--.--</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Ao5:</span>
-                    <span id="ao5" class="stat-value">--:--.--</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Ao12:</span>
-                    <span id="ao12" class="stat-value">--:--.--</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total Solves:</span>
-                    <span id="solveCount" class="stat-value">0</span>
+        <!-- NEW WRAPPER FOR STATS AND HISTORY SECTIONS -->
+        <div class="flex flex-col md:flex-row md:space-x-6">
+            <!-- Statistics Section -->
+            <div class="stats-section w-full md:w-1/2 mb-6 md:mb-0"> <!-- Added w-full, md:w-1/2, mb-6, md:mb-0 -->
+                <h2 class="text-xl font-semibold mb-3">Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Best Time:</span>
+                        <span id="bestTime" class="stat-value">--:--.--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Ao5:</span>
+                        <span id="ao5" class="stat-value">--:--.--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Ao12:</span>
+                        <span id="ao12" class="stat-value">--:--.--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Solves:</span>
+                        <span id="solveCount" class="stat-value">0</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Solve History Section -->
-        <div class="solve-history-section">
-            <h2 class="text-xl font-semibold mb-3">Solve History</h2>
-            <div id="noSolvesMessage" class="text-gray-400 text-center py-4" style="display: none;">No solves recorded yet. Start your first solve!</div>
-            <div id="solveHistoryList" class="solve-history-list">
-                <!-- Solve items will be dynamically added here -->
+            <!-- Solve History Section -->
+            <div class="solve-history-section w-full md:w-1/2"> <!-- Added w-full, md:w-1/2 -->
+                <h2 class="text-xl font-semibold mb-3">Solve History</h2>
+                <div id="noSolvesMessage" class="text-gray-400 text-center py-4" style="display: none;">No solves recorded yet. Start your first solve!</div>
+                <div id="solveHistoryList" class="solve-history-list">
+                    <!-- Solve items will be dynamically added here -->
+                </div>
             </div>
         </div>
     </div>
@@ -165,14 +168,6 @@
                     <h3 class="text-xl font-semibold mt-4 mb-2">Scramble Analysis:</h3>
                     <p id="scrambleAnalysisText"></p>
                 </div>
-
-                <!-- Removed Optimal Solution Section -->
-                <!--
-                <div id="optimalSolutionDisplay" class="insight-section" style="display: none;">
-                    <h3 class="text-xl font-semibold mt-4 mb-2">Optimal Solution:</h3>
-                    <p id="optimalSolutionText"></p>
-                </div>
-                -->
 
                 <div id="personalizedTipDisplay" class="insight-section" style="display: none;">
                     <h3 class="text-xl font-semibold mt-4 mb-2">Personalized Tip:</h3>
