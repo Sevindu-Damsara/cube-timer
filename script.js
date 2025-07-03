@@ -20,2618 +20,1270 @@ service cloud.firestore {
     // and the 'userId' in the path matches their authenticated UID.
     // This now only applies to explicitly signed-in users.
     match /artifacts/{appId}/users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Public artifacts collection (e.g., app metadata) - allow all reads
+    // No explicit write rule here, as these are assumed to be managed by an admin SDK
+    match /artifacts/{appId}/public/{document=**} {
+      allow read: if true;
+    }
+
+    // Rules for 'solves' subcollection.
+    // Allow users to read/write their own solves.
+    // This structure assumes solves are directly under a user's document
+    // For example: /artifacts/YOUR_APP_ID/users/YOUR_UID/solves/SOLVE_ID
+    match /artifacts/{appId}/users/{userId}/solves/{solveId} {
+      allow read, write: if request.auth.uid == userId;
     }
   }
 }
 */
 // =====================================================================================================
 
-// =====================================================================================================
-// --- IMPORTANT: Firebase Authentication Methods (MUST BE ENABLED IN FIREBASE CONSOLE) ---
-// To allow users to sign in (with email/password, or Google),
-// you MUST enable these sign-in providers in your Firebase project.
-// Go to Firebase Console -> Authentication -> Sign-in method tab.
-// - Ensure 'Email/Password' provider is enabled.
-// - Ensure 'Google' provider is enabled (if you intend to use Google Sign-In).
-// - IMPORTANT: The 'Anonymous' provider is no longer used by this client-side code.
-// =====================================================================================================
-
-
-// =====================================================================================================
-// --- IMPORTANT: Firebase Configuration for Hosting ---
-// REPLACE THE PLACEHOLDER VALUES BELOW WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
-// You can find these in your Firebase project settings -> Project settings -> General -> Your apps -> Firebase SDK snippet (Config).
-// The API key you found: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M" will now be accepted by the validation.
-//
-// NOTE: The geminiApiKey is handled by a serverless function for security.
-// You will need to deploy a Vercel Serverless Function for AI Insight.
-// =====================================================================================================
-const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in e.g., 'rubik-timer-prod-v1'
+// --- Application Configuration (Firebase) ---
+// IMPORTANT: Replace with your actual Firebase project configuration
+// You can find this in your Firebase project settings -> General -> Your apps -> Web app -> Firebase SDK snippet (Config)
+// Or create a new web app if you haven't already.
 const firebaseConfig = {
-    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
+    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // Replace with your Firebase API Key
     authDomain: "ubically-timer.firebaseapp.com",
     projectId: "ubically-timer",
     storageBucket: "ubically-timer.firebaseystorage.app",
     messagingSenderId: "467118524389",
     appId: "1:467118524389:web:d3455f5be5747be2cb910c",
-    measurementId: "G-6033SRP9WC"
+    measurementId: "G-6033SRP9WC" // Optional
 };
-// The URL for your deployed Vercel Serverless Function for AI insights.
-// This will be provided AFTER you deploy the function to Vercel and then updated here.
-const geminiInsightFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-insight";
-// NEW: The URL for your deployed Vercel Serverless Function for Gemini NLU.
-// You will need to deploy api/gemini-nlu.py and update this URL.
-const geminiNluFunctionUrl = "https://cube-timer-ten.vercel.app/api/gemini-nlu"; // <<< IMPORTANT: Update this after deployment!
-// =====================================================================================================
-// --- END IMPORTANT CONFIGURATION ---
-// =====================================================================================================
 
-console.log(`[DEBUG] App ID: ${appId}`);
-// ADDED: Log the actual firebaseConfig object for debugging
-console.log("[DEBUG] firebaseConfig received:", JSON.stringify(firebaseConfig, null, 2));
+// Unique identifier for this application instance within Firestore (used in security rules)
+// If you change this, update your Firestore security rules accordingly.
+const APP_ID = "my-production-speedcube-timer";
+console.log(`[DEBUG] App ID: ${APP_ID}`);
+console.log("[DEBUG] firebaseConfig received:", firebaseConfig);
 
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+let currentUser = null; // Stores the current authenticated user object
+let authInitialized = false; // Flag to ensure auth state is ready before trying to load data
+console.log("[DEBUG] Firebase initialized. Setting up auth state listener.");
 
-let app;
-let db; // Firestore instance
-let auth; // Auth instance
-let userId = null; // Will be Firebase UID or a local UUID for guests
-let isAuthReady = false; // Flag to indicate if Firebase auth state has been determined
-let domElementsReady = false; // New flag to indicate all DOM elements are assigned
-let isUserAuthenticated = false; // NEW: True if user is signed in via Email/Google, false for guests/signed out
-let audioContextResumed = false; // NEW: Flag to track if AudioContext has been resumed by user gesture
+// --- Tone.js (Audio Context Management) ---
+let audioContextStarted = false; // Global flag to track AudioContext state
 
-// --- AudioContext Resume Listener (NEW) ---
-// This listener ensures that Tone.js AudioContext is resumed only after a direct user gesture.
-// It's added to the body and removes itself after the first execution.
-const resumeAudioContextOnFirstGesture = async () => {
-    // Only attempt to resume if the context is suspended and not already resumed by our flag
-    if (!audioContextResumed) {
+// Function to ensure AudioContext starts after a user gesture
+async function startAudioContext() {
+    if (!audioContextStarted) {
         try {
-            // Attempt to resume the underlying AudioContext directly if it's suspended
-            if (Tone.context.state === 'suspended') {
-                await Tone.context.resume();
-                console.log("[DEBUG] Tone.js AudioContext explicitly resumed.");
-            }
-            // Now start Tone.js, which will ensure its internal state is 'running'
+            // Attempt to resume the AudioContext, which should be created implicitly by Tone.js
             await Tone.start();
-            audioContextResumed = true;
-            console.log("[DEBUG] Tone.js AudioContext successfully started/resumed by user gesture.");
+            console.log("[DEBUG] Tone.js AudioContext explicitly resumed.");
+            audioContextStarted = true;
         } catch (e) {
-            console.error("[ERROR] Failed to resume Tone.js AudioContext on user gesture:", e);
+            console.error("[ERROR] Failed to start Tone.js AudioContext:", e);
         }
+    } else {
+        console.log("[DEBUG] Tone.js AudioContext successfully started/resumed by user gesture.");
     }
-    // Remove the listeners after the first interaction to prevent multiple calls
-    document.body.removeEventListener('click', resumeAudioContextOnFirstGesture);
-    document.body.removeEventListener('touchstart', resumeAudioContextOnFirstGesture);
+}
+
+// Attach startAudioContext to a common user interaction event
+// This ensures that the AudioContext is resumed after a user gesture.
+document.addEventListener('click', startAudioContext, { once: true }); // Only call once
+document.addEventListener('keydown', startAudioContext, { once: true }); // Also for keyboard users
+
+// --- Global Variables and DOM Elements ---
+let timerInterval;
+let startTime;
+let running = false;
+let inspectionTime = 15; // 15 seconds inspection time
+let currentInspectionTime;
+let inspectionInterval;
+let penalty = null; // null, 2, or DNF
+let solves = []; // Array to store solve objects
+let scramble = ''; // Current scramble string
+let recognition; // SpeechRecognition object
+let isListeningForVoice = false; // Flag for continuous listening mode
+let awaitingActualCommand = false; // Flag for command mode, true after wake word
+let recognitionStopInitiated = false; // Flag to manage recognition stop/start cycle
+let isStartingRecognition = false; // Flag to prevent multiple start calls
+let domElementsReady = false; // Flag to indicate if DOM elements are ready for manipulation
+
+// DOM elements - assigned in setupEventListeners
+let timerDisplay;
+let scrambleDisplay;
+let scramble3DViewer; // Using cubing.net's twisty player
+let ao5Display, ao12Display, bestTimeDisplay, solveCountDisplay;
+let solveHistoryList;
+let penaltyButtons;
+let signInBtn, signUpBtn, signOutBtn;
+let userEmailDisplay;
+let aiInsightModal, closeAiInsightModal, aiInsightContent, insightMessageDisplay, optimalSolutionDisplay, optimalSolutionText, personalizedTipDisplay, personalizedTipText;
+let settingsModal, closeSettingsModal, openSettingsModal, themeSelect, enableSoundEffectsToggle, enableInspectionToggle, cubeTypeSelect, show3DCubeViewToggle, wakeWordInput, saveSettingsBtn;
+let toastContainer; // For showing toasts
+
+// --- User Settings and Local Storage ---
+let userSettings = {
+    enableInspection: true,
+    enableSoundEffects: true,
+    cubeType: '3x3',
+    theme: 'dark', // 'dark', 'light', 'vibrant'
+    show3DCubeView: true,
+    wakeWord: 'jarvis' // Default wake word
 };
 
-// Attach the one-time listeners
-document.body.addEventListener('click', resumeAudioContextOnFirstGesture);
-document.body.addEventListener('touchstart', resumeAudioContextOnFirstGesture);
-
-
-/**
- * Function to fetch and display username from Firestore for authenticated users,
- * or set to "Guest" for local users.
- */
-async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
-    console.log(`[DEBUG] Entering fetchAndDisplayUsername for UID: ${uid}`);
-    const usernameDisplayElement = document.getElementById('usernameDisplay');
-    if (!usernameDisplayElement) {
-        console.warn("[WARN] fetchAndDisplayUsername: usernameDisplayElement not found. Skipping username display.");
-        return;
-    }
-
-    if (isUserAuthenticated && db && uid) { // Authenticated user, fetch from Firestore
-        const userProfileRef = doc(db, `artifacts/${appId}/users/${uid}/profile/data`);
+// Function to load settings from local storage
+function loadUserSettings() {
+    console.log("[DEBUG] Loading user settings from local storage.");
+    const savedSettings = localStorage.getItem('userSettings');
+    if (savedSettings) {
         try {
-            console.log(`[DEBUG] Attempting to get user profile from Firestore: ${userProfileRef.path}`);
-            const docSnap = await getDoc(userProfileRef);
-            let customUsername = null;
-
-            if (docSnap.exists() && docSnap.data().username) {
-                customUsername = docSnap.data().username;
-                console.log(`[DEBUG] User profile exists. Username: ${customUsername}`);
-            } else {
-                console.log("[DEBUG] User profile not found or no username. Generating default.");
-                let defaultUsername = displayName || (email ? email.split('@')[0] : 'User');
-                await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
-                console.log(`[DEBUG] Default username created and saved: ${defaultUsername}`);
-                customUsername = defaultUsername;
-            }
-            // MODIFIED: Ensure only the username is set, "Current User: " is in HTML
-            usernameDisplayElement.textContent = customUsername;
-            console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
-
+            const parsedSettings = JSON.parse(savedSettings);
+            userSettings = { ...userSettings, ...parsedSettings }; // Merge with defaults
+            console.log("[DEBUG] User settings loaded from local storage:", userSettings);
         } catch (e) {
-            console.error("[ERROR] Error fetching or setting username:", e);
-            // MODIFIED: Ensure only the UID is set for error, "Current User: " is in HTML
-            usernameDisplayElement.textContent = `${uid} (Error fetching username)`;
+            console.error("[ERROR] Failed to parse user settings from local storage:", e);
+            // If corrupted, reset to default or handle gracefully
         }
-    } else { // Guest user (local storage)
-        // MODIFIED: Ensure only 'Guest' is set, "Current User: " is in HTML
-        usernameDisplayElement.textContent = 'Guest';
-        console.log(`[DEBUG] Username display updated to: Guest (Local Mode)`);
     }
-    console.log("[DEBUG] Exiting fetchAndDisplayUsername.");
+}
+
+// Function to save settings to local storage
+function saveUserSettingsToLocalStorage() {
+    console.log("[DEBUG] Saving user settings to local storage.");
+    try {
+        localStorage.setItem('userSettings', JSON.stringify(userSettings));
+        console.log("[DEBUG] User settings saved to local storage.");
+    } catch (e) {
+        console.error("[ERROR] Failed to save user settings to local storage:", e);
+    }
 }
 
 
-// This function attempts to initialize user data and settings (Firestore listener, settings load).
-// It will only proceed if both `domElementsReady` AND `isAuthReady` are true.
-const initializeUserDataAndSettings = async () => {
+// --- Firebase Authentication & Firestore Data Management ---
+
+onAuthStateChanged(auth, async (user) => {
+    console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
+    currentUser = user;
+    authInitialized = true; // Auth state is now known
+
+    updateAuthUI(); // Update UI based on auth state
+
+    // If DOM is ready, initialize user data now. Otherwise, initializeUserDataAndSettings
+    // will be called again by window.onload after DOM is ready.
+    if (domElementsReady) {
+        console.log("[DEBUG] DOM ready. Calling initializeUserDataAndSettings from onAuthStateChanged.");
+        await initializeUserDataAndSettings();
+    } else {
+        console.log("[DEBUG] DOM not yet ready. initializeUserDataAndSettings will be called by window.onload.");
+    }
+});
+
+function updateAuthUI() {
+    if (signInBtn && signUpBtn && signOutBtn && userEmailDisplay) { // Check if elements are assigned
+        if (currentUser) {
+            userEmailDisplay.textContent = `Welcome, ${currentUser.email}`;
+            signInBtn.style.display = 'none';
+            signUpBtn.style.display = 'none';
+            signOutBtn.style.display = 'inline-block';
+        } else {
+            userEmailDisplay.textContent = 'Welcome, Guest';
+            signInBtn.style.display = 'inline-block';
+            signUpBtn.style.display = 'inline-block';
+            signOutBtn.style.display = 'none';
+        }
+        console.log("[DEBUG] Auth UI updated for", currentUser ? "authenticated user" : "guest user");
+    } else {
+        console.warn("[WARN] Auth UI elements not yet available for update.");
+    }
+}
+
+async function initializeUserDataAndSettings() {
     console.log("[DEBUG] initializeUserDataAndSettings called.");
     if (!domElementsReady) {
         console.log("[DEBUG] Deferred initializeUserDataAndSettings: DOM not ready. Waiting.");
-        return;
-    }
-    if (!isAuthReady) {
-        console.log("[DEBUG] Deferred initializeUserDataAndSettings: Auth not ready. Waiting.");
-        return;
+        return; // Defer until DOM is fully loaded and elements assigned
     }
 
-    // NEW: Conditional initialization based on authentication status
-    if (isUserAuthenticated && db && userId) {
-        console.log("[DEBUG] Authenticated user. Proceeding with Firestore data initialization.");
-        // Use a simple attribute flag on an element to prevent duplicate initialization
-        if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized-firestore')) {
-            await loadUserSettings(); // This loads settings and calls applySettingsToUI
-            setupRealtimeSolvesListener(); // This sets up onSnapshot listener
-            solveHistoryList.setAttribute('data-initialized-firestore', 'true'); // Mark as initialized
+    // Load local settings first (always applicable)
+    loadUserSettings();
+    applySettingsToUI(); // Apply settings to UI immediately
+
+    if (currentUser) {
+        console.log("[DEBUG] Authenticated user. Loading data from Firestore.");
+        const userDocRef = doc(db, "artifacts", APP_ID, "users", currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            // Merge Firestore settings with current settings (Firestore takes precedence)
+            userSettings = { ...userSettings, ...(userData.settings || {}) };
+            solves = userData.solves || [];
+            console.log("[DEBUG] User data loaded from Firestore:", userData);
         } else {
-            console.log("[DEBUG] Firestore user data/settings already initialized.");
+            console.log("[DEBUG] User document not found in Firestore. Creating new one.");
+            // Create a new user document with default settings and empty solves
+            await setDoc(userDocRef, {
+                settings: userSettings,
+                solves: []
+            });
+            solves = [];
         }
-    } else { // Guest user (not authenticated via Email/Google)
+        await applySettingsToUI(); // Re-apply settings in case Firestore updated them
+        renderSolveHistory();
+    } else {
         console.log("[DEBUG] Guest user. Proceeding with Local Storage data initialization.");
-        // Use a simple attribute flag on an element to prevent duplicate initialization
-        if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized-local')) {
-            loadLocalUserSettings(); // Load settings from local storage
-            loadLocalSolves();       // Load solves from local storage
-            renderSolveHistory();    // Render local solves
-            solveHistoryList.setAttribute('data-initialized-local', 'true'); // Mark as initialized
-        } else {
-            console.log("[DEBUG] Local user data/settings already initialized.");
-        }
+        // For guest users, load solves from local storage
+        loadSolvesFromLocalStorage();
+        renderSolveHistory();
     }
-    // Ensure timer/scramble are reset/generated regardless of auth state
-    resetTimer();
     console.log("[DEBUG] initializeUserDataAndSettings completed.");
-};
-
-// Helper to check if Firebase config is valid (more robust than just checking for non-empty strings)
-function isFirebaseConfigValid(config) {
-    // This function now only checks for basic presence, letting Firebase SDK handle deeper validity.
-    return config && config.apiKey && config.authDomain && config.projectId;
 }
 
-// --- Firebase Initialization and Auth Listener ---
-// This block runs immediately when the script loads.
-// It sets up Firebase and the authentication listener.
-if (isFirebaseConfigValid(firebaseConfig)) { // Use the robust check here
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-    console.log("[DEBUG] Firebase initialized. Setting up auth state listener.");
-
-    onAuthStateChanged(auth, async (user) => {
-        console.log("[DEBUG] onAuthStateChanged callback triggered. User:", user ? user.uid : "null");
-        if (user && !user.isAnonymous) { // User is explicitly signed in (Email/Google)
-            userId = user.uid;
-            isUserAuthenticated = true; // Set flag
-            isAuthReady = true;
-
-            // Update UI for authenticated user (buttons can be accessed before general app init)
-            const signInBtn = document.getElementById('signInBtn');
-            const signUpBtn = document.getElementById('signUpBtn');
-            const signOutBtn = document.getElementById('signOutBtn');
-            if (signInBtn) signInBtn.style.display = 'none';
-            if (signUpBtn) signUpBtn.style.display = 'none';
-            if (signOutBtn) signOutBtn.style.display = 'inline-block';
-            console.log("[DEBUG] Auth UI updated for signed in user.");
-
-            await fetchAndDisplayUsername(user.uid, user.email, user.displayName);
-            console.log("[DEBUG] Username fetched and displayed.");
-
-            initializeUserDataAndSettings(); // Attempt to initialize user data/settings
-        } else { // User is signed out (including if they were previously anonymous)
-            console.log("[DEBUG] User not authenticated (signed out). Initializing as Guest.");
-            userId = `guest-${crypto.randomUUID()}`; // Use a new local UUID for guest session
-            isUserAuthenticated = false; // Set flag
-            isAuthReady = true;
-
-            // Update UI for guest user
-            const usernameDisplayElement = document.getElementById('usernameDisplay');
-            // MODIFIED: Simplified Guest display
-            if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest';
-            const signInBtn = document.getElementById('signInBtn');
-            const signUpBtn = document.getElementById('signUpBtn');
-            const signOutBtn = document.getElementById('signOutBtn');
-            if (signInBtn) signInBtn.style.display = 'inline-block';
-            if (signUpBtn) signUpBtn.style.display = 'inline-block';
-            if (signOutBtn) signOutBtn.style.display = 'none';
-            console.log("[DEBUG] Auth UI updated for guest user.");
-
-            initializeUserDataAndSettings(); // Attempt to initialize in local storage mode
+async function saveUserData() {
+    if (currentUser) {
+        console.log("[DEBUG] Authenticated user. Saving data to Firestore.");
+        const userDocRef = doc(db, "artifacts", APP_ID, "users", currentUser.uid);
+        try {
+            await updateDoc(userDocRef, {
+                settings: userSettings,
+                solves: solves
+            });
+            console.log("[DEBUG] User data saved to Firestore.");
+            showToast("Settings and solves saved to cloud!", "success");
+        } catch (e) {
+            console.error("[ERROR] Failed to save user data to Firestore:", e);
+            showToast("Failed to save data to cloud.", "error");
         }
-    });
-} else {
-    // Offline/guest mode (Firebase config missing or incomplete)
-    console.warn("[DEBUG] Firebase config missing or incomplete. Running in offline/guest mode without persistent storage (solves will not be saved beyond session).");
-    userId = `guest-${crypto.randomUUID()}`; // Fallback for no Firebase config/validity
-    isUserAuthenticated = false; // Not authenticated
-    isAuthReady = true; // Auth state determined (offline)
-
-    const usernameDisplayElement = document.getElementById('usernameDisplay');
-    // MODIFIED: Simplified Offline Guest display
-    if (usernameDisplayElement) usernameDisplayElement.textContent = 'Guest (Offline Mode)';
-    const signInBtn = document.getElementById('signInBtn');
-    const signUpBtn = document.getElementById('signUpBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
-    if (signInBtn) signInBtn.style.display = 'inline-block';
-    if (signUpBtn) signUpBtn.style.display = 'inline-block';
-    if (signOutBtn) signOutBtn.style.display = 'none';
-    initializeUserDataAndSettings(); // Attempt to initialize in offline mode
+    } else {
+        console.log("[DEBUG] Guest user. Saving settings and solves to local storage.");
+        saveUserSettingsToLocalStorage();
+        saveSolvesToLocalStorage();
+        showToast("Settings and solves saved locally!", "success");
+    }
 }
 
-/**
- * Determines the user's cubing level based on solve time for a 3x3 cube.
- * This is a simple heuristic and can be adjusted.
- * @param {number} solveTimeMs - The solve time in milliseconds.
- * @param {string} cubeType - The type of cube (e.g., '3x3').
- * @returns {string} The estimated level (e.g., "Beginner", "Intermediate", "Advanced", "Expert").
- */
-function getUserLevel(solveTimeMs, cubeType) {
+function loadSolvesFromLocalStorage() {
+    console.log("[DEBUG] Loading solves from local storage.");
+    const savedSolves = localStorage.getItem('solves');
+    if (savedSolves) {
+        try {
+            solves = JSON.parse(savedSolves);
+            console.log(`[DEBUG] Loaded ${solves.length} solves from local storage.`);
+        } catch (e) {
+            console.error("[ERROR] Failed to parse solves from local storage:", e);
+        }
+    }
+}
+
+function saveSolvesToLocalStorage() {
+    console.log("[DEBUG] Saving solves to local storage.");
+    try {
+        localStorage.setItem('solves', JSON.stringify(solves));
+        console.log("[DEBUG] Solves saved to local storage.");
+    } catch (e) {
+        console.error("[ERROR] Failed to save solves to local storage:", e);
+    }
+}
+
+// --- AI Insight Integration ---
+
+async function getAiInsight(solveId, scramble, cubeType, solveTimeMs, penalty) {
+    showAiInsightModal("Generating insight...");
+    insightMessageDisplay.textContent = "Generating insight...";
+    optimalSolutionDisplay.style.display = 'none';
+    personalizedTipDisplay.style.display = 'none';
+    spinner.style.display = 'block'; // Show spinner
+
+    const userLevel = determineUserLevel(cubeType, solveTimeMs);
     console.log(`[DEBUG] Determining user level for ${cubeType} solve time: ${solveTimeMs}ms`);
-    if (cubeType === '3x3') {
-        if (solveTimeMs > 120000) return "Beginner"; // Over 2 minutes (120,000 ms)
-        if (solveTimeMs > 60000) return "Novice";   // 1-2 minutes (60,000 ms)
-        if (solveTimeMs > 30000) return "Intermediate"; // 30-60 seconds (30,000 ms)
-        if (solveTimeMs > 15000) return "Advanced";   // 15-30 seconds (15,000 ms)
-        return "Expert"; // Under 15 seconds
-    }
-    // Add more cube types and their thresholds here if needed
-    return "General Cubist"; // Default for other cube types or if not specified
-}
 
-/**
- * Fetches an AI-generated insight for a specific solve from the Cloud Function.
- * @param {string} solveId - The ID of the solve for which to generate an insight.
- */
-window.getSolveInsight = async function (solveId) {
-    console.log(`[DEBUG] Requesting AI insight for solve ID: ${solveId}`);
-    const solve = solves.find(s => s.id === solveId);
-
-    if (!solve) {
-        if (insightMessageElement) insightMessageElement.textContent = "Error: Solve not found.";
-        if (insightSpinner) insightSpinner.style.display = 'none';
-        if (aiInsightModal) aiInsightModal.classList.add('open');
-        console.error(`[ERROR] Solve with ID ${solveId} not found.`);
-        return;
-    }
-
-    // Display loading state and hide previous content
-    if (insightMessageElement) insightMessageElement.textContent = "Generating insight...";
-    if (insightSpinner) insightSpinner.style.display = 'block';
-    if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
-    if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
-    if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none'; // NEW
-    if (aiInsightModal) {
-        aiInsightModal.classList.add('open');
-        aiInsightModal.focus(); // Focus the modal for accessibility
-    }
-
-    // Determine user level for personalized tip
-    const userLevel = getUserLevel(solve.time, cubeType);
-
-    // Prepare the data to send to the Cloud Function
-    const requestData = {
-        type: "get_insight", // Indicate the type of request
-        scramble: solve.scramble,
+    const payload = {
+        type: "get_insight", // This is just for internal logging/routing if needed by the Cloud Function.
+        scramble: scramble,
         cubeType: cubeType,
-        solveTimeMs: solve.time,
-        penalty: solve.penalty,
+        solveTimeMs: solveTimeMs,
+        penalty: penalty,
         userLevel: userLevel
     };
-
-    // Use the Cloud Function URL
-    const apiUrl = geminiInsightFunctionUrl; // Corrected to use the variable directly
-
-    // Now, this check truly verifies if the URL is set.
-    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
-        if (insightMessageElement) insightMessageElement.textContent = "AI Insight Cloud Function URL not configured. Please ensure your Vercel function is deployed and the URL is correct.";
-        if (insightSpinner) insightSpinner.style.display = 'none';
-        console.error("[ERROR] Gemini Insight Cloud Function URL is not set or is default placeholder.");
-        speakAsJarvis("Sir Sevindu, the AI insight system is currently offline. Please configure the cloud function URL.");
-        return;
-    }
+    console.log("[DEBUG] Making Cloud Function call for insight with data:", payload);
 
     try {
-        console.log("[DEBUG] Making Cloud Function call for insight with data:", requestData);
-        const response = await fetch(apiUrl, {
+        const response = await fetch('/api/gemini-insight', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+            console.error("[ERROR] Cloud Function error:", response.status, errorText);
+            throw new Error(`Server responded with status ${response.status}: ${errorText}`);
         }
 
-        const result = await response.json();
-        console.log("[DEBUG] Cloud Function raw response:", result);
+        const data = await response.json();
+        console.log("[DEBUG] Cloud Function raw response:", data);
 
-        // Display insights
-        if (result.insight && insightMessageElement) {
-            insightMessageElement.textContent = result.insight;
-            insightMessageElement.style.display = 'block';
-        } else {
-            insightMessageElement.textContent = "General insight unavailable.";
-        }
+        // Update modal content
+        insightMessageDisplay.textContent = data.insight || "No general insight provided.";
+        spinner.style.display = 'none'; // Hide spinner
 
-        // NEW: Display Scramble Analysis
-        if (result.scrambleAnalysis && scrambleAnalysisText && scrambleAnalysisDisplay) {
-            scrambleAnalysisText.textContent = result.scrambleAnalysis;
-            scrambleAnalysisDisplay.style.display = 'block';
-        } else {
-            if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none';
-        }
-
-        if (result.optimalSolution && optimalSolutionText && optimalSolutionDisplay) {
-            optimalSolutionText.textContent = result.optimalSolution;
+        if (data.optimalSolution) {
+            optimalSolutionText.textContent = data.optimalSolution;
             optimalSolutionDisplay.style.display = 'block';
         } else {
-            if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
+            optimalSolutionDisplay.style.display = 'none';
         }
 
-        if (result.personalizedTip && personalizedTipText && personalizedTipDisplay) {
-            personalizedTipText.textContent = result.personalizedTip;
+        if (data.personalizedTip) {
+            personalizedTipText.textContent = data.personalizedTip;
             personalizedTipDisplay.style.display = 'block';
-            // We only speak the tip, as the overall Jarvis persona handles the greeting
-            // speakAsJarvis(`Sir Sevindu, my analysis suggests: ${result.personalizedTip}`);
         } else {
-            if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
+            personalizedTipDisplay.style.display = 'none';
         }
 
         console.log("[DEBUG] Cloud Function response received and displayed.");
+        showToast("AI Insight generated!", "success");
 
-    } catch (e) {
-        if (insightMessageElement) insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
-        console.error("[ERROR] Error calling Cloud Function:", e);
-        speakAsJarvis(`Sir Sevindu, I encountered an error while generating insight: ${e.message}`);
+    } catch (error) {
+        console.error("[ERROR] Error fetching AI insight:", error);
+        insightMessageDisplay.textContent = `Failed to generate insight: ${error.message}. Please try again later.`;
+        spinner.style.display = 'none'; // Hide spinner
+        showToast("Failed to generate AI Insight.", "error");
     } finally {
-        if (insightSpinner) insightSpinner.style.display = 'none'; // Hide spinner
         console.log("[DEBUG] AI Insight generation process completed.");
     }
-};
-
-/**
- * Fetches an AI-generated algorithm or explanation for a given query.
- * @param {string} query - The user's query about an algorithm or concept.
- * @returns {Promise<string>} A promise that resolves with the AI's response.
- */
-async function getAlgorithmOrExplanation(query) {
-    console.log(`[DEBUG] Requesting algorithm/explanation for query: "${query}"`);
-
-    const requestData = {
-        type: "get_algorithm", // New type for algorithm requests
-        query: query
-    };
-
-    const apiUrl = geminiInsightFunctionUrl; // Re-using insight function for now, could be a separate endpoint
-
-    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
-        console.error("[ERROR] Gemini Insight Cloud Function URL not configured for algorithm lookup.");
-        return "Sir Sevindu, my knowledge base is currently offline. Please configure the cloud function URL.";
-    }
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log("[DEBUG] Algorithm/Explanation Cloud Function raw response:", result);
-
-        if (result.algorithm || result.explanation) {
-            return result.algorithm || result.explanation;
-        } else {
-            return "Pardon me, Sir Sevindu. I could not find information for that algorithm or concept.";
-        }
-
-    } catch (e) {
-        console.error("[ERROR] Error calling Cloud Function for algorithm/explanation:", e);
-        return `Sir Sevindu, I encountered an error retrieving that information: ${e.message}`;
-    }
 }
 
-
-// --- Timer Variables ---
-let startTime;
-let elapsedTime = 0;
-let timerInterval;
-let isInspecting = false;
-let isTiming = false;
-let inspectionTimeLeft = 15;
-let inspectionCountdownInterval;
-let scramble = '';
-let solves = []; // Array to store solve objects: [{ id: uuid, time: ms, penalty: null|'+2'|'DNF', timestamp: date, scramble: string }]
-let spaceDownTime = 0; // Initialize here, directly in the module scope.
-
-// Declare DOM element variables globally, assign them in window.onload
-let timerDisplay;
-let scrambleTextDisplay; // Renamed
-let cube3DContainer;     // New
-let scramble3DViewer;    // New (now twisty-player)
-let startStopBtn;
-let resetBtn;
-let scrambleBtn;
-let settingsBtn;
-let solveHistoryList;
-let bestTimeDisplay;
-let ao5Display;
-let ao12Display;
-let solveCountDisplay;
-let noSolvesMessage;
-let inspectionToggle;
-let soundEffectsToggle;
-let cubeTypeSelect;
-let themeSelect;
-let cubeViewToggle; // New
-let settingsUsernameInput;
-let saveUsernameBtn;
-let usernameUpdateMessage;
-let aiInsightModal;
-let closeAiInsightModalBtn;
-let aiInsightContentDisplay;
-let insightMessageElement;
-let insightSpinner;
-let scrambleAnalysisDisplay; // NEW
-let scrambleAnalysisText;    // NEW
-let optimalSolutionDisplay; // New
-let optimalSolutionText;    // New
-let personalizedTipDisplay; // New
-let personalizedTipText;    // New
-// New variables for toolbar buttons
-let playPreviewBtn;
-let pausePreviewBtn;
-let restartPreviewBtn;
-// Voice command button
-let voiceCommandBtn; // New
-let voiceFeedbackDisplay; // NEW: Element for voice feedback
-let voiceListeningText;   // NEW: Text inside voice feedback
-let voiceListeningIndicator; // NEW: Indicator dots
-let voiceLiveTranscript; // NEW: Element to show live recognized text
-
-// Chatbox elements
-let chatModal;
-let closeChatModalBtn;
-let chatHistoryDisplay;
-let chatInput;
-let chatSendBtn;
-let openChatBtn;
-
-
-let isListeningForVoice = false; // New state for voice recognition (global continuous listening)
-let awaitingActualCommand = false; // New state: true after wake word, waiting for command
-let commandTimeoutId = null; // To clear timeout for awaitingActualCommand
-let isStartingRecognition = false; // Flag to prevent multiple recognition.start() calls
-let recognitionRestartTimeoutId = null; // To debounce recognition restarts
-let recognitionStopInitiated = false; // NEW: Flag to indicate if recognition.stop() or .abort() was explicitly called by our code
-
-// Added variables for no-speech error tracking
-let noSpeechErrorCount = 0;
-const NO_SPEECH_ERROR_LIMIT = 5;
-const NO_SPEECH_ERROR_TIME_WINDOW_MS = 60000; // 1 minute
-let noSpeechErrorTimestamps = [];
-
-// Web Speech API
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const SpeechSynthesis = window.SpeechSynthesisUtterance;
-const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-const synth = window.speechSynthesis;
-
-/**
- * Updates the visual voice feedback display.
- * @param {string} text - The main text to display (e.g., "Listening for 'Jarvis'...").
- * @param {boolean} showIndicator - Whether to show the bouncing dots indicator.
- * @param {boolean} showDisplay - Whether to show or hide the entire display.
- * @param {boolean} isSpeaking - Whether Jarvis is currently speaking (for speaking animation).
- * @param {string} [liveTranscriptText] - Optional: The live, interim recognized text from the user.
- */
-function updateVoiceFeedbackDisplay(text, showIndicator, showDisplay, isSpeaking = false, liveTranscriptText = '') {
-    if (voiceFeedbackDisplay) {
-        if (showDisplay) {
-            voiceFeedbackDisplay.classList.add('listening-active');
-        } else {
-            voiceFeedbackDisplay.classList.remove('listening-active');
-        }
-
-        // Add/remove 'speaking' class based on isSpeaking flag
-        if (isSpeaking) {
-            voiceFeedbackDisplay.classList.add('speaking');
-        } else {
-            voiceFeedbackDisplay.classList.remove('speaking');
-        }
+function determineUserLevel(cubeType, solveTimeMs) {
+    if (cubeType === '3x3') {
+        const solveTimeSeconds = solveTimeMs / 1000;
+        if (solveTimeSeconds < 10) return 'Expert';
+        if (solveTimeSeconds < 20) return 'Advanced';
+        if (solveTimeSeconds < 40) return 'Intermediate';
+        if (solveTimeSeconds < 90) return 'Beginner';
+        return 'Novice';
     }
-    if (voiceListeningText) {
-        voiceListeningText.textContent = text;
-    }
-    if (voiceListeningIndicator) {
-        voiceListeningIndicator.style.display = showIndicator ? 'flex' : 'none';
-    }
-    // NEW: Update live transcript display
-    if (voiceLiveTranscript) {
-        if (liveTranscriptText) {
-            voiceLiveTranscript.textContent = liveTranscriptText;
-            voiceLiveTranscript.style.display = 'block';
-        } else {
-            voiceLiveTranscript.textContent = '';
-            voiceLiveTranscript.style.display = 'none';
-        }
-    }
+    // Add logic for other cube types if needed
+    return 'General';
 }
 
-/**
- * Attempts to start or restart SpeechRecognition after a delay.
- * Ensures only one start attempt is active at a time to prevent InvalidStateError.
- * This version includes more robust error handling and state management.
- */
-function attemptRestartRecognition() {
-    // Check if no-speech error count exceeded limit within time window
-    const now = Date.now();
-    // Remove timestamps older than time window
-    noSpeechErrorTimestamps = noSpeechErrorTimestamps.filter(ts => now - ts < NO_SPEECH_ERROR_TIME_WINDOW_MS);
-    if (noSpeechErrorTimestamps.length >= NO_SPEECH_ERROR_LIMIT) {
-        console.warn(`[WARN] No-speech error limit reached (${NO_SPEECH_ERROR_LIMIT}) within ${NO_SPEECH_ERROR_TIME_WINDOW_MS / 1000}s. Voice recognition restart paused.`);
-        speakAsJarvis("Voice recognition has been paused due to repeated silence. Please speak or disable voice commands.");
-        if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-        isListeningForVoice = false;
-        updateVoiceFeedbackDisplay("Voice paused (too much silence)", false, true); // Show message
-        setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 5000); // Hide after 5s
-        return; // Do not restart recognition
-    }
+// --- Voice Recognition & NLU (Natural Language Understanding) ---
+if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
 
-    console.log(`[DEBUG] attemptRestartRecognition called. State: isStartingRecognition=${isStartingRecognition}, isListeningForVoice=${isListeningForVoice}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}, recognition.listening=${recognition ? recognition.listening : "N/A"}, recognitionStopInitiated=${recognitionStopInitiated}`);
-    if (!recognition) {
-        console.warn("[WARN] SpeechRecognition API not available, cannot restart.");
-        updateVoiceFeedbackDisplay("Voice commands not supported", false, true);
-        if (voiceCommandBtn) voiceCommandBtn.style.display = 'none'; // Hide button if not supported
-        return;
-    }
-
-    // Clear any pending restart timeout
-    if (recognitionRestartTimeoutId) {
-        clearTimeout(recognitionRestartTimeoutId);
-        recognitionRestartTimeoutId = null;
-        console.log("[DEBUG] Cleared existing recognition restart timeout.");
-    }
-
-    // If we are already trying to start, or it's already listening, or a stop was just initiated, prevent redundant calls.
-    if (isStartingRecognition || recognition.listening || recognitionStopInitiated) {
-        console.log("[DEBUG] Recognition already starting/listening or stop initiated. Aborting redundant restart attempt.");
-        isListeningForVoice = true; // Keep visual consistent
-        if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
-        updateVoiceFeedbackDisplay("Listening...", true, true); // Keep listening indicator active
-        return;
-    }
-
-    isStartingRecognition = true;
-    if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Indicate active state while trying to start
-    updateVoiceFeedbackDisplay("Starting voice input...", true, true); // Show starting message
-
-    // Temporarily clear handlers to prevent re-entry during state transitions
-    recognition.onend = null;
-    recognition.onerror = null;
-    console.log("[DEBUG] Temporarily cleared recognition.onend and .onerror handlers.");
-
-    recognitionRestartTimeoutId = setTimeout(() => {
-        try {
-            // Forcefully abort if it's in a non-idle state before attempting a clean start.
-            // This is crucial for clearing browser-initiated "aborted" states.
-            if (recognition.readyState === 'connecting' || recognition.readyState === 'listening') {
-                console.log(`[DEBUG] Recognition is in a non-idle state (${recognition.readyState}). Forcefully aborting.`);
-                recognition.abort(); // Forcefully stop it
-                recognitionStopInitiated = true; // Mark as programmatic abort
-                // The onend/onerror will then be responsible for calling attemptRestartRecognition again if needed.
-                console.log("[DEBUG] Recognition aborted to clear state. Will re-attempt start via onend/onerror.");
-                isStartingRecognition = false; // Reset, as this attempt was for aborting.
-                recognitionRestartTimeoutId = null;
-                return;
-            } else if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
-                // Only start if it's truly idle or closed.
-                recognition.start();
-                console.log("[DEBUG] SpeechRecognition.start() called after delay and state check.");
-            } else {
-                console.warn(`[WARN] Recognition in unexpected readyState (${recognition.readyState}). Not attempting start.`);
-                updateVoiceFeedbackDisplay("Voice input unavailable", false, true); // Show error
-                setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000); // Hide after 3s
-            }
-
-        } catch (e) {
-            console.error("[ERROR] Failed to start recognition after delay:", e);
-            speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
-            updateVoiceFeedbackDisplay("Error activating voice input", false, true); // Show error
-            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000); // Hide after 3s
-        } finally {
-            isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
-            recognitionRestartTimeoutId = null; // Clear the timeout ID
-            // Re-assign handlers AFTER the start attempt
-            if (recognition) {
-                recognition.onend = recognitionOnEndHandler;
-                recognition.onerror = recognitionOnErrorHandler;
-                console.log("[DEBUG] Re-assigned recognition.onend and .onerror handlers.");
-            }
-        }
-    }, 1000 + Math.random() * 500); // Increased delay with jitter for more stability
-}
-
-// Define handlers separately to reassign them
-const recognitionOnEndHandler = () => {
-    console.log(`[DEBUG] Voice recognition ENDED. recognition object:`, recognition, `State: isListeningForVoice=${isListeningForVoice}, awaitingActualCommand=${awaitingActualCommand}, recognitionStopInitiated=${recognitionStopInitiated}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
-    isListeningForVoice = false; // No longer continuously listening
-    // awaitingActualCommand = false; // This state is now managed by onresult/button click
-    if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-    updateVoiceFeedbackDisplay("", false, false); // Hide feedback display
-
-    if (commandTimeoutId) {
-        console.log("[DEBUG] Clearing command timeout on recognition END.");
-        clearTimeout(commandTimeoutId);
-        commandTimeoutId = null;
-    }
-
-    const wasProgrammaticStop = recognitionStopInitiated; // Capture current state before resetting
-    recognitionStopInitiated = false; // Always reset this flag AFTER onend logic
-
-    // Only attempt restart if it was NOT a programmatic stop (e.g., from button click or after a command)
-    if (!wasProgrammaticStop) {
-        console.log("[DEBUG] recognition.onend: Not a programmatic stop. Attempting controlled restart for continuous listening.");
-        attemptRestartRecognition();
-    } else {
-        console.log("[DEBUG] recognition.onend: Programmatic stop detected. Not restarting from onend.");
-    }
-};
-
-const recognitionOnErrorHandler = (event) => {
-    console.error(`[ERROR] Voice recognition ERROR: ${event.error}. recognition object:`, recognition, `State: isListeningForVoice=${isListeningForVoice}, awaitingActualCommand=${awaitingActualCommand}, recognitionStopInitiated=${recognitionStopInitiated}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
-    isListeningForVoice = false;
-    awaitingActualCommand = false;
-    if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-    updateVoiceFeedbackDisplay("", false, false); // Hide feedback display on error
-
-    if (commandTimeoutId) {
-        console.log("[DEBUG] Clearing command timeout on recognition ERROR.");
-        clearTimeout(commandTimeoutId);
-        commandTimeoutId = null;
-    }
-
-    // Reset flags immediately on error, regardless of type, before deciding on restart
-    isStartingRecognition = false;
-    const wasProgrammaticStop = recognitionStopInitiated; // Capture current state before resetting
-    recognitionStopInitiated = false; // Reset for next cycle
-
-    if (event.error === 'no-speech') {
-        // Track no-speech error timestamps for rate limiting
-        const now = Date.now();
-        noSpeechErrorTimestamps = noSpeechErrorTimestamps.filter(ts => now - ts < NO_SPEECH_ERROR_TIME_WINDOW_MS);
-        noSpeechErrorTimestamps.push(now);
-        console.log(`[DEBUG] recognition.onerror: no-speech error count: ${noSpeechErrorTimestamps.length}`);
-
-        if (noSpeechErrorTimestamps.length >= NO_SPEECH_ERROR_LIMIT) {
-            console.warn(`[WARN] recognition.onerror: No-speech error limit reached (${NO_SPEECH_ERROR_LIMIT}) within ${NO_SPEECH_ERROR_TIME_WINDOW_MS / 1000}s. Voice recognition restart paused.`);
-            speakAsJarvis("Voice recognition has been paused due to repeated silence. Please speak or disable voice commands.");
-            if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-            isListeningForVoice = false;
-            updateVoiceFeedbackDisplay("Voice paused (too much silence)", false, true); // Show message
-            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 5000); // Hide after 5s
-            return; // Do not restart recognition
-        }
-    } else if (event.error === 'aborted') {
-        if (wasProgrammaticStop) {
-            console.log("[DEBUG] recognition.onerror: Expected 'aborted' error due to programmatic stop. No immediate restart from onerror.");
-        } else {
-            console.error("[CRITICAL] recognition.onerror: UNEXPECTED 'aborted' error. Browser initiated stop. Attempting restart with delay.");
-            speakAsJarvis("Sir Sevindu, my voice input system unexpectedly aborted. I am attempting to re-establish connection.");
-            updateVoiceFeedbackDisplay("Voice input aborted. Retrying...", false, true); // Show message
-            if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
-            recognitionRestartTimeoutId = setTimeout(() => {
-                attemptRestartRecognition();
-            }, 2000 + Math.random() * 1000); // Increased delay to 2-3 seconds with jitter
-        }
-    } else { // Handle other errors
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
-            if (voiceCommandBtn) voiceCommandBtn.style.display = 'none';
-            console.warn("[WARN] Microphone access denied. Voice commands permanently disabled.");
-            updateVoiceFeedbackDisplay("Microphone access denied", false, true); // Show message
-        } else if (event.error === 'audio-capture') {
-            speakAsJarvis("Regrettably, Sir Sevindu, there appears to be an issue with audio capture. Please ensure your microphone is connected and working.");
-            updateVoiceFeedbackDisplay("Microphone error", false, true); // Show message
-        } else {
-            speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
-            updateVoiceFeedbackDisplay(`Voice error: ${event.error}`, false, true); // Show message
-        }
-
-        // For any unexpected error (not a permission error), attempt a restart.
-        // If the error is 'no-speech', we still want to try to restart to keep continuous listening.
-        if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
-            console.log("[DEBUG] recognition.onerror: Non-critical/unexpected error. Attempting controlled restart with delay.");
-            if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
-            recognitionRestartTimeoutId = setTimeout(() => {
-                attemptRestartRecognition();
-            }, 1000 + Math.random() * 500); // Delay restart after an error with jitter
-        }
-    }
-};
-
-if (recognition) {
-    recognition.continuous = true; // IMPORTANT: Enable continuous listening for wake word
-    recognition.interimResults = true; // NEW: Enable interim results for live display
-    recognition.lang = 'en-US'; // Set language
-
-    // Assign initial handlers
+    // Event listeners for recognition
     recognition.onstart = () => {
-        console.log("[DEBUG] Voice recognition STARTED. recognition.readyState:", recognition.readyState);
-        isListeningForVoice = true; // System is now listening continuously
-        if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Visual feedback
-        isStartingRecognition = false; // Ensure this is reset once it truly starts
-        recognitionStopInitiated = false; // Reset on successful start
-        // Clear any pending restart timeout, as it has successfully started
-        if (recognitionRestartTimeoutId) {
-            clearTimeout(recognitionRestartTimeoutId);
-            recognitionRestartTimeoutId = null;
-        }
-        // Update voice feedback display
-        updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true, false, ""); // Clear live transcript on start
+        console.log("[DEBUG] Voice recognition ONSTART triggered.");
+        // isListeningForVoice = true; // This is set by startRecognitionAfterDelay
     };
 
     recognition.onresult = (event) => {
         console.log("[DEBUG] Voice recognition ONRESULT triggered. Current awaitingActualCommand:", awaitingActualCommand);
-        // Log full event.results for debugging
-        // console.log("[DEBUG] Full event.results:", event.results); // Too verbose for continuous logging
-
         let interimTranscript = '';
         let finalTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
+                finalTranscript += transcript;
             } else {
-                interimTranscript += event.results[i][0].transcript;
+                interimTranscript += transcript;
             }
         }
 
-        const currentLiveTranscript = finalTranscript || interimTranscript; // Prioritize final if available
-        if (currentLiveTranscript) {
-            // console.log(`[DEBUG] Live Transcript: "${currentLiveTranscript.trim()}"`); // Avoid excessive logging
-            updateVoiceFeedbackDisplay(
-                awaitingActualCommand ? "Command ready..." : "Listening for 'Jarvis'...",
-                true, true, false, currentLiveTranscript.trim()
-            );
-        }
+        // Display interim results somewhere if needed
+        // console.log("Interim:", interimTranscript);
+        // console.log("Final:", finalTranscript);
 
         if (finalTranscript) {
-            console.log(`[DEBUG] Final voice transcript: "${finalTranscript.toLowerCase().trim()}"`);
-
-            // Clear any existing command timeout, as a new final transcript has arrived
-            if (commandTimeoutId) {
-                console.log("[DEBUG] Clearing existing command timeout on new final transcript.");
-                clearTimeout(commandTimeoutId);
-                commandTimeoutId = null;
-            }
-
-            const lowerTranscript = finalTranscript.toLowerCase().trim();
-            const jarvisIndex = lowerTranscript.indexOf('jarvis');
+            console.log("[DEBUG] Final voice transcript:", finalTranscript);
+            // Clear any existing command timeout if a new final transcript comes in
+            clearTimeout(commandTimeout);
+            commandTimeout = null; // Reset the timeout ID
 
             if (awaitingActualCommand) {
-                // If already in command mode, process the whole transcript as a command
                 console.log("[DEBUG] Awaiting command mode is TRUE: Processing final transcript as command.");
-                awaitingActualCommand = false; // Reset after processing
-                processVoiceCommandWithGemini(lowerTranscript);
-            } else if (jarvisIndex !== -1) {
-                // Wake word detected.
-                const commandPart = lowerTranscript.substring(jarvisIndex + 'jarvis'.length).trim();
-                if (commandPart) {
-                    // Command immediately follows wake word in the same utterance
-                    console.log("[DEBUG] Wake word 'Jarvis' detected with immediate command. Processing command.");
-                    speakAsJarvis("At your service, Sir Sevindu. Processing your command.");
-                    processVoiceCommandWithGemini(commandPart);
-                    // No need to enter awaitingActualCommand mode, as command was given immediately
-                } else {
-                    // Only wake word detected, no immediate command. Enter awaitingActualCommand mode.
-                    console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
-                    speakAsJarvis("At your service, Sir Sevindu. Your command?");
-                    updateVoiceFeedbackDisplay("Command ready...", true, true);
-                    awaitingActualCommand = true;
-                    // Set a timeout for the follow-up command
-                    commandTimeoutId = setTimeout(() => {
-                        awaitingActualCommand = false;
-                        speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                        updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true);
-                        console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
-                    }, 10000); // 10 seconds timeout for follow-up command
-                }
+                processVoiceCommandWithGemini(finalTranscript.toLowerCase());
             } else {
-                console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
-                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
+                // Not in command mode, check for wake word
+                const wakeWordDetected = finalTranscript.toLowerCase().includes(userSettings.wakeWord.toLowerCase());
+                if (wakeWordDetected) {
+                    console.log(`[DEBUG] Wake word '${userSettings.wakeWord}' detected. Entering command mode.`);
+                    awaitingActualCommand = true;
+                    speakAsJarvis(`At your service, Sir Sevindu. Your command?`);
+                    // Set a timeout to exit command mode if no command is given
+                    commandTimeout = setTimeout(() => {
+                        if (awaitingActualCommand) { // Only if still in command mode
+                            speakAsJarvis("Sir Sevindu, it appears no command was given. Returning to passive listening.");
+                            awaitingActualCommand = false; // Exit command mode
+                            attemptRestartRecognition(); // Resume continuous listening
+                        }
+                    }, 8000); // 8 seconds to give a command
+                } else {
+                    console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
+                }
             }
         }
     };
 
-    recognition.onend = recognitionOnEndHandler; // Assign the defined handler
-    recognition.onerror = recognitionOnErrorHandler; // Assign the defined handler
+    // MODIFIED: Centralized recognition stop/start logic
+    recognition.onend = (event) => {
+        console.log("[DEBUG] Voice recognition ONEND triggered.");
+        isListeningForVoice = false;
+        isStartingRecognition = false; // Recognition cycle completed
+        if (!recognitionStopInitiated) {
+            // Only restart if it stopped naturally (not by explicit stop() call)
+            console.log("[DEBUG] Recognition ended naturally. Attempting restart.");
+            attemptRestartRecognition(); // Auto-restart continuous listening
+        } else {
+            console.log("[DEBUG] Recognition ended due to explicit stop. Not auto-restarting.");
+            recognitionStopInitiated = false; // Reset flag
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error("[ERROR] Voice recognition ERROR:", event.error, event);
+        isListeningForVoice = false;
+        isStartingRecognition = false; // Recognition cycle completed
+        recognitionStopInitiated = false; // Reset flag on error as well
+
+        if (event.error === 'not-allowed') {
+            speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
+        } else if (event.error === 'no-speech') {
+            if (!awaitingActualCommand) { // If in continuous listening mode
+                console.log("[DEBUG] No speech detected, restarting continuous recognition.");
+            } else {
+                 // If awaiting a command and no speech, indicate non-comprehension
+                console.log("[DEBUG] No speech detected while awaiting command. Resetting command mode.");
+                speakAsJarvis("Pardon me, Sir Sevindu. I did not detect any speech. Please try again.");
+                awaitingActualCommand = false; // Exit command mode
+            }
+        } else if (event.error === 'network') {
+            speakAsJarvis("Pardon me, Sir Sevindu. A network error occurred with voice recognition.");
+        } else if (event.error === 'audio-capture') {
+             speakAsJarvis("Pardon me, Sir Sevindu. I am unable to access the microphone. Please ensure it is connected and enabled.");
+        }
+        // Always try to restart if it was meant to be continuous and not a fatal 'not-allowed' error
+        if (event.error !== 'not-allowed') {
+            attemptRestartRecognition();
+        }
+    };
 
 } else {
-    console.warn("[WARN] Web Speech API not supported in this browser. Voice commands will be disabled.");
-    // If the API is not supported, hide the voice command button.
-    document.addEventListener('DOMContentLoaded', () => {
-        const voiceBtn = document.getElementById('voiceCommandBtn');
-        if (voiceBtn) {
-            voiceBtn.style.display = 'none';
-        }
-        updateVoiceFeedbackDisplay("Voice commands not supported by browser.", false, true);
-    });
+    console.warn("[WARN] Web Speech API not supported, cannot enable voice commands.");
 }
 
-/**
- * Jarvis speaks.
- * @param {string} text - The text for Jarvis to speak.
- */
-function speakAsJarvis(text) {
-    console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
-    addMessageToChat('Jarvis', text, true); // Add Jarvis's response to chatbox
+let commandTimeout; // To store the timeout ID for exiting command mode
 
-    // Prevent overlapping speech
-    if (synth.speaking) {
-        console.log("[DEBUG] Speech synthesis already active, skipping new utterance.");
+// NEW HELPER FUNCTION: Centralized logic to start recognition after state checks
+function startRecognitionAfterDelay() {
+    // If already recognizing, or if a start cycle is in progress, skip.
+    if (recognition.recognizing || isStartingRecognition) {
+        console.warn("[WARN] Recognition is already recognizing or starting, skipping new start attempt.");
+        isStartingRecognition = false; // Ensure flag is reset if stuck
         return;
     }
 
-    // Only attempt to speak if sound effects are enabled AND AudioContext is resumed AND running
-    if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') {
-        // NEW: Stop recognition before speaking
-        if (recognition && recognition.listening) {
-            console.log("[DEBUG] speakAsJarvis: Stopping SpeechRecognition before speaking.");
-            recognitionStopInitiated = true; // Mark as programmatic stop
-            recognition.stop();
+    // Temporarily clear onend/onerror to avoid unexpected behavior during start cycle
+    // These will be re-assigned in recognition.onstart or after successful start.
+    const originalOnEnd = recognition.onend; // Store to potentially restore if needed, though onend is reassigned in start
+    const originalOnError = recognition.onerror;
+    recognition.onend = null;
+    recognition.onerror = null;
+
+    setTimeout(() => {
+        try {
+            recognition.start();
+            isListeningForVoice = true; // Indicate active listening
+            isStartingRecognition = false; // Reset start flag
+            awaitingActualCommand = false; // Ensure not in command mode initially
+            console.log("[DEBUG] Voice recognition STARTED. recognition.readyState:", recognition.readyState);
+            // onstart/onend/onerror handlers are now managed by the main recognition block
+            // and should handle state transitions.
+        } catch (e) {
+            console.error("[ERROR] Failed to start recognition after delay:", e);
+            isStartingRecognition = false; // Reset flag on failure
+            recognitionStopInitiated = false; // Reset flag
+            speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
         }
+    }, 150); // Small delay to ensure previous state is cleared
+}
 
-        const utterance = new SpeechSynthesis(text);
-        const voices = synth.getVoices();
 
-        // Prioritize a male, English voice, preferably "Google UK English Male" for a more formal AI sound
-        utterance.voice = voices.find(voice => voice.name === 'Google UK English Male' && voice.lang === 'en-GB') ||
-                          voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
-                          voices.find(voice => voice.lang === 'en-US') ||
-                          voices[0]; // Fallback to first available voice
+// MODIFIED: attemptRestartRecognition function to robustly manage the lifecycle
+async function attemptRestartRecognition() {
+    if (!recognition) {
+        console.warn("[WARN] SpeechRecognition object not initialized. Cannot attempt restart.");
+        return;
+    }
 
-        utterance.pitch = 1; // Default pitch
-        utterance.rate = 1;  // Default rate
+    if (isStartingRecognition) {
+        console.log("[DEBUG] Skipping attemptRestartRecognition as a cycle is already in progress.");
+        return;
+    }
 
-        // Adjust pitch/rate slightly for a more "AI" feel if a specific voice is found
-        if (utterance.voice && utterance.voice.name === 'Google UK English Male') {
-            utterance.rate = 0.95; // Slightly slower
-            utterance.pitch = 1.05; // Slightly higher pitch
-        } else if (utterance.voice && utterance.voice.name.includes('Google US English')) {
-            utterance.rate = 0.98;
-            utterance.pitch = 1.02;
-        }
+    isStartingRecognition = true; // Set flag to prevent re-entry
 
-        utterance.onstart = () => {
-            console.log("[DEBUG] SpeechSynthesis started.");
-            updateVoiceFeedbackDisplay(text, false, true, true); // Show text, no dots, indicate speaking
-        };
+    console.log("[DEBUG] attemptRestartRecognition called. State: isStartingRecognition=" + isStartingRecognition +
+                ", isListeningForVoice=" + isListeningForVoice +
+                ", recognition.readyState=" + recognition.readyState +
+                ", recognition.listening=" + recognition.listening +
+                ", recognitionStopInitiated=" + recognitionStopInitiated);
 
-        utterance.onend = () => {
-            console.log("[DEBUG] SpeechSynthesis ended.");
-            // After speaking, revert to normal listening state if still active
-            if (isListeningForVoice) { // Check if we *should* be listening continuously
-                console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition.");
-                attemptRestartRecognition(); // Restart recognition
-            } else {
-                updateVoiceFeedbackDisplay("", false, false); // Hide if not listening
-            }
-        };
-
-        utterance.onerror = (event) => {
-            console.error("[ERROR] SpeechSynthesisUtterance error:", event);
-            // Fallback to console log if speech fails
-            console.log(`[DEBUG] Jarvis would speak (SpeechSynthesis error): "${text}"`);
-            updateVoiceFeedbackDisplay("Speech error", false, true);
-            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
-            // Ensure recognition is restarted even on error
-            if (isListeningForVoice) {
-                console.log("[DEBUG] SpeechSynthesis error. Attempting to restart SpeechRecognition.");
-                attemptRestartRecognition();
-            }
-        };
-
-        synth.speak(utterance);
-        console.log(`[DEBUG] Jarvis speaking: "${text}" (Voice: ${utterance.voice ? utterance.voice.name : 'Default'})`);
-
+    if (recognition.recognizing) {
+        console.log("[DEBUG] Recognition is currently active. Stopping before restart.");
+        recognitionStopInitiated = true; // Flag that we initiated the stop
+        recognition.stop(); // This will trigger the 'onend' event, which then calls startRecognitionAfterDelay
     } else {
-        console.log(`[DEBUG] Jarvis would speak (sounds disabled or API not supported or AudioContext not resumed): "${text}"`);
-        // If speech is disabled, still show the text visually for a short period
-        updateVoiceFeedbackDisplay(text, false, true);
-        setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
+        console.log("[DEBUG] Recognition is not active. Attempting to start directly or after a brief pause.");
+        startRecognitionAfterDelay(); // Direct start or schedule start
     }
 }
 
-/**
- * Sends the raw voice transcript to Gemini NLU Cloud Function for interpretation.
- * @param {string} rawTranscript - The raw, unparsed transcript from speech recognition.
- */
-async function processVoiceCommandWithGemini(rawTranscript) {
-    console.log(`[DEBUG] Sending raw transcript to Gemini NLU: "${rawTranscript}"`);
 
-    if (!geminiNluFunctionUrl || geminiNluFunctionUrl === "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL") {
-        speakAsJarvis("Sir Sevindu, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
-        console.error("[ERROR] Gemini NLU Cloud Function URL is not configured.");
-        updateVoiceFeedbackDisplay("NLU not configured", false, true);
-        setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
-        return;
-    }
+// Function to process voice commands using Gemini NLU
+async function processVoiceCommandWithGemini(transcript) {
+    awaitingActualCommand = false; // Exit command mode immediately after receiving command
 
-    // Removed direct speakAsJarvis("Interpreting command...") to rely on visual feedback
-    updateVoiceFeedbackDisplay("Interpreting command...", false, true);
+    // Send transcript to Gemini NLU Cloud Function
+    const payload = { transcript: transcript };
+    console.log("[DEBUG] Sending raw transcript to Gemini NLU:", payload.transcript);
 
     try {
-        const response = await fetch(geminiNluFunctionUrl, {
+        const response = await fetch('/api/gemini-nlu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transcript: rawTranscript })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+            console.error("[ERROR] NLU Cloud Function error:", response.status, errorText);
+            throw new Error(`NLU Server responded with status ${response.status}: ${errorText}`);
         }
 
-        const result = await response.json();
-        console.log("[DEBUG] Gemini NLU response:", result);
+        const data = await response.json();
+        console.log("[DEBUG] Gemini NLU response:", data);
 
-        const canonicalCommand = result.canonicalCommand;
-        const commandValue = result.commandValue; // May be present for settings
-        const nluConfidence = result.confidence; // NEW: NLU confidence score
+        const { canonicalCommand, commandValue, confidence } = data;
 
-        if (canonicalCommand) {
-            // If the command is to get an algorithm or explanation, handle it separately.
-            if (canonicalCommand === 'get_algorithm_or_explanation') {
-                const algorithmResponse = await getAlgorithmOrExplanation(commandValue);
-                speakAsJarvis(algorithmResponse);
-            } else {
-                handleCanonicalCommand(canonicalCommand, commandValue);
-            }
-        } else {
-            speakAsJarvis("Pardon me, Sir Sevindu. I could not determine a clear command from your request.");
-            console.warn("[WARN] Gemini NLU did not return a canonical command.");
-        }
-
-    } catch (e) {
-        speakAsJarvis(`Sir Sevindu, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
-        console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
-        updateVoiceFeedbackDisplay("NLU communication error", false, true);
-    } finally {
-        // After processing command, ensure recognition restarts to listen for wake word
-        // Use the centralized restart function
-        console.log("[DEBUG] processVoiceCommandWithGemini: Initiating controlled recognition restart after command processing.");
-        // updateVoiceFeedbackDisplay("", false, false); // Hide processing message (handled by speakAsJarvis.onend)
-        // No need to call attemptRestartRecognition here, as the continuous listener is always on.
-        // We just need to ensure the UI reverts to wake word listening state.
-        if (isListeningForVoice) { // Only if continuous listening is still active
-            updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
-        } else {
-            updateVoiceFeedbackDisplay("", false, false); // Hide if not listening
-        }
-    }
-}
-
-/**
- * Handles the canonical command received from Gemini NLU.
- * @param {string} canonicalCommand - The simplified, standardized command (e.g., "start_timer").
- * @param {string} [value] - Optional value for commands like setting cube type or theme.
- */
-function handleCanonicalCommand(canonicalCommand, value = null) {
-    console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}" with value: "${value}"`);
-
-    switch (canonicalCommand) {
-        case 'start_timer':
-            if (!isTiming) {
-                speakAsJarvis("Initiating timer sequence, Sir Sevindu.");
-                toggleTimer();
-            } else {
-                // Removed redundant verbal feedback, rely on visual
-                // speakAsJarvis("The timer is already in progress, Sir Sevindu.");
-            }
-            break;
-        case 'stop_timer':
-            if (isTiming) {
-                speakAsJarvis("Timer halted, Sir Sevindu.");
-                toggleTimer(); // This will stop the timer and add solve
-            } else {
-                // Removed redundant verbal feedback, rely on visual
-                // speakAsJarvis("The timer is not currently running, Sir Sevindu.");
-            }
-            break;
-        case 'new_scramble':
-            speakAsJarvis("Generating new scramble, Sir Sevindu.");
-            scramble = generateScramble();
-            resetTimer();
-            break;
-        case 'reset_timer':
-            speakAsJarvis("Timer reset, Sir Sevindu.");
-            resetTimer();
-            break;
-        case 'open_settings':
-            speakAsJarvis("Opening settings, Sir Sevindu.");
-            if (settingsBtn) settingsBtn.click();
-            break;
-        case 'close_settings':
-            speakAsJarvis("Closing settings, Sir Sevindu.");
-            // Check if settings modal is open before attempting to close
-            const settingsModal = document.getElementById('settingsModal');
-            if (settingsModal && settingsModal.classList.contains('open')) {
-                closeSettingsModalBtn.click();
-            } else {
-                // Removed redundant verbal feedback, rely on visual
-                // speakAsJarvis("The settings panel is not currently open, Sir Sevindu.");
-            }
-            break;
-        case 'get_insight':
-            if (solves.length > 0) {
-                speakAsJarvis("Accessing neural network for solve analysis, Sir Sevindu.");
-                getSolveInsight(solves[solves.length - 1].id); // Get insight for the last solve
-            } else {
-                speakAsJarvis("There are no solves recorded to analyze, Sir Sevindu.");
-            }
-            break;
-        // NEW: Voice commands for settings
-        case 'toggle_inspection':
-            enableInspection = !enableInspection;
-            speakAsJarvis(`Inspection mode is now ${enableInspection ? 'enabled' : 'disabled'}, Sir Sevindu.`);
-            saveUserSettings();
-            applySettingsToUI(); // Re-apply to update UI
-            break;
-        case 'toggle_sound_effects':
-            enableSoundEffects = !enableSoundEffects;
-            speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}, Sir Sevindu.`);
-            saveUserSettings();
-            // applySettingsToUI is not strictly needed for this, but consistent
-            break;
-        case 'set_cube_type':
-            const validCubeTypes = ['3x3', '2x2', '4x4', 'pyraminx'];
-            if (value && validCubeTypes.includes(value.toLowerCase())) {
-                cubeType = value.toLowerCase();
-                speakAsJarvis(`Cube type set to ${value}, Sir Sevindu.`);
-                saveUserSettings();
-                applySettingsToUI(); // Re-apply to update scramble, etc.
-                resetTimer(); // Reset timer and generate new scramble for new cube type
-            } else {
-                speakAsJarvis(`Pardon me, Sir Sevindu. I cannot set the cube type to '${value}'. Please choose from 3x3, 2x2, 4x4, or Pyraminx.`);
-            }
-            break;
-        case 'set_theme':
-            const validThemes = ['dark', 'light', 'vibrant'];
-            if (value && validThemes.includes(value.toLowerCase())) {
-                currentTheme = value.toLowerCase();
-                document.body.className = `theme-${currentTheme}`; // Directly apply class
-                speakAsJarvis(`Theme set to ${value}, Sir Sevindu.`);
-                saveUserSettings();
-                applySettingsToUI(); // Re-apply to update 3D cube background if visible
-            } else {
-                speakAsJarvis(`Pardon me, Sir Sevindu. I cannot set the theme to '${value}'. Please choose from Dark, Light, or Vibrant.`);
-            }
-            break;
-        case 'toggle_3d_cube_view':
-            show3DCubeView = !show3DCubeView;
-            speakAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}, Sir Sevindu.`);
-            saveUserSettings();
-            applySettingsToUI(); // Re-apply to toggle visibility
-            break;
-        case 'get_best_time':
-            speakAsJarvis(`Your best recorded time is ${bestTimeDisplay.textContent}, Sir Sevindu.`);
-            break;
-        case 'get_ao5':
-            speakAsJarvis(`Your average of five is ${ao5Display.textContent}, Sir Sevindu.`);
-            break;
-        case 'get_ao12':
-            speakAsJarvis(`Your average of twelve is ${ao12Display.textContent}, Sir Sevindu.`);
-            break;
-        case 'unknown':
-        default:
+        if (confidence < 0.7) { // Set a confidence threshold
             speakAsJarvis("Pardon me, Sir Sevindu. I did not fully comprehend your instruction. Please try again.");
-            break;
-    }
-}
-
-// Sound effects
-// Initialize Tone.js synths. These are global to avoid re-creating them on every play.
-const startSound = new Tone.Synth({
-    oscillator: { type: "triangle" },
-    envelope: {
-        attack: 0.01,
-        decay: 0.1,
-        sustain: 0.1,
-        release: 0.5,
-    }
-}).toDestination();
-console.log("[DEBUG] Tone.js startSound initialized.");
-
-const stopSound = new Tone.MembraneSynth({
-    pitchDecay: 0.05,
-    octaves: 8,
-    envelope: {
-        attack: 0.001,
-        decay: 0.4,
-        sustain: 0.01,
-        release: 0.6,
-    }
-}).toDestination();
-console.log("[DEBUG] Tone.js stopSound initialized.");
-
-const inspectionBeep = new Tone.Synth({
-    oscillator: { type: "square" },
-    envelope: {
-        attack: 0.005,
-        decay: 0.05,
-        sustain: 0.0,
-        release: 0.05,
-    }
-}).toDestination();
-console.log("[DEBUG] Tone.js inspectionBeep initialized.");
-
-// New sound for "Go!"
-const goSound = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: "sine" },
-    envelope: {
-        attack: 0.02,
-        decay: 0.2,
-        sustain: 0.1,
-        release: 0.3,
-    }
-}).toDestination();
-console.log("[DEBUG] Tone.js goSound initialized.");
-
-// Settings variables
-let enableInspection = true;
-let enableSoundEffects = true;
-let cubeType = '3x3';
-let currentTheme = 'dark'; // Default theme
-let show3DCubeView = false; // New: Default to text scramble view
-console.log("[DEBUG] Initial settings variables set.");
-
-// --- Local Storage Functions for Guest Mode ---
-const LOCAL_STORAGE_PREFIX = `${appId}_guest_`;
-
-/**
- * Loads solves from local storage.
- */
-function loadLocalSolves() {
-    console.log("[DEBUG] Loading solves from local storage.");
-    try {
-        const storedSolves = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}solves`);
-        solves = storedSolves ? JSON.parse(storedSolves) : [];
-        // Ensure timestamps are Date objects if needed later, or numbers for sorting
-        solves.forEach(solve => {
-            if (typeof solve.timestamp === 'string') {
-                solve.timestamp = new Date(solve.timestamp).getTime();
-            }
-        });
-        console.log(`[DEBUG] Loaded ${solves.length} solves from local storage.`);
-    } catch (e) {
-        console.error("[ERROR] Error loading solves from local storage:", e);
-        solves = [];
-    }
-}
-
-/**
- * Saves solves to local storage.
- */
-function saveLocalSolves() {
-    console.log("[DEBUG] Saving solves to local storage.");
-    try {
-        localStorage.setItem(`${LOCAL_STORAGE_PREFIX}solves`, JSON.stringify(solves));
-        console.log("[DEBUG] Solves saved to local storage.");
-    } catch (e) {
-        console.error("[ERROR] Error saving solves to local storage:", e);
-    }
-}
-
-/**
- * Loads user settings from local storage.
- */
-function loadLocalUserSettings() {
-    console.log("[DEBUG] Loading user settings from local storage.");
-    try {
-        const storedSettings = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}settings`);
-        if (storedSettings) {
-            const settings = JSON.parse(storedSettings);
-            enableInspection = settings.enableInspection !== undefined ? settings.enableInspection : true;
-            enableSoundEffects = settings.soundEffects !== undefined ? settings.soundEffects : true;
-            cubeType = settings.cubeType || '3x3';
-            currentTheme = settings.theme || 'dark';
-            show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false;
-            console.log("[DEBUG] User settings loaded from local storage:", settings);
-        } else {
-            console.log("[DEBUG] No user settings found in local storage, using defaults.");
-            saveLocalUserSettings(); // Save defaults for next time
+            // Re-enter command mode briefly to allow another attempt
+            awaitingActualCommand = true;
+            commandTimeout = setTimeout(() => {
+                if (awaitingActualCommand) {
+                    speakAsJarvis("Sir Sevindu, it appears no command was given. Returning to passive listening.");
+                    awaitingActualCommand = false;
+                    attemptRestartRecognition();
+                }
+            }, 5000);
+            return;
         }
-    } catch (e) {
-        console.error("[ERROR] Error loading settings from local storage:", e);
+
+        console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}" with value: "${commandValue}"`);
+
+        // Handle recognized commands
+        switch (canonicalCommand) {
+            case 'set_cube_type':
+                if (commandValue) {
+                    userSettings.cubeType = commandValue;
+                    speakAsJarvis(`Cube type set to ${commandValue}, Sir Sevindu.`);
+                    saveUserData(); // Save settings to local storage or Firestore
+                    applySettingsToUI(); // Update UI and regenerate scramble
+                } else {
+                    speakAsJarvis("Pardon me, Sir Sevindu. Please specify the cube type, for example, 'set cube type to three by three'.");
+                }
+                break;
+            case 'analyze_solve':
+                // Assuming the last solve data is available to pass to getAiInsight
+                if (solves.length > 0) {
+                    const lastSolve = solves[solves.length - 1];
+                    speakAsJarvis("Analyzing your last solve, Sir Sevindu.");
+                    getAiInsight(lastSolve.id, lastSolve.scramble, lastSolve.cubeType, lastSolve.time, lastSolve.penalty);
+                } else {
+                    speakAsJarvis("Sir Sevindu, there are no recorded solves to analyze.");
+                }
+                break;
+            case 'toggle_sound_effects':
+                userSettings.enableSoundEffects = !userSettings.enableSoundEffects;
+                speakAsJarvis(`Sound effects are now ${userSettings.enableSoundEffects ? 'enabled' : 'disabled'}, Sir Sevindu.`);
+                saveUserData();
+                applySettingsToUI();
+                break;
+            case 'toggle_inspection':
+                userSettings.enableInspection = !userSettings.enableInspection;
+                speakAsJarvis(`Inspection time is now ${userSettings.enableInspection ? 'enabled' : 'disabled'}, Sir Sevindu.`);
+                saveUserData();
+                applySettingsToUI();
+                break;
+            case 'set_theme':
+                if (commandValue && ['dark', 'light', 'vibrant'].includes(commandValue)) {
+                    userSettings.theme = commandValue;
+                    speakAsJarvis(`Theme set to ${commandValue}, Sir Sevindu.`);
+                    saveUserData();
+                    applySettingsToUI();
+                } else {
+                    speakAsJarvis("Pardon me, Sir Sevindu. Please specify a valid theme: dark, light, or vibrant.");
+                }
+                break;
+            case 'show_history':
+                speakAsJarvis("Displaying solve history, Sir Sevindu.");
+                // Add logic to scroll to or show history section
+                const historySection = document.getElementById('solveHistoryContainer'); // Assuming such an ID exists
+                if (historySection) {
+                    historySection.scrollIntoView({ behavior: 'smooth' });
+                }
+                break;
+            case 'show_stats':
+                speakAsJarvis("Displaying statistics, Sir Sevindu.");
+                // Add logic to scroll to or show statistics section
+                const statsSection = document.getElementById('statisticsContainer'); // Assuming such an ID exists
+                if (statsSection) {
+                    statsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                break;
+            case 'generate_scramble':
+                speakAsJarvis("Generating a new scramble, Sir Sevindu.");
+                scramble = generateScramble();
+                break;
+            // Add more commands as needed
+            case 'unknown':
+            default:
+                speakAsJarvis("Pardon me, Sir Sevindu. I did not fully comprehend your instruction. Please try again.");
+                // Re-enter command mode briefly
+                awaitingActualCommand = true;
+                 commandTimeout = setTimeout(() => {
+                    if (awaitingActualCommand) {
+                        speakAsJarvis("Sir Sevindu, it appears no command was given. Returning to passive listening.");
+                        awaitingActualCommand = false;
+                        attemptRestartRecognition();
+                    }
+                }, 5000);
+                break;
+        }
+    } catch (error) {
+        console.error("[ERROR] Error processing voice command with Gemini NLU:", error);
+        speakAsJarvis("Pardon me, Sir Sevindu. I encountered an error processing your command. Please try again.");
+    } finally {
+        console.log("[DEBUG] processVoiceCommandWithGemini: Initiating controlled recognition restart after command processing.");
+        // This will now be handled by the onend event after Jarvis finishes speaking,
+        // or directly by startRecognitionAfterDelay if speakAsJarvis doesn't speak.
     }
-    applySettingsToUI();
 }
 
-/**
- * Saves current user settings to local storage.
- */
-function saveLocalUserSettings() {
-    console.log("[DEBUG] Saving user settings to local storage.");
-    try {
-        const settingsToSave = {
-            enableInspection: enableInspection,
-            enableSoundEffects: enableSoundEffects,
-            cubeType: cubeType,
-            theme: currentTheme,
-            show3DCubeView: show3DCubeView,
-            lastUpdated: Date.now()
-        };
-        localStorage.setItem(`${LOCAL_STORAGE_PREFIX}settings`, JSON.stringify(settingsToSave));
-        console.log("[DEBUG] User settings saved to local storage.");
-    } catch (e) {
-        console.error("[ERROR] Error saving settings to local storage:", e);
+// Function for Jarvis to speak
+async function speakAsJarvis(text) {
+    if (!('SpeechSynthesisUtterance' in window)) {
+        console.warn("[WARN] Speech Synthesis not supported. Cannot speak as Jarvis.");
+        return;
     }
-}
 
-/**
- * Loads username from local storage.
- */
-function loadLocalUsername() {
-    console.log("[DEBUG] Loading username from local storage.");
-    return localStorage.getItem(`${LOCAL_STORAGE_PREFIX}username`) || 'Guest';
-}
-
-/**
- * Saves username to local storage.
- */
-function saveLocalUsername(username) {
-    console.log("[DEBUG] Saving username to local storage.");
-    localStorage.setItem(`${LOCAL_STORAGE_PREFIX}username`, username);
-}
-
-// --- Utility Functions ---
-
-/**
- * Formats milliseconds into M:SS.mmm string.
- * @param {number} ms - Milliseconds to format.
- * @returns {string} Formatted time string.
- */
-function formatTime(ms) {
-    if (ms === null || isNaN(ms)) {
-        return '--:--.--';
+    // Stop continuous recognition while Jarvis is speaking
+    if (recognition && recognition.recognizing) {
+        recognitionStopInitiated = true; // Flag that we are intentionally stopping recognition
+        recognition.stop();
+        console.log("[DEBUG] Temporarily stopping SpeechRecognition while Jarvis speaks.");
+    } else {
+        console.log("[DEBUG] SpeechRecognition not active, Jarvis can speak without stopping it.");
     }
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    const milliseconds = Math.floor(ms % 1000);
-    const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
-    return formatted;
-}
 
-/**
- * Generates a scramble based on the selected cube type.
- * @returns {string} A new scramble string.
- */
-function generateScramble() {
-    console.log("[DEBUG] Entering generateScramble.");
-    const moves3x3 = ['R', 'L', 'U', 'D', 'F', 'B'];
-    const moves2x2 = ['R', 'U', 'F'];
-    const moves4x4 = ['R', 'L', 'U', 'D', 'F', 'B', 'Rw', 'Uw', 'Fw']; // Simplified for demo
-    const movesPyraminx = ['R', 'L', 'U', 'B']; // Main moves
-    const movesPyraminxTips = ['r', 'l', 'u', 'b']; // Tips moves
-    const suffixes = ['', "'", '2']; // For 3x3, 2x2, 4x4
-    const suffixesPyraminx = ['', "'"]; // For Pyraminx
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-GB'; // British English for Jarvis's accent
+    utterance.pitch = 1.0;
+    utterance.rate = 1.0;
 
-    let scrambleMoves = [];
-    let length = 0;
-    let twistyPlayerPuzzleType = '3x3x3'; // Default for twisty-player
+    // Attempt to find a suitable male voice
+    const voices = speechSynthesis.getVoices();
+    const jarvisVoice = voices.find(voice => voice.name === 'Google UK English Male' && voice.lang === 'en-GB') ||
+                        voices.find(voice => voice.name.includes('English') && voice.name.includes('Male')) ||
+                        voices.find(voice => voice.default && voice.lang.startsWith('en'));
 
-    const getRandomMove = (movesArray, suffixArray) => {
-        const move = movesArray[Math.floor(Math.random() * movesArray.length)];
-        const suffix = suffixArray[Math.floor(Math.random() * suffixArray.length)];
-        return move + suffix;
+    if (jarvisVoice) {
+        utterance.voice = jarvisVoice;
+        console.log(`[DEBUG] Jarvis speaking: "${text}" (Voice: ${jarvisVoice.name})`);
+    } else {
+        console.warn("[WARN] Google UK English Male voice not found, using default voice.");
+        console.log(`[DEBUG] Jarvis speaking: "${text}" (Voice: Default)`);
+    }
+
+    // Ensure the AudioContext is started before speaking
+    await startAudioContext();
+
+    utterance.onend = () => {
+        console.log("[DEBUG] SpeechSynthesis ended.");
+        // Re-enable recognition listening if it was active before Jarvis spoke
+        if (recognition) {
+            console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition.");
+            // If recognition was stopped specifically for speech, its onend will fire,
+            // which should then trigger attemptRestartRecognition.
+            // If it wasn't active, we still want to ensure it restarts if we're in continuous listening mode.
+            attemptRestartRecognition();
+        }
     };
 
-    switch (cubeType) {
-        case '2x2':
-            length = 9 + Math.floor(Math.random() * 3); // 9-11 moves
-            twistyPlayerPuzzleType = '2x2x2';
-            for (let i = 0; i < length; i++) {
-                scrambleMoves.push(getRandomMove(moves2x2, suffixes));
-            }
-            break;
-        case '3x3':
-            length = 20 + Math.floor(Math.random() * 2); // 20-21 moves
-            twistyPlayerPuzzleType = '3x3x3';
-            for (let i = 0; i < length; i++) {
-                scrambleMoves.push(getRandomMove(moves3x3, suffixes));
-            }
-            break;
-        case '4x4': // Corrected 4x4 logic
-            length = 40 + Math.floor(Math.random() * 5); // 40-44 moves
-            twistyPlayerPuzzleType = '4x4x4'; // Correct puzzle type for 4x4
-            for (let i = 0; i < length; i++) {
-                scrambleMoves.push(getRandomMove(moves4x4, suffixes));
-            }
-            break;
-        case 'pyraminx':
-            length = 8 + Math.floor(Math.random() * 3); // 8-10 moves for main
-            twistyPlayerPuzzleType = 'pyraminx'; // twisty-player supports 'pyraminx' puzzle type
-            for (let i = 0; i < length; i++) {
-                scrambleMoves.push(getRandomMove(movesPyraminx, suffixesPyraminx));
-            }
-            // Add tip moves (usually 0-4 tip moves)
-            for (let i = 0; i < Math.floor(Math.random() * 5); i++) {
-                scrambleMoves.push(getRandomMove(movesPyraminxTips, suffixesPyraminx));
-            }
-            break;
-        default:
-            // Fallback to 3x3 if something unexpected
-            length = 20;
-            twistyPlayerPuzzleType = '3x3x3';
-            for (let i = 0; i < length; i++) {
-                scrambleMoves.push(getRandomMove(moves3x3, suffixes));
-            }
-    }
-    const generated = scrambleMoves.join(' ');
-    console.log(`[DEBUG] generateScramble: Generated for ${cubeType}: ${generated}`);
-
-    // Update both displays regardless of current view setting
-    if (scrambleTextDisplay) { // Defensive check
-        scrambleTextDisplay.textContent = generated;
-    }
-    if (scramble3DViewer) { // Ensure the element is available
-        // Always set puzzle type explicitly.
-        scramble3DViewer.puzzle = twistyPlayerPuzzleType;
-        // Set algorithm after a very short delay if puzzle type is pyraminx
-        // to give the component a moment to fully reconfigure its parser.
-        // This specifically targets the "Invalid suffix" error that seems specific to Pyraminx
-        // due to timing sensitivities with twisty-player's internal parsing.
-        if (cubeType === 'pyraminx') {
-            // Clear alg first to ensure a fresh parse.
-            scramble3DViewer.alg = '';
-            setTimeout(() => {
-                scramble3DViewer.alg = generated;
-                console.log(`[DEBUG] 3D Viewer (Pyraminx, delayed) updated with alg: ${generated}`);
-            }, 50); // A small delay (50ms) to ensure internal parser is ready.
-        } else {
-            scramble3DViewer.alg = generated;
-            console.log(`[DEBUG] 3D Viewer updated with alg: ${generated} and puzzle: ${twistyPlayerPuzzleType}`);
+    utterance.onerror = (event) => {
+        console.error("[ERROR] Speech synthesis error:", event.error);
+        if (recognition) {
+            console.log("[DEBUG] SpeechSynthesis error. Attempting to restart SpeechRecognition.");
+            attemptRestartRecognition();
         }
-    } else {
-        console.warn("[WARN] scramble3DViewer is not yet available during generateScramble. This is expected on initial load if 3D view is off.");
-    }
-    return generated;
+    };
+
+    speechSynthesis.speak(utterance);
+    console.log("[DEBUG] SpeechSynthesis started.");
 }
 
-/**
- * Calculates the average of the last N solves, dropping the best and worst times.
- * @param {Array<Object>} solveList - Array of solve objects.
- * @param {number} n - Number of solves to consider (e.g., 5 for Ao5, 12 for Ao12).
- * @returns {string} Formatted average time or '--:--.--'.
- */
-function calculateAverage(solveList, n) {
-    console.log(`[DEBUG] Entering calculateAverage for N=${n} with ${solveList.length} solves.`);
-    if (solveList.length < n) {
-        console.log(`[DEBUG] calculateAverage: Not enough solves ( ${solveList.length} < ${n}). Returning '--:--.--'.`);
-        return '--:--.--';
-    }
 
-    // Get the last N solves
-    const lastNSolves = solveList.slice(-n);
-    console.log(`[DEBUG] calculateAverage: Last ${n} solves:`, lastNSolves.map(s => `${s.time}ms (penalty: ${s.penalty})`));
+// --- Timer Logic ---
+function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = ms % 1000;
 
-    // Filter out DNFs and apply +2 penalties for calculations
-    let timesForAvg = [];
-    let hasDNF = false;
-    lastNSolves.forEach(solve => {
-        if (solve.penalty === 'DNF') {
-            hasDNF = true;
-            console.log("[DEBUG] calculateAverage: DNF found.");
-        } else if (solve.penalty === '+2') {
-            timesForAvg.push(solve.time + 2000);
-            console.log(`[DEBUG] calculateAverage: Added +2 penalty to ${solve.time}ms.`);
-        } else {
-            timesForAvg.push(solve.time);
-        }
-    });
-
-    // If there's a DNF, the average is DNF
-    if (hasDNF) {
-        console.log("[DEBUG] calculateAverage: Returning 'DNF' due to DNF in list.");
-        return 'DNF';
-    }
-
-    // Sort times to drop best and worst
-    timesForAvg.sort((a, b) => a - b);
-    console.log("[DEBUG] calculateAverage: Times sorted:", timesForAvg);
-
-    // Drop best and worst if timesForAvg.length allows (e.g., for Ao5, drop 1st and last from 5)
-    if (timesForAvg.length > 2) {
-        timesForAvg = timesForAvg.slice(1, -1);
-        console.log("[DEBUG] calculateAverage: Dropped best/worst. Remaining times:", timesForAvg);
-    } else {
-        console.log("[DEBUG] calculateAverage: Not enough times to drop best/worst after filtering or N is too small.");
-    }
-
-
-    if (timesForAvg.length === 0) {
-        console.log("[DEBUG] calculateAverage: No valid times for average. Returning '--:--.--'.");
-        return '--:--.--';
-    }
-
-    const sum = timesForAvg.reduce((acc, time) => acc + time, 0);
-    const avg = sum / timesForAvg.length;
-    const formattedAvg = formatTime(avg);
-    console.log(`[DEBUG] calculateAverage: Sum: ${sum}, Count: ${timesForAvg.length}, Avg: ${avg}ms, Formatted: ${formattedAvg}`);
-    return formattedAvg;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
 }
 
-/**
- * Renders the solve history list and updates statistics.
- */
+function startTimer() {
+    if (userSettings.enableSoundEffects) goSound.start();
+    running = true;
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+        const elapsedTime = Date.now() - startTime;
+        timerDisplay.textContent = formatTime(elapsedTime);
+    }, 10);
+    scramble3DViewer.setAttribute('visualization', 'none'); // Hide 3D cube during solve
+}
+
+function stopTimer() {
+    if (userSettings.enableSoundEffects) stopSound.start();
+    running = false;
+    clearInterval(timerInterval);
+    clearInterval(inspectionInterval); // Clear inspection interval if it's running
+    const solveTime = Date.now() - startTime;
+
+    let finalTime = solveTime;
+    let effectivePenalty = null;
+
+    if (penalty === 2) {
+        finalTime += 2000; // Add 2 seconds for +2 penalty
+        effectivePenalty = "+2";
+    } else if (penalty === 'DNF') {
+        finalTime = 'DNF';
+        effectivePenalty = "DNF";
+    }
+
+    const newSolve = {
+        id: crypto.randomUUID(), // Generate a unique ID for the solve
+        timestamp: new Date().toISOString(),
+        scramble: scramble,
+        time: solveTime, // Store raw time for calculation
+        formattedTime: finalTime === 'DNF' ? 'DNF' : formatTime(finalTime), // Store DNF or formatted time
+        penalty: effectivePenalty,
+        cubeType: userSettings.cubeType // Store cube type with the solve
+    };
+    solves.push(newSolve);
+    saveUserData(); // Save to Firestore or local storage
+    renderSolveHistory();
+    scramble = generateScramble(); // Generate new scramble for next solve
+    resetTimer(); // Reset timer display
+    penalty = null; // Reset penalty after solve
+    hidePenaltyButtons(); // Hide penalty buttons after solve
+    showToast("Solve recorded!", "success");
+
+    // Automatically show AI Insight after a solve
+    getAiInsight(newSolve.id, newSolve.scramble, newSolve.cubeType, newSolve.time, newSolve.penalty);
+}
+
+function startInspection() {
+    if (userSettings.enableSoundEffects) inspectionBeep.start();
+    currentInspectionTime = inspectionTime; // Start from 15 seconds
+    timerDisplay.textContent = `+${currentInspectionTime}`;
+    inspectionInterval = setInterval(() => {
+        currentInspectionTime--;
+        if (currentInspectionTime >= 0) {
+            timerDisplay.textContent = `+${currentInspectionTime}`;
+            if (currentInspectionTime <= 5 && currentInspectionTime > 0 && userSettings.enableSoundEffects) {
+                // Play warning sound (e.g., a beep) for last 5 seconds
+                // Tone.js.Sampler or simple oscillator could be used
+                // For now, let's just make sure inspectionBeep is defined and called.
+                // Assuming inspectionBeep is defined globally and plays a single beep.
+                inspectionBeep.start();
+            }
+        } else {
+            // After 0, start actual timer with +2 penalty
+            clearInterval(inspectionInterval);
+            penalty = 2; // Auto +2 penalty
+            startTimer();
+            showToast("+2 penalty applied!", "warning");
+        }
+    }, 1000);
+}
+
+function resetTimer() {
+    clearInterval(timerInterval);
+    clearInterval(inspectionInterval);
+    running = false;
+    startTime = null;
+    timerDisplay.textContent = "00:00.000";
+    penalty = null;
+    hidePenaltyButtons(); // Ensure penalty buttons are hidden
+    // Reset 3D viewer to show scramble
+    if (userSettings.show3DCubeView) {
+        scramble3DViewer.setAttribute('visualization', userSettings.cubeType);
+        scramble3DViewer.setAttribute('alg', scramble);
+    } else {
+        scramble3DViewer.setAttribute('visualization', 'none');
+    }
+}
+
+// --- Scramble Generation ---
+function generateScramble() {
+    let newScramble;
+    const cubeType = userSettings.cubeType;
+    if (cubeType === '2x2') {
+        newScramble = generate2x2Scramble();
+    } else if (cubeType === '3x3') {
+        newScramble = generate3x3Scramble();
+    } else if (cubeType === '4x4') {
+        newScramble = generate4x4Scramble();
+    } else {
+        // Default to 3x3 if unknown type
+        newScramble = generate3x3Scramble();
+    }
+    scrambleDisplay.textContent = newScramble;
+    console.log(`[DEBUG] generateScramble: Generated for ${cubeType}: ${newScramble}`);
+    update3DViewer(newScramble, cubeType);
+    return newScramble;
+}
+
+function generate3x3Scramble() {
+    const moves = ["R", "L", "F", "B", "U", "D"];
+    const suffixes = ["", "'", "2"];
+    let scramble = [];
+    let lastMoveAxis = -1; // 0 for R/L, 1 for F/B, 2 for U/D
+
+    for (let i = 0; i < 20; i++) { // 20-move scramble
+        let moveIndex;
+        let currentMoveAxis;
+
+        do {
+            moveIndex = Math.floor(Math.random() * moves.length);
+            currentMoveAxis = Math.floor(moveIndex / 2); // 0: R/L, 1: F/B, 2: U/D
+        } while (currentMoveAxis === lastMoveAxis); // Prevent moves from the same axis consecutively
+
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+        scramble.push(moves[moveIndex] + suffix);
+        lastMoveAxis = currentMoveAxis;
+    }
+    return scramble.join(" ");
+}
+
+function generate2x2Scramble() {
+    const moves = ["R", "U", "F"]; // Common moves for 2x2
+    const suffixes = ["", "'", "2"];
+    let scramble = [];
+    for (let i = 0; i < 9; i++) { // Shorter scramble for 2x2
+        const move = moves[Math.floor(Math.random() * moves.length)];
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+        scramble.push(move + suffix);
+    }
+    return scramble.join(" ");
+}
+
+function generate4x4Scramble() {
+    const moves = ["R", "L", "F", "B", "U", "D", "r", "u", "f"]; // Wide moves for 4x4
+    const suffixes = ["", "'", "2"];
+    let scramble = [];
+    for (let i = 0; i < 40; i++) { // Longer scramble for 4x4
+        const move = moves[Math.floor(Math.random() * moves.length)];
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+        scramble.push(move + suffix);
+    }
+    return scramble.join(" ");
+}
+
+
+function update3DViewer(alg, puzzle) {
+    if (scramble3DViewer && userSettings.show3DCubeView) {
+        scramble3DViewer.setAttribute('alg', alg);
+        scramble3DViewer.setAttribute('puzzle', puzzle === '3x3' ? '3x3x3' : puzzle === '2x2' ? '2x2x2' : '3x3x3'); // Default to 3x3x3
+        scramble3DViewer.setAttribute('visualization', puzzle === 'none' ? 'none' : puzzle); // Ensure visualization is 'none' if needed
+        console.log(`[DEBUG] 3D Viewer updated with alg: ${alg} and puzzle: ${puzzle}`);
+    } else if (scramble3DViewer) {
+        scramble3DViewer.setAttribute('visualization', 'none'); // Hide if setting is off
+    }
+}
+
+
+// --- Solve History and Statistics ---
 function renderSolveHistory() {
-    console.log("[DEBUG] Entering renderSolveHistory.");
-    // Ensure solveHistoryList is defined before accessing its properties
     if (!solveHistoryList) {
-        console.warn("[WARN] renderSolveHistory called before solveHistoryList is initialized. Skipping render.");
-        return; // Exit if DOM element is not ready
-    }
-
-    solveHistoryList.innerHTML = '';
-    if (solves.length === 0) {
-        if (noSolvesMessage) noSolvesMessage.style.display = 'block';
-        if (bestTimeDisplay) bestTimeDisplay.textContent = '--:--.--';
-        if (ao5Display) ao5Display.textContent = '--:--.--';
-        if (ao12Display) ao12Display.textContent = '--:--.--';
-        if (solveCountDisplay) solveCountDisplay.textContent = '0';
-        console.log("[DEBUG] renderSolveHistory: No solves, displaying empty stats.");
+        console.warn("[WARN] solveHistoryList not defined. Skipping renderSolveHistory.");
         return;
-    } else {
-        if (noSolvesMessage) noSolvesMessage.style.display = 'none';
     }
+    console.log("[DEBUG] Entering renderSolveHistory.");
+    solveHistoryList.innerHTML = ''; // Clear existing list
+    const sortedSolves = [...solves].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Newest first
 
-    // Sort solves by timestamp (descending) for display
-    const sortedSolves = [...solves].sort((a, b) => b.timestamp - a.timestamp);
     console.log(`[DEBUG] renderSolveHistory: Rendering ${sortedSolves.length} sorted solves.`);
 
     sortedSolves.forEach(solve => {
-        const solveItem = document.createElement('div');
-        solveItem.className = 'solve-history-item';
-        solveItem.setAttribute('data-id', solve.id);
-
-        let displayTime = solve.time;
-        let penaltyText = '';
-        if (solve.penalty === '+2') {
-            displayTime += 2000;
-            penaltyText = ' (+2)';
-        } else if (solve.penalty === 'DNF') {
-            displayTime = 'DNF';
-            penaltyText = ' (DNF)';
-        }
-
-        solveItem.innerHTML = `
-            <div class="time">${displayTime === 'DNF' ? 'DNF' : formatTime(displayTime)}<span class="text-sm text-gray-400 ml-2">${penaltyText}</span></div>
-            <div class="penalty-buttons">
-                <button class="insight-button button-secondary" onclick="getSolveInsight('${solve.id}')">Get Insight ✨</button>
-                <button class="plus2 button-secondary" onclick="applyPenalty('${solve.id}', '+2')">+2</button>
-                <button class="button-secondary" onclick="applyPenalty('${solve.id}', 'DNF')">DNF</button>
-                <button class="clear-penalty button-secondary" onclick="applyPenalty('${solve.id}', null)">Clear</button>
-                <button class="delete button-secondary" onclick="deleteSolve('${solve.id}')">Delete</button>
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center bg-gray-700 p-2 rounded-lg mb-2 text-sm';
+        li.innerHTML = `
+            <span>${solve.formattedTime} (${solve.cubeType}${solve.penalty ? `, ${solve.penalty}` : ''})</span>
+            <div class="flex space-x-2">
+                <button class="text-blue-400 hover:text-blue-300" onclick="copyToClipboard('${solve.scramble}')" aria-label="Copy scramble"><i class="fas fa-copy"></i></button>
+                <button class="text-purple-400 hover:text-purple-300" onclick="getAiInsight('${solve.id}', '${solve.scramble}', '${solve.cubeType}', ${solve.time}, '${solve.penalty}')" aria-label="Get AI Insight"><i class="fas fa-brain"></i></button>
+                <button class="text-red-400 hover:text-red-300" onclick="deleteSolve('${solve.id}')" aria-label="Delete solve"><i class="fas fa-trash"></i></button>
             </div>
         `;
-        solveHistoryList.appendChild(solveItem);
-        // console.log(`[DEBUG] renderSolveHistory: Appended solve item for ID: ${solve.id}`);
+        solveHistoryList.appendChild(li);
     });
-
     updateStatistics();
     console.log("[DEBUG] Exiting renderSolveHistory. Statistics updated.");
 }
 
-/**
- * Updates the best time, Ao5, Ao12, and solve count displays.
- */
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Scramble copied to clipboard!", "info");
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+        showToast("Failed to copy scramble.", "error");
+    });
+}
+
+function deleteSolve(id) {
+    solves = solves.filter(solve => solve.id !== id);
+    saveUserData(); // Save updated solves
+    renderSolveHistory(); // Re-render history
+    showToast("Solve deleted!", "info");
+}
+
 function updateStatistics() {
-    console.log("[DEBUG] Entering updateStatistics.");
-    // Ensure elements are defined
     if (!bestTimeDisplay || !ao5Display || !ao12Display || !solveCountDisplay) {
-        console.warn("[WARN] updateStatistics called before all display elements are initialized. Skipping update.");
+        console.warn("[WARN] Statistics display elements not defined. Skipping updateStatistics.");
         return;
     }
+    console.log("[DEBUG] Entering updateStatistics.");
+    const validSolves = solves.filter(solve => solve.formattedTime !== 'DNF');
 
-    const validSolves = solves.filter(s => s.penalty !== 'DNF');
-    let actualTimes = validSolves.map(s => s.time + (s.penalty === '+2' ? 2000 : 0));
+    // Best Time
+    const bestTime = validSolves.reduce((min, solve) => Math.min(min, solve.time), Infinity);
+    bestTimeDisplay.textContent = bestTime === Infinity ? '--:--.--' : formatTime(bestTime);
+    console.log(`[DEBUG] Statistics: Best Time: ${bestTimeDisplay.textContent}`);
 
-    const best = actualTimes.length > 0 ? Math.min(...actualTimes) : null;
-    bestTimeDisplay.textContent = formatTime(best);
-    console.log(`[DEBUG] Statistics: Best Time: ${formatTime(best)}`);
-
-    ao5Display.textContent = calculateAverage(solves, 5);
+    // Average of 5 (Ao5)
+    ao5Display.textContent = calculateAverage(5, validSolves);
     console.log(`[DEBUG] Statistics: Ao5: ${ao5Display.textContent}`);
-    ao12Display.textContent = calculateAverage(solves, 12);
+
+    // Average of 12 (Ao12)
+    ao12Display.textContent = calculateAverage(12, validSolves);
     console.log(`[DEBUG] Statistics: Ao12: ${ao12Display.textContent}`);
+
+    // Solve Count
     solveCountDisplay.textContent = solves.length;
-    console.log("[DEBUG] Statistics: Solve Count: ${solves.length}");
+    console.log(`[DEBUG] Statistics: Solve Count: ${solves.length}`);
+
     console.log("[DEBUG] Exiting updateStatistics.");
 }
 
-/**
- * Adds a new solve to the history.
- * Uses Firestore for authenticated users, Local Storage for guests.
- * @param {number} time - The solve time in milliseconds.
- */
-async function addSolve(time) {
-    console.log(`[DEBUG] Entering addSolve with time: ${time}ms.`);
-    const newSolve = {
-        id: crypto.randomUUID(), // Always generate a local ID for consistency
-        time: time,
-        penalty: null,
-        timestamp: Date.now(),
-        scramble: scramble, // Store the scramble with the solve
-    };
-
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        console.log("[DEBUG] addSolve: Authenticated and Firestore ready. Attempting to add to Firestore.");
-        try {
-            const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
-            // Firestore will generate its own ID, so we remove the local 'id' for addDoc
-            const { id, ...solveDataToSave } = newSolve;
-            const docRef = await addDoc(solvesCollectionRef, solveDataToSave);
-            console.log("[DEBUG] Document written to Firestore with ID: ", docRef.id);
-            // The onSnapshot listener will update the 'solves' array and re-render
-        } catch (e) {
-            console.error("[ERROR] Error adding document to Firestore: ", e);
-            // Fallback to local array if Firestore fails, but won't persist across sessions
-            solves.push(newSolve); // Use the locally generated ID
-            saveLocalSolves(); // Save locally for current session
-            renderSolveHistory();
-            console.log("[DEBUG] addSolve: Firestore failed, added to local array (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] addSolve: Guest user. Adding to local array and saving to local storage.");
-        solves.push(newSolve);
-        saveLocalSolves(); // Save to local storage for guest
-        renderSolveHistory();
-    }
-    console.log("[DEBUG] Exiting addSolve.");
-
-    // Automatically trigger AI insight after a solve
-    // Check if AI Insight function URL is configured before calling
-    // This is the correct constant to check, not a hardcoded string
-    if (geminiInsightFunctionUrl) {
-        speakAsJarvis("Your solve is complete, Sir Sevindu. Analyzing your performance.");
-        // Use the latest solve (which is the newSolve just added)
-        getSolveInsight(newSolve.id);
-    } else {
-        console.warn("[WARN] Gemini Insight function URL not configured, skipping automatic insight generation.");
-    }
-}
-
-/**
- * Applies or clears a penalty for a given solve.
- * Uses Firestore for authenticated users, Local Storage for guests.
- * @param {string} id - The ID of the solve to update.
- * @param {string|null} penaltyType - '+2', 'DNF', or null to clear.
- */
-window.applyPenalty = async function (id, penaltyType) {
-    console.log(`[DEBUG] Entering applyPenalty for ID: ${id}, Penalty: ${penaltyType}`);
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
-        try {
-            console.log(`[DEBUG] applyPenalty: Attempting to update doc in Firestore: ${solveRef.path}`);
-            await updateDoc(solveRef, { penalty: penaltyType });
-            console.log(`[DEBUG] Penalty ${penaltyType} applied to solve ${id} in Firestore.`);
-        } catch (e) {
-            console.error("[ERROR] Error updating penalty in Firestore: ", e);
-            // Fallback to local update if Firestore fails
-            const solveIndex = solves.findIndex(s => s.id === id);
-            if (solveIndex !== -1) {
-                solves[solveIndex].penalty = penaltyType;
-                saveLocalSolves(); // Save locally for current session
-                renderSolveHistory(); // Re-render local changes
-                console.log("[DEBUG] applyPenalty: Firestore failed, applied locally (non-persistent).");
-            } else {
-                console.log("[DEBUG] applyPenalty: Solve not found in local array.");
-            }
-        }
-    } else { // Guest user
-        console.log("[DEBUG] applyPenalty: Guest user. Applying penalty to local array and saving to local storage.");
-        const solveIndex = solves.findIndex(s => s.id === id);
-        if (solveIndex !== -1) {
-            solves[solveIndex].penalty = penaltyType;
-            saveLocalSolves(); // Save locally for guest
-            renderSolveHistory(); // Re-render local changes
-        } else {
-            console.log("[DEBUG] applyPenalty: Solve not found in local array.");
-        }
-    }
-    console.log("[DEBUG] Exiting applyPenalty.");
-};
-
-/**
- * Deletes a solve from the history.
- * Uses Firestore for authenticated users, Local Storage for guests.
- * @param {string} id - The ID of the solve to delete.
- */
-window.deleteSolve = async function (id) {
-    console.log(`[DEBUG] Entering deleteSolve for ID: ${id}`);
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
-        try {
-            console.log(`[DEBUG] deleteSolve: Attempting to delete doc from Firestore: ${solveRef.path}`);
-            await deleteDoc(solveRef);
-            console.log(`[DEBUG] Solve ${id} deleted from Firestore.`);
-        } catch (e) {
-            console.error("[ERROR] Error deleting solve from Firestore: ", e);
-            // Fallback to local delete if Firestore fails
-            solves = solves.filter(s => s.id !== id);
-            saveLocalSolves(); // Save locally for current session
-            renderSolveHistory(); // Re-render local changes
-            console.log("[DEBUG] deleteSolve: Firestore failed, deleted locally (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] deleteSolve: Guest user. Deleting from local array and saving to local storage.");
-        solves = solves.filter(s => s.id !== id);
-        saveLocalSolves(); // Save locally for guest
-        renderSolveHistory();
-    }
-    console.log("[DEBUG] Exiting deleteSolve.");
-};
-
-/**
- * Sets up the real-time listener for user's solves from Firestore.
- * This function is only called for authenticated users.
- */
-function setupRealtimeSolvesListener() {
-    console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
-    // Ensure DOM elements are initialized before proceeding
-    if (!solveHistoryList) {
-        console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Skipping setup.");
-        return;
+function calculateAverage(n, validSolves) {
+    console.log(`[DEBUG] Entering calculateAverage for N=${n} with ${validSolves.length} solves.`);
+    if (validSolves.length < n) {
+        console.log(`[DEBUG] calculateAverage: Not enough solves ( ${validSolves.length} < ${n}). Returning '--:--.--'.`);
+        return '--:--.--';
     }
 
-    if (isUserAuthenticated && db && userId) { // Only set up for authenticated users
-        console.log("[DEBUG] setupRealtimeSolvesListener: Authenticated and Firestore ready. Setting up onSnapshot.");
-        const solvesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/solves`);
-        // Note: orderBy is commented out due to potential index issues,
-        // and data will be sorted in JavaScript.
-        const q = query(solvesCollectionRef /*, orderBy('timestamp', 'desc')*/);
+    const lastNSolves = validSolves.slice(-n); // Get the last N solves
+    const times = lastNSolves.map(solve => solve.time).sort((a, b) => a - b);
+    console.log(`[DEBUG] calculateAverage: Last ${n} solves: (${times.length}) [${times.map(t => `${t}ms (penalty: ${lastNSolves.find(s => s.time === t).penalty})`).join(', ')}]`);
 
-        // Clear previous local data if any from guest mode
-        solves = [];
-        renderSolveHistory(); // Render empty list while Firestore data loads
-
-        onSnapshot(q, (snapshot) => {
-            console.log("[DEBUG] onSnapshot callback triggered. Processing snapshot changes.");
-            solves = []; // Clear current solves to repopulate from snapshot
-            snapshot.forEach((doc) => {
-                solves.push({ id: doc.id, ...doc.data() });
-            });
-            console.log(`[DEBUG] Solves updated from Firestore. Total solves: ${solves.length}.`);
-            renderSolveHistory();
-        }, (error) => {
-            console.error("[ERROR] Error listening to solves: ", error);
-            // Handle error, maybe display a message to the user
-            // Fallback to local if permissions error occurs on a previously working connection
-            if (error.code === 'permission-denied') {
-                console.warn("[WARN] Firestore permission denied for solves listener. Falling back to local storage for solves.");
-                isUserAuthenticated = false; // Treat as signed out if permissions fail
-                // Re-init with local storage for solves to ensure functionality
-                loadLocalSolves();
-                renderSolveHistory();
-            }
-        });
-    } else {
-        console.log("[DEBUG] setupRealtimeSolvesListener: Not authenticated, Firestore listener not setup.");
-        // For guests, local solves are handled by loadLocalSolves in initializeUserDataAndSettings
-    }
-    console.log("[DEBUG] Exiting setupRealtimeSolvesListener.");
-}
-
-/**
- * Loads user settings. Uses Firestore for authenticated users, Local Storage for guests.
- */
-async function loadUserSettings() {
-    console.log("[DEBUG] Entering loadUserSettings.");
-    // Ensure DOM elements are initialized before proceeding
-    if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-        console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Skipping load.");
-        return;
+    // Remove fastest and slowest for AoN (typically for N >= 5)
+    let solvesToAverage = [...times];
+    if (n >= 5) {
+        solvesToAverage = times.slice(1, -1); // Remove first (fastest) and last (slowest)
+        console.log(`[DEBUG] calculateAverage: Dropped best/worst. Remaining times: (${solvesToAverage.length}) [${solvesToAverage.join(', ')}]`);
     }
 
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        console.log("[DEBUG] loadUserSettings: Authenticated and Firestore ready. Attempting to load settings.");
-        const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
-        try {
-            const docSnap = await getDoc(userSettingsRef);
-            if (docSnap.exists()) {
-                const settings = docSnap.data();
-                enableInspection = settings.enableInspection !== undefined ? settings.enableInspection : true;
-                enableSoundEffects = settings.soundEffects !== undefined ? settings.soundEffects : true;
-                cubeType = settings.cubeType || '3x3';
-                currentTheme = settings.theme || 'dark';
-                show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // Load new setting
-                console.log("[DEBUG] User settings loaded from Firestore:", settings);
-            } else {
-                console.log("[DEBUG] No user settings found in Firestore, using defaults and saving.");
-                saveUserSettings(); // Save default settings to Firestore
-            }
-        }
-        catch (e) {
-            console.error("[ERROR] Error loading user settings from Firestore: ", e);
-            if (e.code === 'permission-denied') {
-                console.warn("[WARN] Firestore permission denied for settings. Falling back to local storage for settings.");
-                // Fallback to local if permissions fail
-                loadLocalUserSettings();
-            }
-        }
-    } else { // Guest user
-        console.log("[DEBUG] loadUserSettings: Guest user. Loading settings from local storage.");
-        loadLocalUserSettings(); // Load from local storage
-    }
-    applySettingsToUI();
-    console.log("[DEBUG] Exiting loadUserSettings.");
-}
+    const sum = solvesToAverage.reduce((acc, curr) => acc + curr, 0);
+    const averageMs = sum / solvesToAverage.length;
+    console.log(`[DEBUG] calculateAverage: Sum: ${sum}, Count: ${solvesToAverage.length}, Avg: ${averageMs}ms, Formatted: ${formatTime(averageMs)}`);
 
-/**
- * Saves current user settings. Uses Firestore for authenticated users, Local Storage for guests.
- */
-async function saveUserSettings() {
-    console.log("[DEBUG] Entering saveUserSettings.");
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        console.log("[DEBUG] saveUserSettings: Authenticated and Firestore ready. Attempting to save settings.");
-        const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
-        const settingsToSave = {
-            enableInspection: enableInspection,
-            enableSoundEffects: enableSoundEffects,
-            cubeType: cubeType,
-            theme: currentTheme,
-            show3DCubeView: show3DCubeView, // Save new setting
-            lastUpdated: Date.now()
-        };
-        try {
-            console.log("[DEBUG] Attempting to set doc in Firestore:", settingsToSave);
-            await setDoc(userSettingsRef, settingsToSave, { merge: true });
-            console.log("[DEBUG] User settings saved to Firestore.");
-        } catch (e) {
-            console.error("[ERROR] Error saving user settings to Firestore: ", e);
-            // Fallback to local save if Firestore fails
-            saveLocalUserSettings();
-            console.warn("[WARN] Firestore failed to save settings, saved to local storage (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] saveUserSettings: Guest user. Saving settings to local storage.");
-        saveLocalUserSettings(); // Save to local storage
-    }
-    console.log("[DEBUG] Exiting saveUserSettings.");
-}
-
-/**
- * Retrieves the hexadecimal color code for the primary background based on the current theme.
- * @param {string} theme - The name of the current theme ('dark', 'light', 'vibrant').
- * @returns {string} The hexadecimal color code.
- */
-function getThemeBackgroundColorHex(theme) {
-    switch (theme) {
-        case 'dark':
-            return '#0f172a';
-        case 'light':
-            return '#f0f2f5';
-        case 'vibrant':
-            return '#2d0b57';
-        default:
-            return '#0f172a'; // Default to dark theme's primary background
-    }
-}
-
-/**
- * Applies loaded/default settings to the UI elements.
- */
-function applySettingsToUI() {
-    console.log("[DEBUG] Entering applySettingsToUI.");
-    // Ensure UI elements are initialized before trying to apply settings to them
-    if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-        console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. Skipping apply.");
-        return;
-    }
-
-    if (inspectionToggle) inspectionToggle.checked = enableInspection;
-    if (soundEffectsToggle) soundEffectsToggle.checked = enableSoundEffects;
-    if (cubeTypeSelect) cubeTypeSelect.value = cubeType;
-    if (themeSelect) themeSelect.value = currentTheme;
-    if (cubeViewToggle) cubeViewToggle.checked = show3DCubeView; // Apply new setting to UI
-
-    document.body.className = `theme-${currentTheme}`; // Apply theme class
-
-    // Toggle visibility of scramble displays
-    if (show3DCubeView) {
-        if (scrambleTextDisplay) scrambleTextDisplay.style.display = 'none';
-        if (cube3DContainer) cube3DContainer.style.display = 'flex'; // Use flex for centering
-        if (scramble3DViewer) {
-            // Set the 3D viewer background directly using the hex color for the chosen theme
-            scramble3DViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
-        }
-    } else {
-        if (scrambleTextDisplay) scrambleTextDisplay.style.display = 'block';
-        if (cube3DContainer) cube3DContainer.style.display = 'none';
-    }
-
-    // Ensure scramble is generated/updated for the correct display
-    scramble = generateScramble();
-    console.log("[DEBUG] UI settings applied and scramble regenerated.");
-    console.log("[DEBUG] Exiting applySettingsToUI.");
-}
-
-/**
- * Updates the username in Firestore for authenticated users, or local storage for guests.
- */
-async function updateUsername() {
-    console.log("[DEBUG] Entering updateUsername.");
-    const newUsername = settingsUsernameInput.value.trim();
-    if (!newUsername) {
-        if (usernameUpdateMessage) {
-            usernameUpdateMessage.textContent = "Username cannot be empty.";
-            usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-            usernameUpdateMessage.style.display = 'block';
-        }
-        console.warn("[WARN] New username is empty.");
-        return;
-    }
-
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-        try {
-            console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
-            await updateDoc(userProfileRef, { username: newUsername });
-            if (usernameUpdateMessage) {
-                usernameUpdateMessage.textContent = "Username updated successfully!";
-                usernameUpdateMessage.style.color = "#22c55e"; // Green for success
-                usernameUpdateMessage.style.display = 'block';
-            }
-            console.log("[DEBUG] Username updated successfully in Firestore.");
-
-            // Update the displayed username immediately
-            // MODIFIED: Direct assignment of username. "Current User:" is in HTML
-            const usernameDisplayElement = document.getElementById('usernameDisplay'); // Ensure this is defined
-            if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
-            console.log("[DEBUG] Displayed username refreshed after update.");
-
-            setTimeout(() => {
-                if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-                console.log("[DEBUG] Username update message hidden.");
-            }, 3000); // Hide message after 3 seconds
-
-        } catch (e) {
-            console.error("[ERROR] Error updating username in Firestore: ", e);
-            if (usernameUpdateMessage) {
-                usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
-                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                usernameUpdateMessage.style.display = 'block';
-            }
-            // Fallback to local save if Firestore fails
-            saveLocalUsername(newUsername);
-            // MODIFIED: Direct assignment for fallback
-            const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
-            console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] updateUsername: Guest user. Updating username in local storage.");
-        saveLocalUsername(newUsername);
-        if (usernameUpdateMessage) {
-            usernameUpdateMessage.textContent = "Username updated locally (not saved online).";
-            usernameUpdateMessage.style.color = "#fbbf24"; // Amber for warning
-            usernameUpdateMessage.style.display = 'block';
-        }
-        // MODIFIED: Direct assignment for guest username
-        const usernameDisplayElement = document.getElementById('usernameDisplay');
-        if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
-        setTimeout(() => {
-            if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-            console.log("[DEBUG] Username update message hidden.");
-        }, 3000);
-    }
-    console.log("[DEBUG] Exiting updateUsername.");
-}
-
-// --- Timer Logic ---
-
-/**
- * Starts or stops the timer/inspection.
- */
-function toggleTimer() {
-    console.log("[DEBUG] Entering toggleTimer.");
-    // Ensure AudioContext is running before playing sounds
-    if (enableSoundEffects && !audioContextResumed) {
-        console.warn("[WARN] Attempted to toggle timer with sounds enabled but AudioContext not resumed. Attempting resume.");
-        resumeAudioContextOnFirstGesture(); // Attempt to resume on first interaction
-    }
-
-    if (isTiming) {
-        console.log("[DEBUG] toggleTimer: Currently timing, stopping timer.");
-        // Stop the timer
-        clearInterval(timerInterval);
-        isTiming = false;
-        if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
-        if (timerDisplay) timerDisplay.classList.remove('ready');
-        if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
-            console.log("[DEBUG] Playing stop sound.");
-            stopSound.triggerAttackRelease("C2", "8n");
-        }
-        addSolve(elapsedTime); // Add solve to history (will handle Firestore/Local Storage)
-        scramble = generateScramble(); // Generate new scramble for next solve
-        if (timerDisplay) timerDisplay.textContent = formatTime(0); // Reset display to 0 for next solve
-        elapsedTime = 0; // Reset elapsedTime
-        console.log("[DEBUG] New scramble generated and timer reset for next solve.");
-    } else if (isInspecting) {
-        console.log("[DEBUG] toggleTimer: Currently inspecting, starting timer early.");
-        // User pressed spacebar again during inspection to start timing early
-        clearInterval(inspectionCountdownInterval);
-        isInspecting = false;
-        isTiming = true;
-        if (timerDisplay) {
-            timerDisplay.classList.remove('inspection');
-            timerDisplay.classList.remove('ready'); // Remove ready state if it was there
-            timerDisplay.textContent = formatTime(0);
-        }
-        if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
-        startTime = Date.now();
-        timerInterval = setInterval(updateTimer, 10); // Update every 10ms for millisecond precision
-        if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
-            console.log("Playing Go! sound (inspection stopped early).");
-            goSound.triggerAttackRelease(["C4", "E4", "G4"], "8n"); // "Go!" sound
-        }
-    } else {
-        console.log("[DEBUG] toggleTimer: Initial start. Checking inspection setting.");
-        // Initial start: enter inspection or start timer immediately
-        if (enableInspection) {
-            isInspecting = true;
-            inspectionTimeLeft = 15;
-            if (timerDisplay) {
-                timerDisplay.classList.add('inspection');
-                timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
-            }
-            if (startStopBtn) startStopBtn.textContent = 'Start (Space)'; // Change button text for inspection phase
-            console.log("[DEBUG] Starting 15s inspection countdown.");
-
-            // Start inspection countdown and beeps
-            inspectionCountdownInterval = setInterval(() => {
-                inspectionTimeLeft--;
-                console.log(`[DEBUG] Inspection countdown: ${inspectionTimeLeft}s remaining.`);
-                if (timerDisplay) timerDisplay.textContent = `Inspection: ${inspectionTimeLeft}`;
-                if (inspectionTimeLeft >= 0) {
-                    if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
-                        // Play beep at 10 seconds and from 5 seconds down to 1
-                        if (inspectionTimeLeft === 10 || (inspectionTimeLeft <= 5 && inspectionTimeLeft > 0)) {
-                            console.log(`[DEBUG] Playing inspection beep for ${inspectionTimeLeft}s.`);
-                            inspectionBeep.triggerAttackRelease("C5", "16n");
-                        } else if (inspectionTimeLeft === 0) {
-                            // At 0 seconds, play a distinct beep and the "Go!" sound
-                            console.log("[DEBUG] Playing final inspection beep and Go! sound (0s).");
-                            inspectionBeep.triggerAttackRelease("C5", "8n"); // Louder/longer beep for 0
-                            goSound.triggerAttackRelease(["C4", "E4", "G4"], "8n"); // "Go!" sound
-
-                            // AUTOSTART THE TIMER HERE
-                            clearInterval(inspectionCountdownInterval); // Stop inspection countdown
-                            isInspecting = false;
-                            isTiming = true;
-                            if (timerDisplay) timerDisplay.classList.remove('inspection', 'ready');
-                            if (timerDisplay) timerDisplay.textContent = formatTime(0);
-                            if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
-                            startTime = Date.now();
-                            timerInterval = setInterval(updateTimer, 10); // Start actual timer
-                            console.log("[DEBUG] Inspection ended. Auto-starting timer.");
-                        }
-                    }
-
-                    if (inspectionTimeLeft <= 8) { // After 8 seconds, ready to start
-                        if (timerDisplay) timerDisplay.classList.add('ready');
-                    }
-                } else {
-                    console.log("[DEBUG] Inspection time ran out. Forcing stop.");
-                    clearInterval(inspectionCountdownInterval);
-                    isTiming = false; // Ensure timer isn't running without user input
-                    isInspecting = false;
-                    if (timerDisplay) timerDisplay.classList.remove('inspection', 'ready');
-                    if (timerDisplay) timerDisplay.textContent = formatTime(0);
-                    scramble = generateScramble();
-                    if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
-                    if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
-                        console.log("Playing forced stop sound due to inspection timeout.");
-                        stopSound.triggerAttackRelease("F2", "8n"); // A different sound for forced stop
-                    }
-                    addSolve(elapsedTime + 2000); // Adding +2 if it went past 0 without manual start
-                }
-            }, 1000);
-        } else {
-            console.log("[DEBUG] No inspection enabled. Starting timer immediately.");
-            // No inspection, start timer immediately
-            isTiming = true;
-            if (timerDisplay) timerDisplay.classList.remove('inspection', 'ready');
-            if (timerDisplay) timerDisplay.textContent = formatTime(0);
-            if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
-            startTime = Date.now();
-            timerInterval = setInterval(updateTimer, 10);
-            if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
-                console.log("Playing initial start sound (no inspection).");
-                startSound.triggerAttackRelease("C4", "8n"); // Initial start sound
-            }
-        }
-    }
-    console.log("[DEBUG] Exiting toggleTimer.");
+    return formatTime(averageMs);
 }
 
 
-/**
- * Updates the timer display during timing phase.
- */
-function updateTimer() {
-    elapsedTime = Date.now() - startTime;
-    if (timerDisplay) timerDisplay.textContent = formatTime(elapsedTime);
-}
+// --- UI and Event Handling ---
 
-/**
- * Resets the timer and generates a new scramble.
- */
-function resetTimer() {
-    clearInterval(timerInterval);
-    clearInterval(inspectionCountdownInterval);
-    isTiming = false;
-    isInspecting = false;
-    elapsedTime = 0;
-    inspectionTimeLeft = 15;
-    if (timerDisplay) {
-        timerDisplay.textContent = formatTime(0);
-        timerDisplay.classList.remove('inspection', 'ready');
-    }
-    if (startStopBtn) startStopBtn.textContent = 'Start / Stop (Space)';
-    scramble = generateScramble(); // Updates both text and 3D
-}
-
-// --- Chatbox Functions (NEW) ---
-/**
- * Adds a message to the chat history display.
- * @param {string} sender - 'User' or 'Jarvis'.
- * @param {string} message - The message text.
- * @param {boolean} isJarvis - True if the message is from Jarvis, false for user.
- */
-function addMessageToChat(sender, message, isJarvis = false) {
-    if (!chatHistoryDisplay) {
-        console.warn("[WARN] chatHistoryDisplay not found. Cannot add message to chat.");
-        return;
-    }
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('chat-message');
-    messageElement.classList.add(isJarvis ? 'jarvis-message' : 'user-message');
-
-    const senderSpan = document.createElement('span');
-    senderSpan.classList.add('font-bold');
-    senderSpan.classList.add(isJarvis ? 'text-indigo-400' : 'text-green-400'); // Different color for user
-    senderSpan.textContent = `${sender}: `;
-
-    const messageText = document.createTextNode(message);
-
-    messageElement.appendChild(senderSpan);
-    messageElement.appendChild(messageText);
-    chatHistoryDisplay.appendChild(messageElement);
-
-    // Scroll to the bottom of the chat history
-    chatHistoryDisplay.scrollTop = chatHistoryDisplay.scrollHeight;
-}
-
-/**
- * Handles sending a text command from the chat input.
- */
-function handleChatCommand() {
-    const commandText = chatInput.value.trim();
-    if (commandText) {
-        addMessageToChat('User', commandText, false); // Add user's message to chat
-        processVoiceCommandWithGemini(commandText); // Use the same NLU processing for text commands
-        chatInput.value = ''; // Clear input field
-    }
-}
-
-/**
- * Opens the chat modal.
- */
-function openChatModal() {
-    if (chatModal) {
-        chatModal.classList.add('open');
-        chatModal.focus();
-        // Ensure chat history scrolls to bottom when opened
-        if (chatHistoryDisplay) {
-            chatHistoryDisplay.scrollTop = chatHistoryDisplay.scrollHeight;
-        }
-    }
-}
-
-/**
- * Closes the chat modal.
- */
-function closeChatModal() {
-    if (chatModal) {
-        chatModal.classList.remove('open');
-    }
-}
-
-
-// --- Event Listeners ---
-
-/**
- * Sets up all event listeners for buttons and keyboard input.
- */
+// Function to attach all event listeners and assign global DOM element variables
 function setupEventListeners() {
     console.log("[DEBUG] setupEventListeners: Assigning event listeners.");
-    // Defensive checks for element existence before adding listeners
+
+    // Assign DOM elements
     timerDisplay = document.getElementById('timerDisplay');
-    scrambleTextDisplay = document.getElementById('scrambleTextDisplay');
-    cube3DContainer = document.getElementById('cube3DContainer');
+    scrambleDisplay = document.getElementById('scrambleDisplay');
     scramble3DViewer = document.getElementById('scramble3DViewer');
-    startStopBtn = document.getElementById('startStopBtn');
-    resetBtn = document.getElementById('resetBtn');
-    scrambleBtn = document.getElementById('scrambleBtn');
-    settingsBtn = document.getElementById('settingsBtn');
+    ao5Display = document.getElementById('ao5Display');
+    ao12Display = document.getElementById('ao12Display');
+    bestTimeDisplay = document.getElementById('bestTimeDisplay');
+    solveCountDisplay = document.getElementById('solveCountDisplay');
     solveHistoryList = document.getElementById('solveHistoryList');
-    bestTimeDisplay = document.getElementById('bestTime');
-    ao5Display = document.getElementById('ao5');
-    ao12Display = document.getElementById('ao12');
-    solveCountDisplay = document.getElementById('solveCount');
-    noSolvesMessage = document.getElementById('noSolvesMessage');
-    inspectionToggle = document.getElementById('inspectionToggle');
-    soundEffectsToggle = document.getElementById('soundEffectsToggle');
-    cubeTypeSelect = document.getElementById('cubeTypeSelect');
-    themeSelect = document.getElementById('themeSelect');
-    cubeViewToggle = document.getElementById('cubeViewToggle');
-    settingsUsernameInput = document.getElementById('settingsUsernameInput');
-    saveUsernameBtn = document.getElementById('saveUsernameBtn');
-    usernameUpdateMessage = document.getElementById('usernameUpdateMessage');
+    penaltyButtons = document.getElementById('penaltyButtons');
+    signInBtn = document.getElementById('signInBtn');
+    signUpBtn = document.getElementById('signUpBtn');
+    signOutBtn = document.getElementById('signOutBtn');
+    userEmailDisplay = document.getElementById('userEmailDisplay');
     aiInsightModal = document.getElementById('aiInsightModal');
-    closeAiInsightModalBtn = document.getElementById('closeAiInsightModal');
-    aiInsightContentDisplay = document.getElementById('aiInsightContent');
-    insightMessageElement = document.getElementById('insightMessage');
-    insightSpinner = aiInsightContentDisplay ? aiInsightContentDisplay.querySelector('.spinner') : null; // Safely query
-    scrambleAnalysisDisplay = document.getElementById('scrambleAnalysisDisplay'); // NEW
-    scrambleAnalysisText = document.getElementById('scrambleAnalysisText');       // NEW
+    closeAiInsightModal = document.getElementById('closeAiInsightModal');
+    aiInsightContent = document.getElementById('aiInsightContent');
+    insightMessageDisplay = document.getElementById('insightMessage');
     optimalSolutionDisplay = document.getElementById('optimalSolutionDisplay');
     optimalSolutionText = document.getElementById('optimalSolutionText');
     personalizedTipDisplay = document.getElementById('personalizedTipDisplay');
     personalizedTipText = document.getElementById('personalizedTipText');
-    playPreviewBtn = document.getElementById('playPreviewBtn');
-    pausePreviewBtn = document.getElementById('pausePreviewBtn');
-    restartPreviewBtn = document.getElementById('restartPreviewBtn');
-    voiceCommandBtn = document.getElementById('voiceCommandBtn');
-    voiceFeedbackDisplay = document.getElementById('voiceFeedbackDisplay'); // Assign new elements
-    voiceListeningText = document.getElementById('voiceListeningText');
-    voiceListeningIndicator = document.getElementById('voiceListeningIndicator');
-    voiceLiveTranscript = document.getElementById('voiceLiveTranscript'); // Assign new live transcript element
+    settingsModal = document.getElementById('settingsModal');
+    closeSettingsModal = document.getElementById('closeSettingsModal');
+    openSettingsModal = document.getElementById('openSettingsModal');
+    themeSelect = document.getElementById('themeSelect');
+    enableSoundEffectsToggle = document.getElementById('enableSoundEffectsToggle');
+    enableInspectionToggle = document.getElementById('enableInspectionToggle');
+    cubeTypeSelect = document.getElementById('cubeTypeSelect');
+    show3DCubeViewToggle = document.getElementById('show3DCubeViewToggle');
+    wakeWordInput = document.getElementById('wakeWordInput');
+    saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    toastContainer = document.getElementById('toast-container');
+    spinner = document.querySelector('.spinner'); // Assuming a spinner element exists
 
-    // Chatbox elements
-    chatModal = document.getElementById('chatModal');
-    closeChatModalBtn = document.getElementById('closeChatModal');
-    chatHistoryDisplay = document.getElementById('chatHistory');
-    chatInput = document.getElementById('chatInput');
-    chatSendBtn = document.getElementById('chatSendBtn');
-    openChatBtn = document.getElementById('openChatBtn');
-
-
-    // Authentication related elements
-    const authModal = document.getElementById('authModal');
-    const authModalTitle = document.getElementById('authModalTitle');
-    const emailInput = document.getElementById('email');
-    const usernameInputField = document.getElementById('usernameInput');
-    const usernameFieldGroup = document.getElementById('usernameFieldGroup');
-    const passwordInput = document.getElementById('password');
-    const authError = document.getElementById('authError');
-    const emailAuthBtn = document.getElementById('emailAuthBtn');
-    const googleSignInBtn = document.getElementById('googleSignInBtn');
-    const signInBtn = document.getElementById('signInBtn');
-    const signUpBtn = document.getElementById('signUpBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
-
-
-    if (startStopBtn) startStopBtn.addEventListener('click', toggleTimer); else console.error("[ERROR] startStopBtn not found!");
-    if (resetBtn) resetBtn.addEventListener('click', resetTimer); else console.error("[ERROR] resetBtn not found!");
-    if (scrambleBtn) scrambleBtn.addEventListener('click', () => {
-        scramble = generateScramble();
-        resetTimer();
-    }); else console.error("[ERROR] scrambleBtn not found!");
-    if (settingsBtn) settingsBtn.addEventListener('click', () => {
-        const settingsModal = document.getElementById('settingsModal');
-        if (settingsModal) {
-            settingsModal.classList.add('open');
-            settingsModal.focus();
-        }
-        // Pre-fill username input based on current user type
-        if (isUserAuthenticated && auth && auth.currentUser && db && userId) {
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            getDoc(userProfileRef).then(docSnap => {
-                if (docSnap.exists() && docSnap.data().username && settingsUsernameInput) {
-                    settingsUsernameInput.value = docSnap.data().username;
-                } else if (settingsUsernameInput) {
-                    settingsUsernameInput.value = ''; // Clear if no username found
-                }
-            }).catch(e => {
-                console.error("Error loading username for settings:", e);
-                if (settingsUsernameInput) settingsUsernameInput.value = '';
-            });
-        } else if (settingsUsernameInput) {
-            settingsUsernameInput.value = loadLocalUsername(); // Load from local storage for guests
-        }
-
-        if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-        applySettingsToUI(); // Apply settings to ensure all toggles/selects reflect current values
-    }); else console.error("[ERROR] settingsBtn not found!");
-
-    const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
-    if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', () => {
-        const settingsModal = document.getElementById('settingsModal');
-        if (settingsModal) settingsModal.classList.remove('open');
-        console.log("[DEBUG] Settings modal closed by button.");
-        saveUserSettings(); // Save settings when modal is closed
-    }); else console.error("[ERROR] closeSettingsModal not found!");
-
-    const closeAuthModalBtn = document.getElementById('closeAuthModal');
-    if (closeAuthModalBtn) closeAuthModalBtn.addEventListener('click', () => {
-        const authModal = document.getElementById('authModal');
-        if (authModal) authModal.classList.remove('open');
-        clearAuthError();
-        console.log("[DEBUG] Auth modal closed by button.");
-    }); else console.error("[ERROR] closeAuthModal not found!");
-
-    if (closeAiInsightModalBtn) closeAiInsightModalBtn.addEventListener('click', () => {
-        if (aiInsightModal) aiInsightModal.classList.remove('open');
-        console.log("[DEBUG] AI Insight modal closed by button.");
-    }); else console.error("[ERROR] closeAiInsightModalBtn not found!");
-
-
-    if (inspectionToggle) inspectionToggle.addEventListener('change', (e) => {
-        enableInspection = e.target.checked;
-        saveUserSettings();
-    }); else console.error("[ERROR] inspectionToggle not found!");
-
-    if (soundEffectsToggle) soundEffectsToggle.addEventListener('change', (e) => {
-        enableSoundEffects = e.target.checked;
-        saveUserSettings();
-    }); else console.error("[ERROR] soundEffectsToggle not found!");
-
-    if (cubeTypeSelect) cubeTypeSelect.addEventListener('change', (e) => {
-        cubeType = e.target.value;
-        saveUserSettings();
-        scramble = generateScramble();
-        resetTimer();
-        // Ensure the select value matches the updated cubeType (sync UI)
-        cubeTypeSelect.value = cubeType;
-    }); else console.error("[ERROR] cubeTypeSelect not found!");
-
-    if (themeSelect) themeSelect.addEventListener('change', (e) => {
-        currentTheme = e.target.value;
-        document.body.className = `theme-${currentTheme}`;
-        saveUserSettings();
-    }); else console.error("[ERROR] themeSelect not found!");
-
-    if (cubeViewToggle) cubeViewToggle.addEventListener('change', (e) => {
-        show3DCubeView = e.target.checked;
-        applySettingsToUI();
-        saveUserSettings();
-    }); else console.error("[ERROR] cubeViewToggle not found!");
-
-    if (saveUsernameBtn) saveUsernameBtn.addEventListener('click', updateUsername); else console.error("[ERROR] saveUsernameBtn not found!");
-
-    // New: Event listeners for custom preview toolbar
-    if (playPreviewBtn) playPreviewBtn.addEventListener('click', () => {
-        if (scramble3DViewer) scramble3DViewer.play();
-        console.log("[DEBUG] Play preview button clicked.");
-    }); else console.error("[ERROR] playPreviewBtn not found!");
-
-    if (pausePreviewBtn) pausePreviewBtn.addEventListener('click', () => {
-        if (scramble3DViewer) scramble3DViewer.pause();
-        console.log("[DEBUG] Pause preview button clicked.");
-    }); else console.error("[ERROR] pausePreviewBtn not found!");
-
-    if (restartPreviewBtn) restartPreviewBtn.addEventListener('click', () => {
-        if (scramble3DViewer && scramble) {
-            // Jump to the start of the animation (effectively rewinds)
-            scramble3DViewer.jumpToStart();
-            // Play from the beginning
-            scramble3DViewer.play();
-            console.log("[DEBUG] Restart preview button clicked. Cube animation restarted from beginning.");
-        }
-    }); else console.error("[ERROR] restartPreviewBtn not found!");
-
-    // Voice Command Button Listener
-    if (voiceCommandBtn && recognition) { // Only add if both exist
-        voiceCommandBtn.addEventListener('click', () => {
-            console.log("[DEBUG] Voice command button clicked. awaitingActualCommand:", awaitingActualCommand);
-
-            if (awaitingActualCommand) { // If currently in command mode (button pressed again)
-                console.log("[DEBUG] Command mode cancelled by button press.");
-                clearTimeout(commandTimeoutId);
-                commandTimeoutId = null;
-                awaitingActualCommand = false;
-                speakAsJarvis("Command mode cancelled, Sir Sevindu. I am now listening for the wake word.");
-                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
-            } else { // If in wake word listening mode, or recognition is off, activate command mode
-                if (!isListeningForVoice) { // If recognition is not even started, try to start it
-                    console.log("[DEBUG] Recognition not active, attempting to start it first.");
-                    attemptRestartRecognition(); // This will set isListeningForVoice = true
-                }
-                
-                // Now, regardless of whether it just started or was already listening, enter command mode
-                awaitingActualCommand = true;
-                speakAsJarvis("At your service, Sir Sevindu. Your command?");
-                updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
-
-                if (commandTimeoutId) clearTimeout(commandTimeoutId); // Clear any old timeout
-                commandTimeoutId = setTimeout(() => {
-                    awaitingActualCommand = false;
-                    speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true);
-                    console.log("[DEBUG] Manual command mode timed out. Reverted to wake word listening.");
-                }, 5000); // 5 seconds to give a command after manual start
-            }
-        });
-    } else if (voiceCommandBtn) {
-        // Hide if SpeechRecognition API is not supported
-        voiceCommandBtn.style.display = 'none';
-        console.warn("[WARN] Voice command button hidden as Web Speech API is not supported.");
-    }
-
-    // NEW: Chat button listeners
-    if (openChatBtn) openChatBtn.addEventListener('click', openChatModal);
-    if (closeChatModalBtn) closeChatModalBtn.addEventListener('click', closeChatModal);
-    if (chatSendBtn) chatSendBtn.addEventListener('click', handleChatCommand);
-    if (chatInput) chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter, allow Shift+Enter for new line
-            e.preventDefault();
-            handleChatCommand();
-        }
-    });
-
-
+    // Event Listeners for Timer and Spacebar
     document.addEventListener('keydown', (e) => {
-        // FIX: Prevent spacebar from triggering timer when typing in chat input
-        if (e.target === chatInput && e.code === 'Space') {
-            return; // Do nothing, let the browser handle the space in the textarea
-        }
-
-        if (e.code === 'Escape') {
-            const settingsModal = document.getElementById('settingsModal');
-            if (settingsModal && settingsModal.classList.contains('open')) {
-                settingsModal.classList.remove('open');
-                saveUserSettings();
-                console.log("[DEBUG] Settings modal closed by Escape key.");
-            }
-            const authModal = document.getElementById('authModal');
-            if (authModal && authModal.classList.contains('open')) {
-                authModal.classList.remove('open');
-                clearAuthError();
-                console.log("[DEBUG] Auth modal closed by Escape key.");
-            }
-            if (aiInsightModal && aiInsightModal.classList.contains('open')) {
-                aiInsightModal.classList.remove('open');
-                console.log("[DEBUG] AI Insight modal closed by Escape key.");
-            }
-            if (chatModal && chatModal.classList.contains('open')) { // Close chat modal on Escape
-                chatModal.classList.remove('open');
-                console.log("[DEBUG] Chat modal closed by Escape key.");
-            }
-        }
-
         if (e.code === 'Space') {
-            e.preventDefault();
-            // Ensure AudioContext is running before playing sounds
-            if (enableSoundEffects && !audioContextResumed) {
-                console.warn("[WARN] Attempted Spacebar press with sounds enabled but AudioContext not resumed. Attempting resume.");
-                resumeAudioContextOnFirstGesture(); // Attempt to resume on interaction
+            e.preventDefault(); // Prevent scrolling
+            if (!running && startTime === null) {
+                // Pre-inspection or ready to start
+                timerDisplay.style.color = 'lime'; // Green indicating ready
             }
-            if (e.repeat) return;
-            spaceDownTime = Date.now();
-            if (timerDisplay) timerDisplay.classList.add('ready');
         }
     });
 
     document.addEventListener('keyup', (e) => {
-        // FIX: Prevent spacebar from triggering timer when typing in chat input
-        if (e.target === chatInput && e.code === 'Space') {
-            return; // Do nothing, let the browser handle the space in the textarea
-        }
-
         if (e.code === 'Space') {
             e.preventDefault();
-            const spaceUpTime = Date.now();
-            const holdDuration = spaceUpTime - spaceDownTime;
-            if (timerDisplay) timerDisplay.classList.remove('ready');
-
-            if (holdDuration < 500 && !isTiming && !isInspecting) {
-                toggleTimer();
-            } else if (isInspecting && holdDuration >= 500) {
-                toggleTimer();
-            } else if (isTiming) {
-                toggleTimer();
+            timerDisplay.style.color = 'var(--timer-color)'; // Reset color
+            if (!running && startTime === null) {
+                // Timer not started, start inspection or actual timer
+                if (userSettings.enableInspection) {
+                    startInspection();
+                } else {
+                    startTimer();
+                }
+            } else if (running) {
+                // Timer is running, stop it
+                stopTimer();
             }
-            spaceDownTime = 0;
         }
     });
 
-    // --- Authentication Event Listeners ---
-    // These elements are assigned here, within setupEventListeners,
-    // as they are part of the main application's UI interactions.
+    // Event Listeners for Penalty Buttons
+    document.getElementById('plus2Btn').addEventListener('click', () => {
+        penalty = 2;
+        showToast("Next solve will have +2 penalty.", "info");
+    });
+    document.getElementById('dnfBtn').addEventListener('click', () => {
+        penalty = 'DNF';
+        showToast("Next solve will be DNF.", "info");
+    });
+    document.getElementById('resetPenaltyBtn').addEventListener('click', () => {
+        penalty = null;
+        showToast("Penalty reset.", "info");
+        hidePenaltyButtons();
+    });
 
-    function showAuthError(message) {
-        if (authError) {
-            authError.textContent = message;
-            authError.style.display = 'block';
-        }
-    }
+    // Authentication Buttons
+    if (signInBtn) signInBtn.addEventListener('click', handleSignIn);
+    if (signUpBtn) signUpBtn.addEventListener('click', handleSignUp);
+    if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
 
-    function clearAuthError() {
-        if (authError) {
-            authError.textContent = '';
-            authError.style.display = 'none';
-        }
-    }
+    // AI Insight Modal
+    if (closeAiInsightModal) closeAiInsightModal.addEventListener('click', hideAiInsightModal);
 
-    if (signInBtn) signInBtn.addEventListener('click', () => {
-        if (authModal) {
-            authModal.classList.add('open');
-            authModal.focus();
-        }
-        if (authModalTitle) authModalTitle.textContent = 'Sign In';
-        if (emailInput) emailInput.value = '';
-        if (passwordInput) passwordInput.value = '';
-        if (usernameFieldGroup) usernameFieldGroup.style.display = 'none';
-        clearAuthError();
-    }); else console.error("[ERROR] signInBtn not found!");
+    // Settings Modal
+    if (openSettingsModal) openSettingsModal.addEventListener('click', showSettingsModal);
+    if (closeSettingsModal) closeSettingsModal.addEventListener('click', hideSettingsModal);
 
-    if (signUpBtn) signUpBtn.addEventListener('click', () => {
-        if (authModal) {
-            authModal.classList.add('open');
-            authModal.focus();
-        }
-        if (authModalTitle) authModalTitle.textContent = 'Sign Up';
-        if (emailAuthBtn) {
-            emailAuthBtn.textContent = 'Sign Up';
-            emailAuthBtn.onclick = handleSignUp;
-        }
-        if (emailInput) emailInput.value = '';
-        if (passwordInput) passwordInput.value = '';
-        if (usernameInputField) usernameInputField.value = '';
-        if (usernameFieldGroup) usernameFieldGroup.style.display = 'block';
-        clearAuthError();
-    }); else console.error("[ERROR] signUpBtn not found!");
+    // Settings form change listeners
+    if (themeSelect) themeSelect.addEventListener('change', (e) => {
+        userSettings.theme = e.target.value;
+        applySettingsToUI();
+    });
+    if (enableSoundEffectsToggle) enableSoundEffectsToggle.addEventListener('change', (e) => {
+        userSettings.enableSoundEffects = e.target.checked;
+        applySettingsToUI();
+    });
+    if (enableInspectionToggle) enableInspectionToggle.addEventListener('change', (e) => {
+        userSettings.enableInspection = e.target.checked;
+        applySettingsToUI();
+    });
+    if (cubeTypeSelect) cubeTypeSelect.addEventListener('change', (e) => {
+        userSettings.cubeType = e.target.value;
+        applySettingsToUI();
+    });
+    if (show3DCubeViewToggle) show3DCubeViewToggle.addEventListener('change', (e) => {
+        userSettings.show3DCubeView = e.target.checked;
+        applySettingsToUI();
+    });
+    if (wakeWordInput) wakeWordInput.addEventListener('input', (e) => {
+        userSettings.wakeWord = e.target.value.trim().toLowerCase();
+    });
+    if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', () => {
+        saveUserData();
+        showToast("Settings saved!", "success");
+        hideSettingsModal();
+    });
+}
 
-    if (signOutBtn) signOutBtn.addEventListener('click', async () => {
-        if (auth) { // Only attempt sign out if auth object is initialized
-            try {
-                await signOut(auth);
-                // onAuthStateChanged will handle UI and data loading for the now-guest user.
-                console.log("User signed out successfully.");
-            } catch (error) {
-                console.error("Error signing out:", error);
-            }
-        }
-    }); else console.error("[ERROR] signOutBtn not found!");
+// Function to apply settings to UI
+async function applySettingsToUI() {
+    // Apply theme
+    document.body.className = `theme-${userSettings.theme}`;
 
-    if (emailAuthBtn) emailAuthBtn.addEventListener('click', handleSignIn); // Direct assignment, not dynamic
-    if (googleSignInBtn) googleSignInBtn.addEventListener('click', async () => {
-        // Defensive check for auth before using it
-        if (!auth) {
-            console.warn("[WARN] Google Sign-In: Firebase Auth not initialized.");
-            showAuthError("Authentication service not ready. Please try again.");
-            return;
-        }
-        const provider = new GoogleAuthProvider();
-        clearAuthError();
-        try {
-            const userCredential = await signInWithPopup(auth, provider);
-            const user = userCredential.user;
+    // Update toggles and selects
+    if (enableSoundEffectsToggle) enableSoundEffectsToggle.checked = userSettings.enableSoundEffects;
+    if (enableInspectionToggle) enableInspectionToggle.checked = userSettings.enableInspection;
+    if (cubeTypeSelect) cubeTypeSelect.value = userSettings.cubeType;
+    if (show3DCubeViewToggle) show3DCubeViewToggle.checked = userSettings.show3DCubeView;
+    if (wakeWordInput) wakeWordInput.value = userSettings.wakeWord;
 
-            if (db) { // Ensure db is initialized
-                const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
-                const docSnap = await getDoc(userProfileRef);
-                if (!docSnap.exists() || !docSnap.data().username) {
-                    const defaultUsername = user.displayName || (user.email ? user.email.split('@')[0] : 'GoogleUser');
-                    await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
-                    console.log(`[DEBUG] Default username saved for new Google user: ${defaultUsername}`);
-                }
-            }
-            if (authModal) authModal.classList.remove('open');
-            console.log("Signed in with Google.");
-        } catch (error) {
-            showAuthError(error.message);
-            console.error("Google sign-in error:", error);
-        }
-    }); else console.error("[ERROR] googleSignInBtn not found!");
+    // Regenerate scramble if cube type changed or 3D view toggle
+    scramble = generateScramble();
+    console.log("[DEBUG] UI settings applied and scramble regenerated.");
+    // Re-render history and update stats in case cubeType affects averages/display
+    renderSolveHistory();
+    console.log("[DEBUG] Exiting applySettingsToUI.");
+}
 
-    // Helper functions for auth
-    async function handleSignIn() {
-        // Defensive check for auth before using it
-        if (!auth) {
-            console.warn("[WARN] Email Sign-In: Firebase Auth not initialized.");
-            showAuthError("Authentication service not ready. Please try again.");
-            return;
-        }
-        const email = emailInput ? emailInput.value : '';
-        const password = passwordInput ? password.value : '';
-        clearAuthError();
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            if (authModal) authModal.classList.remove('open');
-            console.log("Signed in with email:", email);
-        } catch (error) {
-            showAuthError(error.message);
-            console.error("Email sign-in error:", error);
-        }
-    }
 
-    async function handleSignUp() {
-        // Defensive check for auth before using it
-        if (!auth) {
-            console.warn("[WARN] Email Sign-Up: Firebase Auth not initialized.");
-            showAuthError("Authentication service not ready. Please try again.");
-            return;
-        }
-        const email = emailInput ? emailInput.value : '';
-        const username = usernameInputField ? usernameInputField.value.trim() : '';
-        const password = passwordInput ? password.value : '';
-        clearAuthError();
-
-        if (!username) {
-            showAuthError("Please enter a username.");
-            return;
-        }
-
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            if (db) { // Ensure db is initialized
-                const userProfileRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile/data`);
-                await setDoc(userProfileRef, { username: username }, { merge: true });
-                console.log(`[DEBUG] Username saved for new email user: ${username}`);
-            }
-            if (authModal) authModal.classList.remove('open');
-            console.log("Signed up with email:", email, "Username:", username);
-        } catch (error) {
-            showAuthError(error.message);
-            console.error("Email sign-up error:", error);
-        }
+// --- Modals and Toasts ---
+function showAiInsightModal(message = "Generating insight...") {
+    if (aiInsightModal) {
+        insightMessageDisplay.textContent = message;
+        aiInsightModal.style.display = 'block';
+        aiInsightModal.setAttribute('aria-hidden', 'false');
     }
 }
 
-// --- Initialization on Window Load ---
-// This callback runs only after the entire DOM is loaded.
-window.onload = function () {
+function hideAiInsightModal() {
+    if (aiInsightModal) {
+        aiInsightModal.style.display = 'none';
+        aiInsightModal.setAttribute('aria-hidden', 'true');
+        spinner.style.display = 'none'; // Hide spinner
+        console.log("[DEBUG] AI Insight modal closed by button.");
+    }
+}
+
+function showSettingsModal() {
+    if (settingsModal) {
+        // Populate settings in the modal from current userSettings
+        if (themeSelect) themeSelect.value = userSettings.theme;
+        if (enableSoundEffectsToggle) enableSoundEffectsToggle.checked = userSettings.enableSoundEffects;
+        if (enableInspectionToggle) enableInspectionToggle.checked = userSettings.enableInspection;
+        if (cubeTypeSelect) cubeTypeSelect.value = userSettings.cubeType;
+        if (show3DCubeViewToggle) show3DCubeViewToggle.checked = userSettings.show3DCubeView;
+        if (wakeWordInput) wakeWordInput.value = userSettings.wakeWord;
+
+        settingsModal.style.display = 'block';
+        settingsModal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function hideSettingsModal() {
+    if (settingsModal) {
+        settingsModal.style.display = 'none';
+        settingsModal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+
+function showToast(message, type = 'info', duration = 3000) {
+    if (!toastContainer) {
+        console.warn("[WARN] Toast container not found.");
+        return;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`; // 'toast info', 'toast success', 'toast error', 'toast warning'
+    toast.textContent = message;
+    toastContainer.appendChild(toast);
+
+    // Auto-hide after duration
+    setTimeout(() => {
+        toast.remove();
+    }, duration);
+}
+
+function showPenaltyButtons() {
+    if (penaltyButtons) {
+        penaltyButtons.style.display = 'flex'; // Use flex to show
+    }
+}
+
+function hidePenaltyButtons() {
+    if (penaltyButtons) {
+        penaltyButtons.style.display = 'none'; // Hide buttons
+    }
+}
+
+
+// --- Sound Effects (Tone.js) ---
+let startSound, stopSound, inspectionBeep, goSound;
+
+function initializeSound() {
+    // Define the synths only once
+    startSound = new Tone.MembraneSynth().toDestination();
+    stopSound = new Tone.MetalSynth().toDestination();
+    inspectionBeep = new Tone.Synth({
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.1 }
+    }).toDestination();
+    goSound = new Tone.Synth({
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.05, decay: 0.1, sustain: 0.0, release: 0.1 }
+    }).toDestination();
+
+    console.log("[DEBUG] Tone.js startSound initialized.");
+    console.log("[DEBUG] Tone.js stopSound initialized.");
+    console.log("[DEBUG] Tone.js inspectionBeep initialized.");
+    console.log("[DEBUG] Tone.js goSound initialized.");
+}
+
+
+// --- Initialize Application on Window Load ---
+window.onload = async () => {
     console.log("[DEBUG] window.onload triggered. Initializing DOM elements and listeners.");
 
-    // CRITICAL FIX: Call setupEventListeners FIRST to ensure all DOM elements are assigned
-    // to their global variables before any other function attempts to use them.
-    setupEventListeners(); // Attaches all event listeners and assigns global DOM element variables.
+    // Initialize Tone.js sounds
+    initializeSound();
+    console.log("[DEBUG] Initial settings variables set.");
 
-    // Now that DOM elements are assigned, proceed with other initializations.
+    setupEventListeners(); // Attaches all event listeners and assigns global DOM element variables.
+    domElementsReady = true; // Set the flag to indicate DOM elements are ready
+
+    // Initialize core features that need DOM elements ready
     scramble = generateScramble(); // Generates initial scramble and updates displays
-    // The previous error "scrambleDisplay is not defined" should now be resolved.
 
     // Attempt to initialize user data and settings now that DOM is ready.
     // This function itself checks if Firebase Auth is also ready.
-    initializeUserDataAndSettings();
+    await initializeUserDataAndSettings(); // Use await here
 
     // Start continuous listening for wake word if Web Speech API is supported
     if (recognition) {
@@ -2640,16 +1292,11 @@ window.onload = function () {
             attemptRestartRecognition(); // Use the controlled restart for initial start
         } catch (e) {
             console.error("[ERROR] Initial recognition.start() failed:", e);
-            // This can happen if microphone is not available or permissions are denied initially.
-            // The onerror will likely catch this and log/handle it.
         }
     } else {
         console.warn("[WARN] Web Speech API not supported, cannot start continuous listening.");
-        updateVoiceFeedbackDisplay("Voice commands not supported by browser.", false, true);
     }
-
-    // Set the flag to indicate DOM elements are ready (after setupEventListeners)
-    domElementsReady = true;
 
     console.log("[DEBUG] window.onload complete. Application should now be fully initialized.");
 };
+
