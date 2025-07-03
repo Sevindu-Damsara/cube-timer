@@ -14,30 +14,7 @@ console.log("[DEBUG] Firebase imports completed.");
 // Go to Firebase Console -> Firestore Database -> Rules tab, and REPLACE the content with this:
 /*
 rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Rule for private user data: Allows read/write only if the user is authenticated
-    // and the 'userId' in the path matches their authenticated UID.
-    // This now only applies to explicitly signed-in users.
-    match /artifacts/{appId}/users/{userId}/{document=**} {
-      allow read, write: if request.auth.uid == userId;
-    }
-
-    // Public artifacts collection (e.g., app metadata) - allow all reads
-    // No explicit write rule here, as these are assumed to be managed by an admin SDK
-    match /artifacts/{appId}/public/{document=**} {
-      allow read: if true;
-    }
-
-    // Rules for 'solves' subcollection.
-    // Allow users to read/write their own solves.
-    // This structure assumes solves are directly under a user's document
-    // For example: /artifacts/YOUR_APP_ID/users/YOUR_UID/solves/SOLVE_ID
-    match /artifacts/{appId}/users/{userId}/solves/{solveId} {
-      allow read, write: if request.auth.uid == userId;
-    }
-  }
-}
+service cloud.firestore {\n  match /databases/{database}/documents {\n    // Rule for private user data: Allows read/write only if the user is authenticated\n    // and the 'userId' in the path matches their authenticated UID.\n    // This now only applies to explicitly signed-in users.\n    match /artifacts/{appId}/users/{userId}/{document=**} {\n      allow read, write: if request.auth.uid == userId;\n    }\n\n    // Public artifacts collection (e.g., app metadata) - allow all reads\n    // No explicit write rule here, as these are assumed to be managed by an admin SDK\n    match /artifacts/{appId}/public/{document=**} {\n      allow read: if true;\n    }\n\n    // Rules for 'solves' subcollection.\n    // Allow users to read/write their own solves.\n    // This structure assumes solves are directly under a user's document\n    // For example: /artifacts/YOUR_APP_ID/users/YOUR_UID/solves/SOLVE_ID\n    match /artifacts/{appId}/users/{userId}/solves/{solveId} {\n      allow read, write: if request.auth.uid == userId;\n    }\n  }\n}
 */
 // =====================================================================================================
 
@@ -122,6 +99,7 @@ let userEmailDisplay;
 let aiInsightModal, closeAiInsightModal, aiInsightContent, insightMessageDisplay, optimalSolutionDisplay, optimalSolutionText, personalizedTipDisplay, personalizedTipText;
 let settingsModal, closeSettingsModal, openSettingsModal, themeSelect, enableSoundEffectsToggle, enableInspectionToggle, cubeTypeSelect, show3DCubeViewToggle, wakeWordInput, saveSettingsBtn;
 let toastContainer; // For showing toasts
+let spinner; // Spinner element, will be assigned in setupEventListeners
 
 // --- User Settings and Local Storage ---
 let userSettings = {
@@ -294,7 +272,7 @@ async function getAiInsight(solveId, scramble, cubeType, solveTimeMs, penalty) {
     insightMessageDisplay.textContent = "Generating insight...";
     optimalSolutionDisplay.style.display = 'none';
     personalizedTipDisplay.style.display = 'none';
-    spinner.style.display = 'block'; // Show spinner
+    if (spinner) spinner.style.display = 'block'; // Show spinner
 
     const userLevel = determineUserLevel(cubeType, solveTimeMs);
     console.log(`[DEBUG] Determining user level for ${cubeType} solve time: ${solveTimeMs}ms`);
@@ -329,7 +307,7 @@ async function getAiInsight(solveId, scramble, cubeType, solveTimeMs, penalty) {
 
         // Update modal content
         insightMessageDisplay.textContent = data.insight || "No general insight provided.";
-        spinner.style.display = 'none'; // Hide spinner
+        if (spinner) spinner.style.display = 'none'; // Hide spinner
 
         if (data.optimalSolution) {
             optimalSolutionText.textContent = data.optimalSolution;
@@ -351,7 +329,7 @@ async function getAiInsight(solveId, scramble, cubeType, solveTimeMs, penalty) {
     } catch (error) {
         console.error("[ERROR] Error fetching AI insight:", error);
         insightMessageDisplay.textContent = `Failed to generate insight: ${error.message}. Please try again later.`;
-        spinner.style.display = 'none'; // Hide spinner
+        if (spinner) spinner.style.display = 'none'; // Hide spinner
         showToast("Failed to generate AI Insight.", "error");
     } finally {
         console.log("[DEBUG] AI Insight generation process completed.");
@@ -488,22 +466,25 @@ function startRecognitionAfterDelay() {
     // If already recognizing, or if a start cycle is in progress, skip.
     if (recognition.recognizing || isStartingRecognition) {
         console.warn("[WARN] Recognition is already recognizing or starting, skipping new start attempt.");
-        isStartingRecognition = false; // Ensure flag is reset if stuck
+        // isStartingRecognition = false; // Ensure flag is reset if stuck - REMOVED, as it's reset in onend/onerror
         return;
     }
 
+    isStartingRecognition = true; // Set flag to prevent re-entry
+
     // Temporarily clear onend/onerror to avoid unexpected behavior during start cycle
     // These will be re-assigned in recognition.onstart or after successful start.
-    const originalOnEnd = recognition.onend; // Store to potentially restore if needed, though onend is reassigned in start
-    const originalOnError = recognition.onerror;
-    recognition.onend = null;
-    recognition.onerror = null;
+    // NOTE: This pattern of clearing and re-assigning handlers can be tricky.
+    // The current onend/onerror handlers are designed to manage the restart.
+    // Let's rely on their logic, and only clear if absolutely necessary.
+    // For now, I'll keep the existing onend/onerror logic which handles the restart.
+    // The `recognitionStopInitiated` flag is key.
 
     setTimeout(() => {
         try {
             recognition.start();
             isListeningForVoice = true; // Indicate active listening
-            isStartingRecognition = false; // Reset start flag
+            // isStartingRecognition = false; // Reset start flag - handled by onstart
             awaitingActualCommand = false; // Ensure not in command mode initially
             console.log("[DEBUG] Voice recognition STARTED. recognition.readyState:", recognition.readyState);
             // onstart/onend/onerror handlers are now managed by the main recognition block
@@ -573,7 +554,7 @@ async function processVoiceCommandWithGemini(transcript) {
         const data = await response.json();
         console.log("[DEBUG] Gemini NLU response:", data);
 
-        const { canonicalCommand, commandValue, confidence } = data;
+        const { canonicalCommand, commandValue, confidence, query } = data; // Added 'query'
 
         if (confidence < 0.7) { // Set a confidence threshold
             speakAsJarvis("Pardon me, Sir Sevindu. I did not fully comprehend your instruction. Please try again.");
@@ -593,6 +574,15 @@ async function processVoiceCommandWithGemini(transcript) {
 
         // Handle recognized commands
         switch (canonicalCommand) {
+            case 'general_query':
+                if (query) { // Use 'query' from NLU response
+                    speakAsJarvis("Processing your query, Sir Sevindu.");
+                    const answer = await getGeneralAnswer(query); // New function to call insight endpoint
+                    speakAsJarvis(answer);
+                } else {
+                    speakAsJarvis("Pardon me, Sir Sevindu. I received a general query but no specific question.");
+                }
+                break;
             case 'set_cube_type':
                 if (commandValue) {
                     userSettings.cubeType = commandValue;
@@ -679,6 +669,45 @@ async function processVoiceCommandWithGemini(transcript) {
         // or directly by startRecognitionAfterDelay if speakAsJarvis doesn't speak.
     }
 }
+
+// NEW FUNCTION: To get general answers from the insight endpoint
+async function getGeneralAnswer(query) {
+    console.log(`[DEBUG] Requesting general answer for query: "${query}"`);
+    const payload = {
+        type: "general_query", // New type for general questions
+        query: query
+    };
+
+    try {
+        const response = await fetch('/api/gemini-insight', { // Use the insight endpoint
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[ERROR] General query Cloud Function error:", response.status, errorText);
+            throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log("[DEBUG] General query Cloud Function raw response:", data);
+
+        if (data.answer) {
+            return data.answer;
+        } else {
+            return "Pardon me, Sir Sevindu. I could not find a specific answer to that query.";
+        }
+
+    } catch (error) {
+        console.error("[ERROR] Error fetching general answer:", error);
+        return `Sir Sevindu, I encountered an error retrieving that information: ${error.message}.`;
+    }
+}
+
 
 // Function for Jarvis to speak
 async function speakAsJarvis(text) {
@@ -1063,7 +1092,7 @@ function setupEventListeners() {
     wakeWordInput = document.getElementById('wakeWordInput');
     saveSettingsBtn = document.getElementById('saveSettingsBtn');
     toastContainer = document.getElementById('toast-container');
-    spinner = document.querySelector('.spinner'); // Assuming a spinner element exists
+    spinner = document.querySelector('.spinner'); // Safely assign spinner here
 
     // Event Listeners for Timer and Spacebar
     document.addEventListener('keydown', (e) => {
@@ -1186,7 +1215,7 @@ function hideAiInsightModal() {
     if (aiInsightModal) {
         aiInsightModal.style.display = 'none';
         aiInsightModal.setAttribute('aria-hidden', 'true');
-        spinner.style.display = 'none'; // Hide spinner
+        if (spinner) spinner.style.display = 'none'; // Hide spinner
         console.log("[DEBUG] AI Insight modal closed by button.");
     }
 }
