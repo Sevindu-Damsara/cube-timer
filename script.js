@@ -14,7 +14,10 @@ console.log("[DEBUG] Firebase imports completed.");
 // Go to Firebase Console -> Firestore Database -> Rules tab, and REPLACE the content with this:
 /*
 rules_version = '2';
-service cloud.firestore {\n  match /databases/{database}/documents {\n    // Rule for private user data: Allows read/write only if the user is authenticated\n    // and the 'userId' in the path matches their authenticated UID.\n    // This now only applies to explicitly signed-in users.\n    match /artifacts/{appId}/users/{userId}/{document=**} {\n      allow read, write: if request.auth.uid == userId;\n    }\n\n    // Public artifacts collection (e.g., app metadata) - allow all reads\n    // No explicit write rule here, as these are assumed to be managed by an admin SDK\n    match /artifacts/{appId}/public/{document=**} {\n      allow read: if true;\n    }\n\n    // Rules for 'solves' subcollection.\n    // Allow users to read/write their own solves.\n    // This structure assumes solves are directly under a user's document\n    // For example: /artifacts/YOUR_APP_ID/users/YOUR_UID/solves/SOLVE_ID\n    match /artifacts/{appId}/users/{userId}/solves/{solveId} {\n      allow read, write: if request.auth.uid == userId;\n    }\n  }\n}
+service cloud.firestore {\n  match /databases/{database}/documents {\n    // Rule for private user data: Allows read/write only if the user is authenticated\n    // and the 'userId' in the path matches their authenticated UID.\n    // This now only applies to explicitly signed-in users.\n    match /artifacts/{appId}/users/{userId}/{document=**} {\n      allow read, write: if request.auth.uid == userId;\n    }\n\n    // Public artifacts collection (e.g., app metadata) - allow all reads\n    // No explicit write rule here, as these are assumed to be managed by an admin SDK\n    match /artifacts/{appId}/public/{document=**} {\n      allow read: if true;\n    }\n\n    // Rules for 'solves' subcollection.\n    // Allow users to read/write their own solves.
+    // This structure assumes solves are directly under a user's document
+    // For example: /artifacts/YOUR_APP_ID/users/YOUR_UID/solves/SOLVE_ID
+    match /artifacts/{appId}/users/{userId}/solves/{solveId} {\n      allow read, write: if request.auth.uid == userId;\n    }\n  }\n}
 */
 // =====================================================================================================
 
@@ -86,6 +89,7 @@ let awaitingActualCommand = false; // Flag for command mode, true after wake wor
 let recognitionStopInitiated = false; // Flag to manage recognition stop/start cycle
 let isStartingRecognition = false; // Flag to prevent multiple start calls
 let domElementsReady = false; // Flag to indicate if DOM elements are ready for manipulation
+let shouldBeListeningContinuously = false; // NEW: Flag to control overall continuous listening
 
 // DOM elements - assigned in setupEventListeners
 let timerDisplay;
@@ -93,13 +97,22 @@ let scrambleDisplay;
 let scramble3DViewer; // Using cubing.net's twisty player
 let ao5Display, ao12Display, bestTimeDisplay, solveCountDisplay;
 let solveHistoryList;
-let penaltyButtons;
+let penaltyButtons; // Global penalty buttons container
 let signInBtn, signUpBtn, signOutBtn;
 let userEmailDisplay;
 let aiInsightModal, closeAiInsightModal, aiInsightContent, insightMessageDisplay, optimalSolutionDisplay, optimalSolutionText, personalizedTipDisplay, personalizedTipText;
 let settingsModal, closeSettingsModal, openSettingsModal, themeSelect, enableSoundEffectsToggle, enableInspectionToggle, cubeTypeSelect, show3DCubeViewToggle, wakeWordInput, saveSettingsBtn;
 let toastContainer; // For showing toasts
 let spinner; // Spinner element, will be assigned in setupEventListeners
+
+// Chat elements (NEW)
+let chatModal;
+let closeChatModal;
+let chatHistory;
+let chatInput;
+let chatSendBtn;
+let openChatBtn;
+
 
 // --- User Settings and Local Storage ---
 let userSettings = {
@@ -260,7 +273,8 @@ function saveSolvesToLocalStorage() {
     try {
         localStorage.setItem('solves', JSON.stringify(solves));
         console.log("[DEBUG] Solves saved to local storage.");
-    } catch (e) {
+    }
+    catch (e) {
         console.error("[ERROR] Failed to save solves to local storage:", e);
     }
 }
@@ -360,7 +374,9 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
     // Event listeners for recognition
     recognition.onstart = () => {
         console.log("[DEBUG] Voice recognition ONSTART triggered.");
-        // isListeningForVoice = true; // This is set by startRecognitionAfterDelay
+        isListeningForVoice = true; // Now actively listening
+        isStartingRecognition = false; // Reset flag as start was attempted
+        awaitingActualCommand = false; // Ensure not in command mode initially
     };
 
     recognition.onresult = (event) => {
@@ -417,13 +433,17 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
         console.log("[DEBUG] Voice recognition ONEND triggered.");
         isListeningForVoice = false;
         isStartingRecognition = false; // Recognition cycle completed
-        if (!recognitionStopInitiated) {
-            // Only restart if it stopped naturally (not by explicit stop() call)
-            console.log("[DEBUG] Recognition ended naturally. Attempting restart.");
-            attemptRestartRecognition(); // Auto-restart continuous listening
+
+        const wasProgrammaticStop = recognitionStopInitiated; // Capture before resetting
+        recognitionStopInitiated = false; // Reset flag for the next cycle
+
+        // If it was a programmatic stop, and we want continuous listening, restart it now.
+        // If it was a natural stop (e.g., no speech), also restart for continuous listening.
+        if (shouldBeListeningContinuously) {
+            console.log("[DEBUG] Recognition ended. Scheduling restart for continuous listening.");
+            attemptRestartRecognition(); // This will manage the next start
         } else {
-            console.log("[DEBUG] Recognition ended due to explicit stop. Not auto-restarting.");
-            recognitionStopInitiated = false; // Reset flag
+            console.log("[DEBUG] Recognition ended. Continuous listening is not enabled. Not restarting.");
         }
     };
 
@@ -461,44 +481,6 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
 
 let commandTimeout; // To store the timeout ID for exiting command mode
 
-// NEW HELPER FUNCTION: Centralized logic to start recognition after state checks
-function startRecognitionAfterDelay() {
-    // If already recognizing, or if a start cycle is in progress, skip.
-    if (recognition.recognizing || isStartingRecognition) {
-        console.warn("[WARN] Recognition is already recognizing or starting, skipping new start attempt.");
-        // isStartingRecognition = false; // Ensure flag is reset if stuck - REMOVED, as it's reset in onend/onerror
-        return;
-    }
-
-    isStartingRecognition = true; // Set flag to prevent re-entry
-
-    // Temporarily clear onend/onerror to avoid unexpected behavior during start cycle
-    // These will be re-assigned in recognition.onstart or after successful start.
-    // NOTE: This pattern of clearing and re-assigning handlers can be tricky.
-    // The current onend/onerror handlers are designed to manage the restart.
-    // Let's rely on their logic, and only clear if absolutely necessary.
-    // For now, I'll keep the existing onend/onerror logic which handles the restart.
-    // The `recognitionStopInitiated` flag is key.
-
-    setTimeout(() => {
-        try {
-            recognition.start();
-            isListeningForVoice = true; // Indicate active listening
-            // isStartingRecognition = false; // Reset start flag - handled by onstart
-            awaitingActualCommand = false; // Ensure not in command mode initially
-            console.log("[DEBUG] Voice recognition STARTED. recognition.readyState:", recognition.readyState);
-            // onstart/onend/onerror handlers are now managed by the main recognition block
-            // and should handle state transitions.
-        } catch (e) {
-            console.error("[ERROR] Failed to start recognition after delay:", e);
-            isStartingRecognition = false; // Reset flag on failure
-            recognitionStopInitiated = false; // Reset flag
-            speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
-        }
-    }, 150); // Small delay to ensure previous state is cleared
-}
-
-
 // MODIFIED: attemptRestartRecognition function to robustly manage the lifecycle
 async function attemptRestartRecognition() {
     if (!recognition) {
@@ -507,7 +489,7 @@ async function attemptRestartRecognition() {
     }
 
     if (isStartingRecognition) {
-        console.log("[DEBUG] Skipping attemptRestartRecognition as a cycle is already in progress.");
+        console.log("[DEBUG] Skipping attemptRestartRecognition as a start cycle is already in progress.");
         return;
     }
 
@@ -519,14 +501,44 @@ async function attemptRestartRecognition() {
                 ", recognition.listening=" + recognition.listening +
                 ", recognitionStopInitiated=" + recognitionStopInitiated);
 
-    if (recognition.recognizing) {
-        console.log("[DEBUG] Recognition is currently active. Stopping before restart.");
+    // If recognition is currently active or connecting, stop it cleanly first.
+    // This will trigger the 'onend' event, which will then call startRecognitionAfterDelay
+    // after the state transitions to 'idle'.
+    if (recognition.recognizing || recognition.readyState === 'connecting' || recognition.readyState === 'listening') {
+        console.log("[DEBUG] Recognition is currently active or connecting. Stopping before restart.");
         recognitionStopInitiated = true; // Flag that we initiated the stop
-        recognition.stop(); // This will trigger the 'onend' event, which then calls startRecognitionAfterDelay
+        recognition.stop();
     } else {
-        console.log("[DEBUG] Recognition is not active. Attempting to start directly or after a brief pause.");
-        startRecognitionAfterDelay(); // Direct start or schedule start
+        // If recognition is already idle, attempt to start directly.
+        console.log("[DEBUG] Recognition is not active. Attempting to start directly.");
+        startRecognitionAfterDelay();
     }
+}
+
+// NEW HELPER FUNCTION: Centralized logic to start recognition after state checks
+function startRecognitionAfterDelay() {
+    setTimeout(() => {
+        try {
+            // Only start if the state is truly 'idle'
+            if (recognition.readyState === 'idle' || recognition.readyState === undefined) {
+                recognition.start();
+                isListeningForVoice = true; // Now actively listening
+                isStartingRecognition = false; // Reset flag as start was attempted
+                awaitingActualCommand = false; // Ensure not in command mode initially
+                console.log("[DEBUG] Voice recognition STARTED successfully.");
+            } else {
+                console.warn(`[WARN] Recognition not in 'idle' state (${recognition.readyState}) after delay. Retrying clean up.`);
+                // If it's still not idle, force abort and let onend handle the next restart
+                recognitionStopInitiated = true;
+                recognition.abort();
+            }
+        } catch (e) {
+            console.error("[ERROR] Failed to start recognition after delay:", e);
+            isStartingRecognition = false;
+            recognitionStopInitiated = false;
+            speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
+        }
+    }, 250); // Increased delay to 250ms for more stability
 }
 
 
@@ -750,18 +762,15 @@ async function speakAsJarvis(text) {
     utterance.onend = () => {
         console.log("[DEBUG] SpeechSynthesis ended.");
         // Re-enable recognition listening if it was active before Jarvis spoke
-        if (recognition) {
-            console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition.");
-            // If recognition was stopped specifically for speech, its onend will fire,
-            // which should then trigger attemptRestartRecognition.
-            // If it wasn't active, we still want to ensure it restarts if we're in continuous listening mode.
-            attemptRestartRecognition();
+        if (shouldBeListeningContinuously) {
+            console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition for continuous listening.");
+            attemptRestartRecognition(); // This will now handle the state transition
         }
     };
 
     utterance.onerror = (event) => {
         console.error("[ERROR] Speech synthesis error:", event.error);
-        if (recognition) {
+        if (shouldBeListeningContinuously) {
             console.log("[DEBUG] SpeechSynthesis error. Attempting to restart SpeechRecognition.");
             attemptRestartRecognition();
         }
@@ -1068,7 +1077,7 @@ function setupEventListeners() {
     bestTimeDisplay = document.getElementById('bestTimeDisplay');
     solveCountDisplay = document.getElementById('solveCountDisplay');
     solveHistoryList = document.getElementById('solveHistoryList');
-    penaltyButtons = document.getElementById('penaltyButtons');
+    penaltyButtons = document.getElementById('penaltyButtons'); // Global penalty buttons container
     signInBtn = document.getElementById('signInBtn');
     signUpBtn = document.getElementById('signUpBtn');
     signOutBtn = document.getElementById('signOutBtn');
@@ -1093,6 +1102,15 @@ function setupEventListeners() {
     saveSettingsBtn = document.getElementById('saveSettingsBtn');
     toastContainer = document.getElementById('toast-container');
     spinner = document.querySelector('.spinner'); // Safely assign spinner here
+
+    // Chat elements (NEW)
+    chatModal = document.getElementById('chatModal');
+    closeChatModal = document.getElementById('closeChatModal');
+    chatHistory = document.getElementById('chatHistory');
+    chatInput = document.getElementById('chatInput');
+    chatSendBtn = document.getElementById('chatSendBtn');
+    openChatBtn = document.getElementById('openChatBtn');
+
 
     // Event Listeners for Timer and Spacebar
     document.addEventListener('keydown', (e) => {
@@ -1123,16 +1141,22 @@ function setupEventListeners() {
         }
     });
 
-    // Event Listeners for Penalty Buttons
-    document.getElementById('plus2Btn').addEventListener('click', () => {
+    // Event Listeners for Penalty Buttons (now targeting the static elements)
+    const plus2Btn = document.getElementById('plus2Btn');
+    const dnfBtn = document.getElementById('dnfBtn');
+    const resetPenaltyBtn = document.getElementById('resetPenaltyBtn');
+
+    if (plus2Btn) plus2Btn.addEventListener('click', () => {
         penalty = 2;
         showToast("Next solve will have +2 penalty.", "info");
+        showPenaltyButtons(); // Ensure penalty buttons are visible
     });
-    document.getElementById('dnfBtn').addEventListener('click', () => {
+    if (dnfBtn) dnfBtn.addEventListener('click', () => {
         penalty = 'DNF';
         showToast("Next solve will be DNF.", "info");
+        showPenaltyButtons(); // Ensure penalty buttons are visible
     });
-    document.getElementById('resetPenaltyBtn').addEventListener('click', () => {
+    if (resetPenaltyBtn) resetPenaltyBtn.addEventListener('click', () => {
         penalty = null;
         showToast("Penalty reset.", "info");
         hidePenaltyButtons();
@@ -1178,6 +1202,17 @@ function setupEventListeners() {
         saveUserData();
         showToast("Settings saved!", "success");
         hideSettingsModal();
+    });
+
+    // Chat Modal Listeners (NEW)
+    if (openChatBtn) openChatBtn.addEventListener('click', showChatModal);
+    if (closeChatModal) closeChatModal.addEventListener('click', hideChatModal);
+    if (chatSendBtn) chatSendBtn.addEventListener('click', handleChatInput);
+    if (chatInput) chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { // Allow Shift+Enter for new line
+            e.preventDefault();
+            handleChatInput();
+        }
     });
 }
 
@@ -1239,6 +1274,55 @@ function hideSettingsModal() {
     if (settingsModal) {
         settingsModal.style.display = 'none';
         settingsModal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+// Chat Modal Functions (NEW)
+function showChatModal() {
+    if (chatModal) {
+        chatModal.style.display = 'flex'; // Use flex for modal layout
+        chatModal.setAttribute('aria-hidden', 'false');
+        if (chatHistory) chatHistory.scrollTop = chatHistory.scrollHeight; // Scroll to bottom
+        if (chatInput) chatInput.focus(); // Focus input
+    }
+}
+
+function hideChatModal() {
+    if (chatModal) {
+        chatModal.style.display = 'none';
+        chatModal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function addMessageToChat(sender, message, isJarvis = false) {
+    if (!chatHistory) {
+        console.warn("Chat history element not found.");
+        return;
+    }
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message', isJarvis ? 'jarvis-message' : 'user-message');
+
+    const senderSpan = document.createElement('span');
+    senderSpan.classList.add('font-bold', isJarvis ? 'text-indigo-400' : 'text-green-400');
+    senderSpan.textContent = `${sender}: `;
+
+    const messageText = document.createTextNode(message);
+
+    messageElement.appendChild(senderSpan);
+    messageElement.appendChild(messageText);
+    chatHistory.appendChild(messageElement);
+
+    chatHistory.scrollTop = chatHistory.scrollHeight; // Scroll to bottom
+}
+
+async function handleChatInput() {
+    const message = chatInput.value.trim();
+    if (message) {
+        addMessageToChat('You', message, false);
+        chatInput.value = ''; // Clear input
+
+        // Process chat input using the same NLU as voice commands
+        await processVoiceCommandWithGemini(message);
     }
 }
 
@@ -1316,6 +1400,7 @@ window.onload = async () => {
 
     // Start continuous listening for wake word if Web Speech API is supported
     if (recognition) {
+        shouldBeListeningContinuously = true; // Enable continuous listening
         try {
             console.log("[DEBUG] Initial SpeechRecognition.start() called for continuous wake word listening via attemptRestartRecognition.");
             attemptRestartRecognition(); // Use the controlled restart for initial start
