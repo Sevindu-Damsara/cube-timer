@@ -444,6 +444,16 @@ let voiceCommandBtn; // New
 let voiceFeedbackDisplay; // NEW: Element for voice feedback
 let voiceListeningText;   // NEW: Text inside voice feedback
 let voiceListeningIndicator; // NEW: Indicator dots
+let voiceLiveTranscript; // NEW: Element to show live recognized text
+
+// Chatbox elements
+let chatModal;
+let closeChatModalBtn;
+let chatHistoryDisplay;
+let chatInput;
+let chatSendBtn;
+let openChatBtn;
+
 
 let isListeningForVoice = false; // New state for voice recognition (global continuous listening)
 let awaitingActualCommand = false; // New state: true after wake word, waiting for command
@@ -466,12 +476,13 @@ const synth = window.speechSynthesis;
 
 /**
  * Updates the visual voice feedback display.
- * @param {string} text - The text to display.
+ * @param {string} text - The main text to display (e.g., "Listening for 'Jarvis'...").
  * @param {boolean} showIndicator - Whether to show the bouncing dots indicator.
  * @param {boolean} showDisplay - Whether to show or hide the entire display.
- * @param {boolean} isSpeaking - NEW: Whether Jarvis is currently speaking (for speaking animation).
+ * @param {boolean} isSpeaking - Whether Jarvis is currently speaking (for speaking animation).
+ * @param {string} [liveTranscriptText] - Optional: The live, interim recognized text from the user.
  */
-function updateVoiceFeedbackDisplay(text, showIndicator, showDisplay, isSpeaking = false) {
+function updateVoiceFeedbackDisplay(text, showIndicator, showDisplay, isSpeaking = false, liveTranscriptText = '') {
     if (voiceFeedbackDisplay) {
         if (showDisplay) {
             voiceFeedbackDisplay.classList.add('listening-active');
@@ -491,6 +502,16 @@ function updateVoiceFeedbackDisplay(text, showIndicator, showDisplay, isSpeaking
     }
     if (voiceListeningIndicator) {
         voiceListeningIndicator.style.display = showIndicator ? 'flex' : 'none';
+    }
+    // NEW: Update live transcript display
+    if (voiceLiveTranscript) {
+        if (liveTranscriptText) {
+            voiceLiveTranscript.textContent = liveTranscriptText;
+            voiceLiveTranscript.style.display = 'block';
+        } else {
+            voiceLiveTranscript.textContent = '';
+            voiceLiveTranscript.style.display = 'none';
+        }
     }
 }
 
@@ -688,7 +709,7 @@ const recognitionOnErrorHandler = (event) => {
 
 if (recognition) {
     recognition.continuous = true; // IMPORTANT: Enable continuous listening for wake word
-    recognition.interimResults = false; // Only return final results
+    recognition.interimResults = true; // NEW: Enable interim results for live display
     recognition.lang = 'en-US'; // Set language
 
     // Assign initial handlers
@@ -704,58 +725,64 @@ if (recognition) {
             recognitionRestartTimeoutId = null;
         }
         // Update voice feedback display
-        updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
+        updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true, false, ""); // Clear live transcript on start
     };
 
     recognition.onresult = (event) => {
         console.log("[DEBUG] Voice recognition ONRESULT triggered. Current awaitingActualCommand:", awaitingActualCommand);
         // Log full event.results for debugging
-        console.log("[DEBUG] Full event.results:", event.results);
+        // console.log("[DEBUG] Full event.results:", event.results); // Too verbose for continuous logging
 
-        // Extract transcript from last result
-        let transcript = '';
-        try {
-            transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-        } catch (e) {
-            console.warn("[WARN] Failed to extract transcript from event.results:", e);
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
         }
 
-        if (!transcript) {
-            console.log("[DEBUG] Transcript is empty or undefined.");
-        } else {
-            console.log(`[DEBUG] Raw voice transcript: "${transcript}"`);
+        const currentLiveTranscript = finalTranscript || interimTranscript; // Prioritize final if available
+        if (currentLiveTranscript) {
+            console.log(`[DEBUG] Live Transcript: "${currentLiveTranscript.trim()}"`);
+            updateVoiceFeedbackDisplay(
+                awaitingActualCommand ? "Command ready..." : "Listening for 'Jarvis'...",
+                true, true, false, currentLiveTranscript.trim()
+            );
         }
 
-        if (commandTimeoutId) {
-            console.log("[DEBUG] Clearing existing command timeout on new transcript.");
-            clearTimeout(commandTimeoutId);
-            commandTimeoutId = null;
-        }
+        if (finalTranscript) {
+            console.log(`[DEBUG] Final voice transcript: "${finalTranscript.toLowerCase().trim()}"`);
 
-        // IMPORTANT CHANGE: If awaitingActualCommand is true, process it directly.
-        // Otherwise, check for wake word.
-        if (awaitingActualCommand) {
-            console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
-            updateVoiceFeedbackDisplay("Processing command...", false, true); // Show processing message
-            // No recognition.stop() here. The continuous listener remains active.
-            awaitingActualCommand = false; // Reset command mode after receiving a command
-            setTimeout(() => processVoiceCommandWithGemini(transcript), 50);
-            console.log("[DEBUG] AwaitingActualCommand set to FALSE after command processing.");
-        } else if (transcript.includes('jarvis')) {
-            console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
-            speakAsJarvis("At your service, Sir Sevindu. Your command?");
-            updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
-            awaitingActualCommand = true;
-            commandTimeoutId = setTimeout(() => {
-                awaitingActualCommand = false;
-                speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
-                console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
-                // No recognition.stop() here. The continuous listener remains active.
-            }, 10000); // Increased timeout to 10 seconds for command input
-        } else {
-            console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
-            updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true); // Ensure display is consistent
+            if (commandTimeoutId) {
+                console.log("[DEBUG] Clearing existing command timeout on new final transcript.");
+                clearTimeout(commandTimeoutId);
+                commandTimeoutId = null;
+            }
+
+            if (awaitingActualCommand) {
+                console.log("[DEBUG] Awaiting command mode is TRUE: Processing final transcript as command.");
+                updateVoiceFeedbackDisplay("Processing command...", false, true); // Show processing message
+                awaitingActualCommand = false; // Reset command mode after receiving a command
+                setTimeout(() => processVoiceCommandWithGemini(finalTranscript.toLowerCase().trim()), 50);
+                console.log("[DEBUG] AwaitingActualCommand set to FALSE after command processing.");
+            } else if (finalTranscript.toLowerCase().includes('jarvis')) {
+                console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
+                speakAsJarvis("At your service, Sir Sevindu. Your command?");
+                updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
+                awaitingActualCommand = true;
+                commandTimeoutId = setTimeout(() => {
+                    awaitingActualCommand = false;
+                    speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
+                    console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
+                }, 10000); // Increased timeout to 10 seconds for command input
+            } else {
+                console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
+                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true); // Ensure display is consistent
+            }
         }
     };
 
@@ -780,6 +807,7 @@ if (recognition) {
  */
 function speakAsJarvis(text) {
     console.log(`[DEBUG] speakAsJarvis called with text: "${text}"`);
+    addMessageToChat('Jarvis', text, true); // Add Jarvis's response to chatbox
 
     // Prevent overlapping speech
     if (synth.speaking) {
@@ -1431,7 +1459,7 @@ function updateStatistics() {
     ao12Display.textContent = calculateAverage(solves, 12);
     console.log(`[DEBUG] Statistics: Ao12: ${ao12Display.textContent}`);
     solveCountDisplay.textContent = solves.length;
-    console.log(`[DEBUG] Statistics: Solve Count: ${solves.length}`);
+    console.log("[DEBUG] Statistics: Solve Count: ${solves.length}");
     console.log("[DEBUG] Exiting updateStatistics.");
 }
 
@@ -1968,6 +1996,73 @@ function resetTimer() {
     scramble = generateScramble(); // Updates both text and 3D
 }
 
+// --- Chatbox Functions (NEW) ---
+/**
+ * Adds a message to the chat history display.
+ * @param {string} sender - 'User' or 'Jarvis'.
+ * @param {string} message - The message text.
+ * @param {boolean} isJarvis - True if the message is from Jarvis, false for user.
+ */
+function addMessageToChat(sender, message, isJarvis = false) {
+    if (!chatHistoryDisplay) {
+        console.warn("[WARN] chatHistoryDisplay not found. Cannot add message to chat.");
+        return;
+    }
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message');
+    messageElement.classList.add(isJarvis ? 'jarvis-message' : 'user-message');
+
+    const senderSpan = document.createElement('span');
+    senderSpan.classList.add('font-bold');
+    senderSpan.classList.add(isJarvis ? 'text-indigo-400' : 'text-green-400'); // Different color for user
+    senderSpan.textContent = `${sender}: `;
+
+    const messageText = document.createTextNode(message);
+
+    messageElement.appendChild(senderSpan);
+    messageElement.appendChild(messageText);
+    chatHistoryDisplay.appendChild(messageElement);
+
+    // Scroll to the bottom of the chat history
+    chatHistoryDisplay.scrollTop = chatHistoryDisplay.scrollHeight;
+}
+
+/**
+ * Handles sending a text command from the chat input.
+ */
+function handleChatCommand() {
+    const commandText = chatInput.value.trim();
+    if (commandText) {
+        addMessageToChat('User', commandText, false); // Add user's message to chat
+        processVoiceCommandWithGemini(commandText); // Use the same NLU processing for text commands
+        chatInput.value = ''; // Clear input field
+    }
+}
+
+/**
+ * Opens the chat modal.
+ */
+function openChatModal() {
+    if (chatModal) {
+        chatModal.classList.add('open');
+        chatModal.focus();
+        // Ensure chat history scrolls to bottom when opened
+        if (chatHistoryDisplay) {
+            chatHistoryDisplay.scrollTop = chatHistoryDisplay.scrollHeight;
+        }
+    }
+}
+
+/**
+ * Closes the chat modal.
+ */
+function closeChatModal() {
+    if (chatModal) {
+        chatModal.classList.remove('open');
+    }
+}
+
+
 // --- Event Listeners ---
 
 /**
@@ -2014,6 +2109,15 @@ function setupEventListeners() {
     voiceFeedbackDisplay = document.getElementById('voiceFeedbackDisplay'); // Assign new elements
     voiceListeningText = document.getElementById('voiceListeningText');
     voiceListeningIndicator = document.getElementById('voiceListeningIndicator');
+    voiceLiveTranscript = document.getElementById('voiceLiveTranscript'); // Assign new live transcript element
+
+    // Chatbox elements
+    chatModal = document.getElementById('chatModal');
+    closeChatModalBtn = document.getElementById('closeChatModal');
+    chatHistoryDisplay = document.getElementById('chatHistory');
+    chatInput = document.getElementById('chatInput');
+    chatSendBtn = document.getElementById('chatSendBtn');
+    openChatBtn = document.getElementById('openChatBtn');
 
 
     // Authentication related elements
@@ -2178,6 +2282,17 @@ function setupEventListeners() {
         console.warn("[WARN] Voice command button hidden as Web Speech API is not supported.");
     }
 
+    // NEW: Chat button listeners
+    if (openChatBtn) openChatBtn.addEventListener('click', openChatModal);
+    if (closeChatModalBtn) closeChatModalBtn.addEventListener('click', closeChatModal);
+    if (chatSendBtn) chatSendBtn.addEventListener('click', handleChatCommand);
+    if (chatInput) chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter, allow Shift+Enter for new line
+            e.preventDefault();
+            handleChatCommand();
+        }
+    });
+
 
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Escape') {
@@ -2196,6 +2311,10 @@ function setupEventListeners() {
             if (aiInsightModal && aiInsightModal.classList.contains('open')) {
                 aiInsightModal.classList.remove('open');
                 console.log("[DEBUG] AI Insight modal closed by Escape key.");
+            }
+            if (chatModal && chatModal.classList.contains('open')) { // Close chat modal on Escape
+                chatModal.classList.remove('open');
+                console.log("[DEBUG] Chat modal closed by Escape key.");
             }
         }
 
@@ -2254,10 +2373,6 @@ function setupEventListeners() {
             authModal.focus();
         }
         if (authModalTitle) authModalTitle.textContent = 'Sign In';
-        if (emailAuthBtn) {
-            emailAuthBtn.textContent = 'Sign In';
-            emailAuthBtn.onclick = handleSignIn;
-        }
         if (emailInput) emailInput.value = '';
         if (passwordInput) passwordInput.value = '';
         if (usernameFieldGroup) usernameFieldGroup.style.display = 'none';
