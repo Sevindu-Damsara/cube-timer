@@ -15,7 +15,7 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 @app.route('/api/gemini-nlu', methods=['POST', 'OPTIONS'])
 def gemini_nlu_handler():
     """HTTP endpoint that uses Gemini to interpret natural language voice commands.
-    It expects a 'transcript' in the JSON body and returns a 'canonicalCommand' and optionally 'commandValue'.
+    It expects a 'transcript' in the JSON body and returns a 'canonicalCommand' and optionally 'commandValue' or 'query'.
     Handles both preflight (OPTIONS) and actual (POST) requests.
     """
     print("DEBUG: gemini_nlu_handler received a request.")
@@ -33,7 +33,7 @@ def gemini_nlu_handler():
             print("ERROR: Invalid JSON body. Missing 'transcript'.")
             return jsonify({"error": "Invalid request: 'transcript' field is required."}), 400
 
-        user_transcript = request_json['transcript']
+        user_transcript = request_json.get('transcript', '')
 
         gemini_api_key = os.environ.get("GEMINI_API_KEY")
         if not gemini_api_key:
@@ -42,41 +42,52 @@ def gemini_nlu_handler():
 
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
 
-        # Enhanced prompt for NLU to include algorithm lookup and more settings
+        # MODIFIED PROMPT: To distinguish between commands and general questions
         prompt = f"""
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.
-        The user has spoken the following: "{user_transcript}".
-        Your task is to interpret this natural language command and return a canonical, machine-readable command.
+        Your task is to interpret user voice commands.
+        The user's transcript is: "{user_transcript}".
 
-        Here are the possible canonical commands and their expected values:
+        Determine if the transcript is a specific command for the application or a general question.
 
-        1.  "start_timer": To start the timer.
-        2.  "stop_timer": To stop the timer.
-        3.  "new_scramble": To generate a new scramble.
-        4.  "reset_timer": To reset the timer to zero.
-        5.  "open_settings": To open the settings modal.
-        6.  "close_settings": To close the settings modal.
-        7.  "get_insight": To get an AI insight for the last solve.
-        8.  "toggle_inspection": To toggle inspection time on or off.
-        9.  "toggle_sound_effects": To toggle sound effects on or off.
-        10. "set_cube_type": To change the cube type. Value should be '3x3', '2x2', '4x4', or 'pyraminx'. Be robust to variations like 'four by four', 'two by two', 'three by three', 'pyraminx'.
-        11. "set_theme": To change the application theme. Value should be 'dark', 'light', or 'vibrant'.
-        12. "toggle_3d_cube_view": To toggle the 3D cube visualization on or off.
-        13. "get_best_time": To inquire about the user's best solve time.
-        14. "get_ao5": To inquire about the user's average of 5 solves.
-        15. "get_ao12": To inquire about the user's average of 12 solves.
-        16. "get_algorithm_or_explanation": To get an algorithm or explanation for a specific cubing term. The value should be the specific term or algorithm name (e.g., "T-perm", "OLL", "F2L", "cross", "PLL").
+        If it's a **specific command**, identify the `canonicalCommand` and any `commandValue`.
+        Possible commands and their values:
+        - "set cube type [2x2, 3x3, 4x4, pyraminx]": canonicalCommand: 'set_cube_type', commandValue: '2x2' or '3x3' etc.
+        - "analyze my solve" / "get insight": canonicalCommand: 'analyze_solve'
+        - "toggle sound effects": canonicalCommand: 'toggle_sound_effects'
+        - "toggle inspection": canonicalCommand: 'toggle_inspection'
+        - "set theme [dark, light, vibrant]": canonicalCommand: 'set_theme', commandValue: 'dark' or 'light' etc.
+        - "show history": canonicalCommand: 'show_history'
+        - "show stats": canonicalCommand: 'show_stats'
+        - "generate new scramble": canonicalCommand: 'generate_scramble'
+        - "start timer": canonicalCommand: 'start_timer'
+        - "stop timer": canonicalCommand: 'stop_timer'
+        - "reset timer": canonicalCommand: 'reset_timer'
 
-        If the command is unclear or not recognized, return "unknown".
-        Be flexible with phrasing. For example, "start the timer" or "begin" should map to "start_timer". "What's my best time" or "best time" should map to "get_best_time".
+        If it's a **general question** about cubing, algorithms, history, or any related topic, set `canonicalCommand` to 'general_query' and extract the `query` itself.
 
-        Provide the response in a structured JSON format:
+        Respond with a JSON object. Ensure the `confidence` score is between 0 and 1.
+
+        Example Command Response:
         {{
-            "canonicalCommand": "the determined canonical command",
-            "commandValue": "the extracted value, if applicable, otherwise null",
-            "confidence": "a confidence score from 0.0 to 1.0 (1.0 being very confident)"
+            "canonicalCommand": "set_cube_type",
+            "commandValue": "3x3",
+            "confidence": 1.0
         }}
-        Ensure all responses are within the JSON structure. Do not include any text outside the JSON.
+
+        Example General Question Response:
+        {{
+            "canonicalCommand": "general_query",
+            "query": "What is F2L?",
+            "confidence": 0.9
+        }}
+
+        Example Unknown Command Response:
+        {{
+            "canonicalCommand": "unknown",
+            "commandValue": null,
+            "confidence": 0.5
+        }}
         """
 
         payload = {
@@ -90,30 +101,31 @@ def gemini_nlu_handler():
             "Content-Type": "application/json"
         }
 
-        try:
-            gemini_response = requests.post(gemini_url, headers=headers, data=json.dumps(payload))
-            gemini_response.raise_for_status() # Raise an exception for HTTP errors
-            gemini_result = gemini_response.json()
-            print(f"DEBUG: Gemini raw response: {gemini_result}")
+        gemini_response = requests.post(gemini_url, headers=headers, data=json.dumps(payload))
+        gemini_response.raise_for_status() # Raise an exception for HTTP errors
+        gemini_result = gemini_response.json()
+        print(f"DEBUG: Gemini raw response: {gemini_result}")
 
-            if gemini_result and gemini_result.get('candidates'):
-                gemini_content_str = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                # Attempt to parse the content string as JSON
-                parsed_content = json.loads(gemini_content_str)
-                return jsonify(parsed_content), 200
+        if gemini_result and gemini_result.get('candidates'):
+            candidate = gemini_result['candidates'][0]
+            if candidate and candidate.get('content') and candidate['content'].get('parts'):
+                gemini_content_str = candidate['content']['parts'][0].get('text')
+                if gemini_content_str:
+                    try:
+                        parsed_content = json.loads(gemini_content_str)
+                        return jsonify(parsed_content), 200
+                    except json.JSONDecodeError as e:
+                        print(f"ERROR: Failed to decode Gemini JSON content string: {e}. Raw content string: '{gemini_content_str}'")
+                        return jsonify({"error": f"AI service returned malformed JSON content: {e}"}), 500
+                else:
+                    print("ERROR: Gemini content part 'text' is missing or empty.")
+                    return jsonify({"error": "AI service response content is empty."}), 500
             else:
-                print("ERROR: Gemini response missing candidates or content.")
-                return jsonify({"canonicalCommand": "unknown", "commandValue": None, "confidence": 0.0}), 200
-
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: Request to Gemini API failed: {e}")
-            return jsonify({"error": f"Failed to connect to AI service: {e}"}), 500
-        except json.JSONDecodeError as e:
-            print(f"ERROR: Failed to decode Gemini JSON response: {e}. Raw response: {gemini_response.text}")
-            return jsonify({"error": f"AI service returned malformed JSON: {e}"}), 500
-        except Exception as e:
-            print(f"CRITICAL ERROR: Unexpected error during Gemini NLU: {e}")
-            return jsonify({"error": f"An unexpected error occurred during AI NLU: {e}"}), 500
+                print("ERROR: Gemini candidate 'content' or 'parts' is missing or malformed.")
+                return jsonify({"error": "AI service response candidate content is malformed."}), 500
+        else:
+            print("ERROR: Gemini response missing 'candidates' or malformed.")
+            return jsonify({"error": "AI service response is malformed or missing candidates."}), 500
 
     except requests.exceptions.ConnectionError as conn_err:
         print(f"ERROR: Connection error during Gemini API call: {conn_err}")
@@ -130,7 +142,7 @@ def gemini_nlu_handler():
         return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
     except Exception as e:
         import traceback
-        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
+        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
 
 # To run this with Vercel, ensure you have a 'requirements.txt' in the same 'api' directory:
