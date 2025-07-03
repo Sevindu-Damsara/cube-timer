@@ -42,38 +42,38 @@ body {
     --solve-time-color: #a78bfa;
 }
 
-/* Light theme - Fully updated for a clean, modern look */
+/* Light theme - Fully upgraded for a pristine, modern look */
 body.theme-light {
-    --bg-color-primary: #f0f2f5; /* Very light gray background */
-    --text-color-primary: #333; /* Dark text for contrast */
+    --bg-color-primary: #f8f9fa; /* Very light, almost white background */
+    --text-color-primary: #343a40; /* Soft dark gray for primary text */
     --bg-color-secondary: #ffffff; /* Pure white for the main container */
-    --button-secondary-bg: #e0e0e0; /* Soft gray for secondary buttons */
-    --button-secondary-text: #555; /* Slightly darker text for secondary buttons */
-    --button-secondary-hover-bg: #d0d0d0; /* Lighter hover for secondary buttons */
+    --button-secondary-bg: #e9ecef; /* Very light gray for secondary buttons */
+    --button-secondary-text: #495057; /* Medium dark gray for secondary button text */
+    --button-secondary-hover-bg: #dee2e6; /* Slightly darker light gray for secondary button hover */
     --card-bg: #ffffff; /* White cards for a clean feel */
-    --timer-color: #3b82f6; /* Bright blue for the timer */
-    --scramble-color: #1d4ed8; /* Deep blue for scramble text */
-    --stats-value-color: #0ea5e9; /* Sky blue for stats values */
-    --solve-time-color: #1d4ed8; /* Deep blue for solve times */
-    --border-color: #e2e8f0; /* Light gray border for subtle definition */
-    --box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.1), 0 4px 10px -4px rgba(0, 0, 0, 0.05); /* Softer, more diffused shadow */
+    --timer-color: #007bff; /* Vibrant blue for the timer */
+    --scramble-color: #0056b3; /* Deep blue for scramble text */
+    --stats-value-color: #17a2b8; /* Clear cyan for stats values */
+    --solve-time-color: #0056b3; /* Deep blue for solve times */
+    --border-color: #f1f3f5; /* Extremely subtle light gray border */
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
 }
 
-/* Vibrant theme - Fully updated for a rich, deep, and energetic look */
+/* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
 body.theme-vibrant {
-    --bg-color-primary: #1a0a38; /* Very deep purple background */
-    --text-color-primary: #f0f2f5; /* Light text for contrast */
-    --bg-color-secondary: #3b0c6c; /* Rich, darker purple for the main container */
-    --button-secondary-bg: #6a1b9a; /* Medium purple for secondary buttons */
-    --button-secondary-text: #f0f2f5; /* Light text for secondary buttons */
-    --button-secondary-hover-bg: #8e24aa; /* Brighter purple hover for secondary buttons */
-    --card-bg: #4a148c; /* Slightly lighter purple for cards */
-    --timer-color: #a78bfa; /* Soft lavender for the timer */
-    --scramble-color: #e0f7fa; /* Pale blue for scramble text */
-    --stats-value-color: #80cbc4; /* Muted teal for stats values */
-    --solve-time-color: #e0f7fa; /* Pale blue for solve times */
-    --border-color: #5a1a9c; /* Complementary dark purple border */
-    --box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); /* Stronger, more impactful shadow */
+    --bg-color-primary: #120724; /* Deeper, luxurious dark purple background */
+    --text-color-primary: #f8f9fa; /* Slightly warmer off-white text */
+    --bg-color-secondary: #2c0a52; /* Rich, dark sapphire/amethyst for the main container */
+    --button-secondary-bg: #7b2cbf; /* Vibrant, but not neon, purple for secondary buttons */
+    --button-secondary-text: #f8f9fa; /* Light text for secondary buttons */
+    --button-secondary-hover-bg: #9c36f0; /* Lighter, more saturated purple for secondary button hover */
+    --card-bg: #3a0e6c; /* Medium-dark, rich purple for cards */
+    --timer-color: #c084fc; /* Bright, almost electric lavender for the timer */
+    --scramble-color: #e0f7fa; /* Very light, cool tone for scramble text */
+    --stats-value-color: #20c997; /* Vibrant, slightly deeper teal for stats values */
+    --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
+    --border-color: #4a148c; /* More distinct, yet harmonious purple border */
+    --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
 }
 
 .container {
