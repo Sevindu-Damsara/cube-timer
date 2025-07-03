@@ -313,9 +313,12 @@ window.getSolveInsight = async function (solveId) {
     // Display loading state and hide previous content
     if (insightMessageElement) insightMessageElement.textContent = "Generating insight...";
     if (insightSpinner) insightSpinner.style.display = 'block';
-    if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
+    // Removed optimalSolutionDisplay references
     if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
-    if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none'; // NEW
+    if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none';
+    // NEW: Hide targetedPracticeFocusDisplay during loading
+    if (targetedPracticeFocusDisplay) targetedPracticeFocusDisplay.style.display = 'none';
+
     if (aiInsightModal) {
         aiInsightModal.classList.add('open');
         aiInsightModal.focus(); // Focus the modal for accessibility
@@ -370,7 +373,7 @@ window.getSolveInsight = async function (solveId) {
             insightMessageElement.textContent = "General insight unavailable.";
         }
 
-        // NEW: Display Scramble Analysis
+        // Display Scramble Analysis
         if (result.scrambleAnalysis && scrambleAnalysisText && scrambleAnalysisDisplay) {
             scrambleAnalysisText.textContent = result.scrambleAnalysis;
             scrambleAnalysisDisplay.style.display = 'block';
@@ -378,12 +381,22 @@ window.getSolveInsight = async function (solveId) {
             if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none';
         }
 
-        if (result.optimalSolution && optimalSolutionText && optimalSolutionDisplay) {
-            optimalSolutionText.textContent = result.optimalSolution;
-            optimalSolutionDisplay.style.display = 'block';
+        // Removed optimalSolutionText references
+        // if (result.optimalSolution && optimalSolutionText && optimalSolutionDisplay) {
+        //     optimalSolutionText.textContent = result.optimalSolution;
+        //     optimalSolutionDisplay.style.display = 'block';
+        // } else {
+        //     if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
+        // }
+
+        // NEW: Display Targeted Practice Focus
+        if (result.targetedPracticeFocus && targetedPracticeFocusText && targetedPracticeFocusDisplay) {
+            targetedPracticeFocusText.textContent = result.targetedPracticeFocus;
+            targetedPracticeFocusDisplay.style.display = 'block';
         } else {
-            if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
+            if (targetedPracticeFocusDisplay) targetedPracticeFocusDisplay.style.display = 'none';
         }
+
 
         if (result.personalizedTip && personalizedTipText && personalizedTipDisplay) {
             personalizedTipText.textContent = result.personalizedTip;
@@ -496,10 +509,15 @@ let insightMessageElement;
 let insightSpinner;
 let scrambleAnalysisDisplay; // NEW
 let scrambleAnalysisText;    // NEW
-let optimalSolutionDisplay; // New
-let optimalSolutionText;    // New
+// Removed optimalSolutionDisplay and optimalSolutionText
+// let optimalSolutionDisplay;
+// let optimalSolutionText;
 let personalizedTipDisplay; // New
 let personalizedTipText;    // New
+// NEW: Targeted Practice Focus elements
+let targetedPracticeFocusDisplay;
+let targetedPracticeFocusText;
+
 // New variables for toolbar buttons
 let playPreviewBtn;
 let pausePreviewBtn;
@@ -2170,10 +2188,15 @@ function setupEventListeners() {
     insightSpinner = aiInsightContentDisplay ? aiInsightContentDisplay.querySelector('.spinner') : null; // Safely query
     scrambleAnalysisDisplay = document.getElementById('scrambleAnalysisDisplay'); // NEW
     scrambleAnalysisText = document.getElementById('scrambleAnalysisText');       // NEW
-    optimalSolutionDisplay = document.getElementById('optimalSolutionDisplay');
-    optimalSolutionText = document.getElementById('optimalSolutionText');
+    // Removed optimalSolutionDisplay and optimalSolutionText from assignment
+    // optimalSolutionDisplay = document.getElementById('optimalSolutionDisplay');
+    // optimalSolutionText = document.getElementById('optimalSolutionText');
     personalizedTipDisplay = document.getElementById('personalizedTipDisplay');
     personalizedTipText = document.getElementById('personalizedTipText');
+    // NEW: Assign Targeted Practice Focus elements
+    targetedPracticeFocusDisplay = document.getElementById('targetedPracticeFocusDisplay');
+    targetedPracticeFocusText = document.getElementById('targetedPracticeFocusText');
+
     playPreviewBtn = document.getElementById('playPreviewBtn');
     pausePreviewBtn = document.getElementById('pausePreviewBtn');
     restartPreviewBtn = document.getElementById('restartPreviewBtn');
