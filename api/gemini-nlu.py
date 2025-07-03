@@ -59,13 +59,13 @@ def gemini_nlu_handler():
         7.  "get_insight": To get an AI insight for the last solve.
         8.  "toggle_inspection": To toggle inspection time on or off.
         9.  "toggle_sound_effects": To toggle sound effects on or off.
-        10. "set_cube_type": To change the cube type. Value should be '3x3', '2x2', '4x4', or 'pyraminx'.
+        10. "set_cube_type": To change the cube type. Value should be '3x3', '2x2', '4x4', or 'pyraminx'. Be robust to variations like 'four by four', 'two by two', 'three by three', 'pyraminx'.
         11. "set_theme": To change the application theme. Value should be 'dark', 'light', or 'vibrant'.
         12. "toggle_3d_cube_view": To toggle the 3D cube visualization on or off.
         13. "get_best_time": To inquire about the user's best solve time.
         14. "get_ao5": To inquire about the user's average of 5 solves.
         15. "get_ao12": To inquire about the user's average of 12 solves.
-        16. "get_algorithm_or_explanation": To get an algorithm or explanation for a specific cubing term. The value should be the specific term or algorithm name (e.g., "T-perm", "OLL", "F2L").
+        16. "get_algorithm_or_explanation": To get an algorithm or explanation for a specific cubing term. The value should be the specific term or algorithm name (e.g., "T-perm", "OLL", "F2L", "cross", "PLL").
 
         If the command is unclear or not recognized, return "unknown".
         Be flexible with phrasing. For example, "start the timer" or "begin" should map to "start_timer". "What's my best time" or "best time" should map to "get_best_time".
