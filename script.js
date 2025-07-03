@@ -897,6 +897,13 @@ function speakAsJarvis(text) {
 
     // Only attempt to speak if sound effects are enabled AND AudioContext is resumed AND running
     if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') {
+        // NEW: Stop recognition before speaking
+        if (recognition && recognition.listening) {
+            console.log("[DEBUG] speakAsJarvis: Stopping SpeechRecognition before speaking.");
+            recognitionStopInitiated = true; // Mark as programmatic stop
+            recognition.stop();
+        }
+
         const utterance = new SpeechSynthesis(text);
         const voices = synth.getVoices();
 
@@ -926,8 +933,9 @@ function speakAsJarvis(text) {
         utterance.onend = () => {
             console.log("[DEBUG] SpeechSynthesis ended.");
             // After speaking, revert to normal listening state if still active
-            if (isListeningForVoice) {
-                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
+            if (isListeningForVoice) { // Check if we *should* be listening continuously
+                console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition.");
+                attemptRestartRecognition(); // Restart recognition
             } else {
                 updateVoiceFeedbackDisplay("", false, false); // Hide if not listening
             }
@@ -939,6 +947,11 @@ function speakAsJarvis(text) {
             console.log(`[DEBUG] Jarvis would speak (SpeechSynthesis error): "${text}"`);
             updateVoiceFeedbackDisplay("Speech error", false, true);
             setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
+            // Ensure recognition is restarted even on error
+            if (isListeningForVoice) {
+                console.log("[DEBUG] SpeechSynthesis error. Attempting to restart SpeechRecognition.");
+                attemptRestartRecognition();
+            }
         };
 
         synth.speak(utterance);
