@@ -520,15 +520,16 @@ let chatSendBtn;
 let openChatBtn;
 
 
-let isListeningForVoice = false; // New state for voice recognition (global continuous listening)
-let awaitingActualCommand = false; // New state: true after wake word, waiting for command
+// NEW: State variables for SpeechRecognition management
+let isContinuousListeningEnabled = true; // User's preference for continuous voice input
+let isRecognitionActive = false; // Reflects actual state of browser SpeechRecognition API
+let awaitingActualCommand = false; // True after wake word, waiting for command
 let commandTimeoutId = null; // To clear timeout for awaitingActualCommand
 let isStartingRecognition = false; // Flag to prevent multiple recognition.start() calls
 let recognitionRestartTimeoutId = null; // To debounce recognition restarts
-let recognitionStopInitiated = false; // NEW: Flag to indicate if recognition.stop() or .abort() was explicitly called by our code
 
 // Added variables for no-speech error tracking
-let noSpeechErrorCount = 0;
+let noSpeechErrorCount = 0; // This is now redundant with noSpeechErrorTimestamps.
 const NO_SPEECH_ERROR_LIMIT = 5;
 const NO_SPEECH_ERROR_TIME_WINDOW_MS = 60000; // 1 minute
 let noSpeechErrorTimestamps = [];
@@ -586,6 +587,12 @@ function updateVoiceFeedbackDisplay(text, showIndicator, showDisplay, isSpeaking
  * This version includes more robust error handling and state management.
  */
 function attemptRestartRecognition() {
+    // Check if continuous listening is even enabled by the user
+    if (!isContinuousListeningEnabled) {
+        console.log("[DEBUG] attemptRestartRecognition: Continuous listening is disabled. Not starting recognition.");
+        return;
+    }
+
     // Check if no-speech error count exceeded limit within time window
     const now = Date.now();
     // Remove timestamps older than time window
@@ -594,13 +601,13 @@ function attemptRestartRecognition() {
         console.warn(`[WARN] No-speech error limit reached (${NO_SPEECH_ERROR_LIMIT}) within ${NO_SPEECH_ERROR_TIME_WINDOW_MS / 1000}s. Voice recognition restart paused.`);
         speakAsJarvis("Voice recognition has been paused due to repeated silence. Please speak or disable voice commands.");
         if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-        isListeningForVoice = false;
+        isContinuousListeningEnabled = false; // Disable continuous listening
         updateVoiceFeedbackDisplay("Voice paused (too much silence)", false, true); // Show message
         setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 5000); // Hide after 5s
         return; // Do not restart recognition
     }
 
-    console.log(`[DEBUG] attemptRestartRecognition called. State: isStartingRecognition=${isStartingRecognition}, isListeningForVoice=${isListeningForVoice}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}, recognition.listening=${recognition ? recognition.listening : "N/A"}, recognitionStopInitiated=${recognitionStopInitiated}`);
+    console.log(`[DEBUG] attemptRestartRecognition called. State: isStartingRecognition=${isStartingRecognition}, isRecognitionActive=${isRecognitionActive}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}, recognition.listening=${recognition ? recognition.listening : "N/A"}`);
     if (!recognition) {
         console.warn("[WARN] SpeechRecognition API not available, cannot restart.");
         updateVoiceFeedbackDisplay("Voice commands not supported", false, true);
@@ -615,12 +622,12 @@ function attemptRestartRecognition() {
         console.log("[DEBUG] Cleared existing recognition restart timeout.");
     }
 
-    // If we are already trying to start, or it's already listening, or a stop was just initiated, prevent redundant calls.
-    if (isStartingRecognition || recognition.listening || recognitionStopInitiated) {
-        console.log("[DEBUG] Recognition already starting/listening or stop initiated. Aborting redundant restart attempt.");
-        isListeningForVoice = true; // Keep visual consistent
-        if (voiceCommandBtn) voiceCommandBtn.classList.add('active');
-        updateVoiceFeedbackDisplay("Listening...", true, true); // Keep listening indicator active
+    // If recognition is already active or we are already trying to start it, do nothing.
+    // This is the critical guard against InvalidStateError.
+    if (isRecognitionActive || isStartingRecognition) {
+        console.log("[DEBUG] Recognition already active or starting. Aborting redundant restart attempt.");
+        if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Keep visual consistent
+        updateVoiceFeedbackDisplay("Listening...", true, true);
         return;
     }
 
@@ -628,57 +635,40 @@ function attemptRestartRecognition() {
     if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Indicate active state while trying to start
     updateVoiceFeedbackDisplay("Starting voice input...", true, true); // Show starting message
 
-    // Temporarily clear handlers to prevent re-entry during state transitions
-    recognition.onend = null;
-    recognition.onerror = null;
-    console.log("[DEBUG] Temporarily cleared recognition.onend and .onerror handlers.");
+    // Re-assign handlers to ensure they are always set correctly before attempting start.
+    recognition.onend = recognitionOnEndHandler;
+    recognition.onerror = recognitionOnErrorHandler;
 
     recognitionRestartTimeoutId = setTimeout(() => {
         try {
-            // Forcefully abort if it's in a non-idle state before attempting a clean start.
-            // This is crucial for clearing browser-initiated "aborted" states.
-            if (recognition.readyState === 'connecting' || recognition.readyState === 'listening') {
-                console.log(`[DEBUG] Recognition is in a non-idle state (${recognition.readyState}). Forcefully aborting.`);
-                recognition.abort(); // Forcefully stop it
-                recognitionStopInitiated = true; // Mark as programmatic abort
-                // The onend/onerror will then be responsible for calling attemptRestartRecognition again if needed.
-                console.log("[DEBUG] Recognition aborted to clear state. Will re-attempt start via onend/onerror.");
-                isStartingRecognition = false; // Reset, as this attempt was for aborting.
-                recognitionRestartTimeoutId = null;
-                return;
-            } else if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
-                // Only start if it's truly idle or closed.
+            // Only call start if it's truly idle or closed.
+            if (recognition.readyState === 'idle' || recognition.readyState === 'closed' || recognition.readyState === undefined) {
                 recognition.start();
                 console.log("[DEBUG] SpeechRecognition.start() called after delay and state check.");
             } else {
-                console.warn(`[WARN] Recognition in unexpected readyState (${recognition.readyState}). Not attempting start.`);
-                updateVoiceFeedbackDisplay("Voice input unavailable", false, true); // Show error
-                setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000); // Hide after 3s
+                console.warn(`[WARN] Recognition in non-idle state (${recognition.readyState}). Will retry.`);
+                // If not idle, it means a previous stop/abort hasn't fully completed.
+                // Schedule a retry of attemptRestartRecognition itself.
+                // Reset isStartingRecognition so the retry can proceed.
+                isStartingRecognition = false;
+                attemptRestartRecognition(); // Recursive call, but protected by setTimeout and flags
             }
-
         } catch (e) {
             console.error("[ERROR] Failed to start recognition after delay:", e);
             speakAsJarvis("Pardon me, Sir Sevindu. I encountered a persistent error activating voice input.");
             updateVoiceFeedbackDisplay("Error activating voice input", false, true); // Show error
-            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000); // Hide after 3s
+            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
         } finally {
             isStartingRecognition = false; // Reset the flag once the attempt (successful or not) completes
             recognitionRestartTimeoutId = null; // Clear the timeout ID
-            // Re-assign handlers AFTER the start attempt
-            if (recognition) {
-                recognition.onend = recognitionOnEndHandler;
-                recognition.onerror = recognitionOnErrorHandler;
-                console.log("[DEBUG] Re-assigned recognition.onend and .onerror handlers.");
-            }
         }
     }, 1000 + Math.random() * 500); // Increased delay with jitter for more stability
 }
 
 // Define handlers separately to reassign them
 const recognitionOnEndHandler = () => {
-    console.log(`[DEBUG] Voice recognition ENDED. recognition object:`, recognition, `State: isListeningForVoice=${isListeningForVoice}, awaitingActualCommand=${awaitingActualCommand}, recognitionStopInitiated=${recognitionStopInitiated}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
-    isListeningForVoice = false; // No longer continuously listening
-    // awaitingActualCommand = false; // This state is now managed by onresult/button click
+    console.log(`[DEBUG] Voice recognition ENDED. State: isContinuousListeningEnabled=${isContinuousListeningEnabled}, awaitingActualCommand=${awaitingActualCommand}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
+    isRecognitionActive = false; // API is no longer active
     if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
     updateVoiceFeedbackDisplay("", false, false); // Hide feedback display
 
@@ -688,22 +678,16 @@ const recognitionOnEndHandler = () => {
         commandTimeoutId = null;
     }
 
-    const wasProgrammaticStop = recognitionStopInitiated; // Capture current state before resetting
-    recognitionStopInitiated = false; // Always reset this flag AFTER onend logic
-
-    // Only attempt restart if it was NOT a programmatic stop (e.g., from button click or after a command)
-    if (!wasProgrammaticStop) {
-        console.log("[DEBUG] recognition.onend: Not a programmatic stop. Attempting controlled restart for continuous listening.");
+    // If continuous listening is enabled by user, attempt to restart
+    if (isContinuousListeningEnabled) {
+        console.log("[DEBUG] recognition.onend: Continuous listening enabled. Attempting controlled restart.");
         attemptRestartRecognition();
-    } else {
-        console.log("[DEBUG] recognition.onend: Programmatic stop detected. Not restarting from onend.");
     }
 };
 
 const recognitionOnErrorHandler = (event) => {
-    console.error(`[ERROR] Voice recognition ERROR: ${event.error}. recognition object:`, recognition, `State: isListeningForVoice=${isListeningForVoice}, awaitingActualCommand=${awaitingActualCommand}, recognitionStopInitiated=${recognitionStopInitiated}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
-    isListeningForVoice = false;
-    awaitingActualCommand = false;
+    console.error(`[ERROR] Voice recognition ERROR: ${event.error}. State: isContinuousListeningEnabled=${isContinuousListeningEnabled}, awaitingActualCommand=${awaitingActualCommand}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
+    isRecognitionActive = false; // API is no longer active
     if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
     updateVoiceFeedbackDisplay("", false, false); // Hide feedback display on error
 
@@ -713,10 +697,8 @@ const recognitionOnErrorHandler = (event) => {
         commandTimeoutId = null;
     }
 
-    // Reset flags immediately on error, regardless of type, before deciding on restart
+    // Reset the flag to prevent redundant starts
     isStartingRecognition = false;
-    const wasProgrammaticStop = recognitionStopInitiated; // Capture current state before resetting
-    recognitionStopInitiated = false; // Reset for next cycle
 
     if (event.error === 'no-speech') {
         // Track no-speech error timestamps for rate limiting
@@ -728,47 +710,27 @@ const recognitionOnErrorHandler = (event) => {
         if (noSpeechErrorTimestamps.length >= NO_SPEECH_ERROR_LIMIT) {
             console.warn(`[WARN] recognition.onerror: No-speech error limit reached (${NO_SPEECH_ERROR_LIMIT}) within ${NO_SPEECH_ERROR_TIME_WINDOW_MS / 1000}s. Voice recognition restart paused.`);
             speakAsJarvis("Voice recognition has been paused due to repeated silence. Please speak or disable voice commands.");
-            if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
-            isListeningForVoice = false;
+            isContinuousListeningEnabled = false; // Disable continuous listening
             updateVoiceFeedbackDisplay("Voice paused (too much silence)", false, true); // Show message
             setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 5000); // Hide after 5s
             return; // Do not restart recognition
         }
-    } else if (event.error === 'aborted') {
-        if (wasProgrammaticStop) {
-            console.log("[DEBUG] recognition.onerror: Expected 'aborted' error due to programmatic stop. No immediate restart from onerror.");
-        } else {
-            console.error("[CRITICAL] recognition.onerror: UNEXPECTED 'aborted' error. Browser initiated stop. Attempting restart with delay.");
-            speakAsJarvis("Sir Sevindu, my voice input system unexpectedly aborted. I am attempting to re-establish connection.");
-            updateVoiceFeedbackDisplay("Voice input aborted. Retrying...", false, true); // Show message
-            if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
-            recognitionRestartTimeoutId = setTimeout(() => {
-                attemptRestartRecognition();
-            }, 2000 + Math.random() * 1000); // Increased delay to 2-3 seconds with jitter
-        }
-    } else { // Handle other errors
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied. Please grant permission to enable voice commands.");
-            if (voiceCommandBtn) voiceCommandBtn.style.display = 'none';
-            console.warn("[WARN] Microphone access denied. Voice commands permanently disabled.");
-            updateVoiceFeedbackDisplay("Microphone access denied", false, true); // Show message
-        } else if (event.error === 'audio-capture') {
-            speakAsJarvis("Regrettably, Sir Sevindu, there appears to be an issue with audio capture. Please ensure your microphone is connected and working.");
-            updateVoiceFeedbackDisplay("Microphone error", false, true); // Show message
-        } else {
-            speakAsJarvis(`Pardon me, Sir Sevindu. An error occurred with voice input: ${event.error}.`);
-            updateVoiceFeedbackDisplay(`Voice error: ${event.error}`, false, true); // Show message
-        }
+    } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
+        // Critical permission/hardware errors, disable continuous listening permanently
+        speakAsJarvis("Pardon me, Sir Sevindu. Microphone access was denied or there's an audio issue. Voice commands disabled.");
+        if (voiceCommandBtn) voiceCommandBtn.style.display = 'none';
+        isContinuousListeningEnabled = false; // Disable continuous listening
+        updateVoiceFeedbackDisplay("Microphone access denied/error", false, true); // Show message
+        return; // Do not restart
+    }
 
-        // For any unexpected error (not a permission error), attempt a restart.
-        // If the error is 'no-speech', we still want to try to restart to keep continuous listening.
-        if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && event.error !== 'audio-capture') {
-            console.log("[DEBUG] recognition.onerror: Non-critical/unexpected error. Attempting controlled restart with delay.");
-            if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
-            recognitionRestartTimeoutId = setTimeout(() => {
-                attemptRestartRecognition();
-            }, 1000 + Math.random() * 500); // Delay restart after an error with jitter
-        }
+    // For 'aborted' or any other non-critical error, if continuous listening is desired, attempt restart
+    if (isContinuousListeningEnabled) {
+        console.log("[DEBUG] recognition.onerror: Attempting controlled restart for continuous listening.");
+        if (recognitionRestartTimeoutId) clearTimeout(recognitionRestartTimeoutId);
+        recognitionRestartTimeoutId = setTimeout(() => {
+            attemptRestartRecognition();
+        }, 1000 + Math.random() * 500); // Delay restart after an error with jitter
     }
 };
 
@@ -780,10 +742,9 @@ if (recognition) {
     // Assign initial handlers
     recognition.onstart = () => {
         console.log("[DEBUG] Voice recognition STARTED. recognition.readyState:", recognition.readyState);
-        isListeningForVoice = true; // System is now listening continuously
+        isRecognitionActive = true; // System is now listening continuously
         if (voiceCommandBtn) voiceCommandBtn.classList.add('active'); // Visual feedback
         isStartingRecognition = false; // Ensure this is reset once it truly starts
-        recognitionStopInitiated = false; // Reset on successful start
         // Clear any pending restart timeout, as it has successfully started
         if (recognitionRestartTimeoutId) {
             clearTimeout(recognitionRestartTimeoutId);
@@ -897,11 +858,11 @@ function speakAsJarvis(text) {
 
     // Only attempt to speak if sound effects are enabled AND AudioContext is resumed AND running
     if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') {
-        // NEW: Stop recognition before speaking
-        if (recognition && recognition.listening) {
-            console.log("[DEBUG] speakAsJarvis: Stopping SpeechRecognition before speaking.");
-            recognitionStopInitiated = true; // Mark as programmatic stop
-            recognition.stop();
+        // NEW: Abort recognition before speaking
+        if (recognition && isRecognitionActive) { // Check if recognition is actually active
+            console.log("[DEBUG] speakAsJarvis: Aborting SpeechRecognition before speaking.");
+            recognition.abort(); // Use abort for immediate stop
+            // recognition.onend or onerror will be triggered and handle restart if continuous listening is enabled
         }
 
         const utterance = new SpeechSynthesis(text);
@@ -932,9 +893,9 @@ function speakAsJarvis(text) {
 
         utterance.onend = () => {
             console.log("[DEBUG] SpeechSynthesis ended.");
-            // After speaking, revert to normal listening state if still active
-            if (isListeningForVoice) { // Check if we *should* be listening continuously
-                console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition.");
+            // After speaking, if continuous listening is enabled, attempt to restart recognition.
+            if (isContinuousListeningEnabled) {
+                console.log("[DEBUG] SpeechSynthesis ended. Attempting to restart SpeechRecognition for continuous listening.");
                 attemptRestartRecognition(); // Restart recognition
             } else {
                 updateVoiceFeedbackDisplay("", false, false); // Hide if not listening
@@ -947,8 +908,8 @@ function speakAsJarvis(text) {
             console.log(`[DEBUG] Jarvis would speak (SpeechSynthesis error): "${text}"`);
             updateVoiceFeedbackDisplay("Speech error", false, true);
             setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
-            // Ensure recognition is restarted even on error
-            if (isListeningForVoice) {
+            // Ensure recognition is restarted even on error if continuous listening is enabled
+            if (isContinuousListeningEnabled) {
                 console.log("[DEBUG] SpeechSynthesis error. Attempting to restart SpeechRecognition.");
                 attemptRestartRecognition();
             }
@@ -1026,7 +987,7 @@ async function processVoiceCommandWithGemini(rawTranscript) {
         // updateVoiceFeedbackDisplay("", false, false); // Hide processing message (handled by speakAsJarvis.onend)
         // No need to call attemptRestartRecognition here, as the continuous listener is always on.
         // We just need to ensure the UI reverts to wake word listening state.
-        if (isListeningForVoice) { // Only if continuous listening is still active
+        if (isContinuousListeningEnabled) { // Only if continuous listening is still active
             updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
         } else {
             updateVoiceFeedbackDisplay("", false, false); // Hide if not listening
@@ -2367,24 +2328,22 @@ function setupEventListeners() {
                 awaitingActualCommand = false;
                 speakAsJarvis("Command mode cancelled, Sir Sevindu. I am now listening for the wake word.");
                 updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
-            } else { // If in wake word listening mode, or recognition is off, activate command mode
-                if (!isListeningForVoice) { // If recognition is not even started, try to start it
-                    console.log("[DEBUG] Recognition not active, attempting to start it first.");
-                    attemptRestartRecognition(); // This will set isListeningForVoice = true
+            } else {
+                // Toggle continuous listening state
+                isContinuousListeningEnabled = !isContinuousListeningEnabled;
+                if (isContinuousListeningEnabled) {
+                    console.log("[DEBUG] Voice command button: Enabling continuous listening.");
+                    attemptRestartRecognition(); // Attempt to start recognition
+                    speakAsJarvis("Voice commands enabled, Sir Sevindu. Listening for your instructions.");
+                } else {
+                    console.log("[DEBUG] Voice command button: Disabling continuous listening.");
+                    if (recognition.listening) {
+                        recognition.abort(); // Force stop current recognition
+                    }
+                    speakAsJarvis("Voice commands disabled, Sir Sevindu.");
+                    updateVoiceFeedbackDisplay("", false, false); // Hide display
+                    if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
                 }
-                
-                // Now, regardless of whether it just started or was already listening, enter command mode
-                awaitingActualCommand = true;
-                speakAsJarvis("At your service, Sir Sevindu. Your command?");
-                updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
-
-                if (commandTimeoutId) clearTimeout(commandTimeoutId); // Clear any old timeout
-                commandTimeoutId = setTimeout(() => {
-                    awaitingActualCommand = false;
-                    speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true);
-                    console.log("[DEBUG] Manual command mode timed out. Reverted to wake word listening.");
-                }, 5000); // 5 seconds to give a command after manual start
             }
         });
     } else if (voiceCommandBtn) {
@@ -2637,7 +2596,13 @@ window.onload = function () {
     if (recognition) {
         try {
             console.log("[DEBUG] Initial SpeechRecognition.start() called for continuous wake word listening via attemptRestartRecognition.");
-            attemptRestartRecognition(); // Use the controlled restart for initial start
+            // Only attempt to start if continuous listening is enabled by default or user
+            if (isContinuousListeningEnabled) {
+                attemptRestartRecognition(); // Use the controlled restart for initial start
+            } else {
+                console.log("[DEBUG] Continuous listening is disabled. Not starting recognition on load.");
+                updateVoiceFeedbackDisplay("Voice commands disabled.", false, true);
+            }
         } catch (e) {
             console.error("[ERROR] Initial recognition.start() failed:", e);
             // This can happen if microphone is not available or permissions are denied initially.
