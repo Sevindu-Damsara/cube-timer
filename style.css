@@ -331,7 +331,6 @@ body.theme-vibrant {
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
     /* Position fixed to float above content */
-    position: fixed;
     bottom: 20px; /* Adjust as needed */
     right: 20px; /* Adjust as needed */
     z-index: 100; /* Ensure it's above other content */
@@ -430,7 +429,7 @@ body.theme-vibrant {
     -webkit-text-fill-color: transparent;
 }
 
-/* NEW: Voice Feedback Display Styling - More like a modern popup */
+/* NEW: Voice Feedback Display Styling - Moved to bottom center */
 .voice-feedback-display {
     position: fixed;
     bottom: 5%; /* Position from the bottom */
@@ -452,7 +451,7 @@ body.theme-vibrant {
     display: flex;
     flex-direction: column; /* Stack text and indicator */
     align-items: center;
-    gap: 15px; /* Space between text and indicator */
+    gap: 10px; /* Space between text and indicator */
     min-width: 280px; /* Minimum width for the popup */
     text-align: center;
     pointer-events: none; /* Allow clicks to pass through when hidden */
@@ -497,7 +496,7 @@ body.theme-vibrant {
         opacity: 0.3;
     }
     40% {
-        transform: scale(1);
+    transform: scale(1);
         opacity: 1;
     }
 }
@@ -521,6 +520,95 @@ body.theme-vibrant {
         transform: scale(0.8);
         opacity: 0.7;
     }
+}
+
+/* NEW: Chat Modal Styling */
+#chatModal .modal-content {
+    max-width: 450px; /* Slightly wider for chat */
+    max-height: 80vh; /* Controlled height */
+    display: flex;
+    flex-direction: column;
+}
+
+#chatHistory {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #1a202c; /* Darker background for chat history */
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    scroll-behavior: smooth; /* Smooth scrolling for new messages */
+}
+
+.chat-message {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.user-message {
+    text-align: right;
+    color: #e2e8f0; /* Light text for user */
+}
+
+.jarvis-message {
+    text-align: left;
+    color: #cbd5e1; /* Slightly darker text for Jarvis */
+}
+
+.chat-message .font-bold {
+    font-weight: 700;
+}
+
+.chat-message .text-indigo-400 {
+    color: #818cf8; /* Jarvis's name color */
+}
+
+.chat-message .text-green-400 {
+    color: #4ade80; /* User's name color */
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end; /* Align input and button at the bottom */
+}
+
+#chatInput {
+    flex-grow: 1;
+    min-height: 40px; /* Minimum height for textarea */
+    max-height: 120px; /* Max height before scrolling */
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: #2d3748; /* Darker input background */
+    border: 1px solid #4a5568;
+    color: white;
+    font-size: 0.9rem;
+    resize: vertical; /* Allow vertical resizing */
+}
+
+#chatSendBtn {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+}
+
+/* Custom Scrollbar for chat history */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #2d3748; /* Darker track */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4a5568; /* Scrollbar thumb color */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* Darker on hover */
 }
 
 
