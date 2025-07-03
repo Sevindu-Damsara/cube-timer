@@ -313,20 +313,28 @@ body.theme-vibrant {
     background-color: #45a049;
 }
 
-/* Voice Command Button Styling */
+/* New Voice Command Button Styling */
 #voiceCommandBtn {
-    background-color: #007bff; /* Blue */
+    background-color: #007bff;
+    /* Blue */
     color: white;
     border-radius: 50%;
-    width: 48px; /* Slightly larger touch target */
+    width: 48px;
+    /* Slightly larger touch target */
     height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem; /* Icon size */
+    font-size: 1.5rem;
+    /* Icon size */
     box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
+    /* Position fixed to float above content */
+    position: fixed;
+    bottom: 20px; /* Adjust as needed */
+    right: 20px; /* Adjust as needed */
+    z-index: 100; /* Ensure it's above other content */
 }
 
 #voiceCommandBtn:hover {
@@ -340,7 +348,8 @@ body.theme-vibrant {
 }
 
 #voiceCommandBtn.active {
-    background-color: #dc3545; /* Red when active */
+    background-color: #dc3545;
+    /* Red when active */
     animation: pulse-red 1s infinite;
 }
 
@@ -348,9 +357,11 @@ body.theme-vibrant {
     0% {
         box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
     }
+
     70% {
         box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
     }
+
     100% {
         box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
     }
@@ -419,46 +430,50 @@ body.theme-vibrant {
     -webkit-text-fill-color: transparent;
 }
 
-/* NEW: Voice Feedback Display Styling */
+/* NEW: Voice Feedback Display Styling - More like a modern popup */
 .voice-feedback-display {
     position: fixed;
-    top: 20px; /* Adjust as needed */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.85); /* Darker, semi-transparent */
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%); /* Adjust for true centering */
+    background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque background */
+    backdrop-filter: blur(8px); /* Subtle blur effect */
+    -webkit-backdrop-filter: blur(8px); /* For Safari */
     color: white;
-    padding: 12px 25px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    font-size: 1.1rem;
-    font-weight: 500;
+    padding: 20px 30px; /* More padding */
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Stronger shadow */
+    font-size: 1.3rem; /* Larger font */
+    font-weight: 600;
     z-index: 1002; /* Above modals */
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out; /* Smooth transitions */
     display: flex;
+    flex-direction: column; /* Stack text and indicator */
     align-items: center;
-    gap: 10px;
-    min-width: 200px;
-    justify-content: center;
+    gap: 15px; /* Space between text and indicator */
+    min-width: 280px; /* Minimum width for the popup */
     text-align: center;
+    pointer-events: none; /* Allow clicks to pass through when hidden */
 }
 
 .voice-feedback-display.listening-active {
     opacity: 1;
     visibility: visible;
-    transition: none; /* Disable transition for immediate appearance */
+    transform: translate(-50%, -50%); /* Ensure no initial transform for smooth entry */
+    pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
 /* Listening Indicator Dots */
 .listening-indicator {
     display: flex;
-    gap: 5px;
+    gap: 8px; /* Larger gap between dots */
 }
 
 .listening-indicator .dot {
-    width: 8px;
-    height: 8px;
+    width: 10px; /* Larger dots */
+    height: 10px; /* Larger dots */
     background-color: var(--accent-color-green);
     border-radius: 50%;
     opacity: 0.3;
@@ -483,6 +498,27 @@ body.theme-vibrant {
     40% {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
+.voice-feedback-display.speaking .listening-indicator .dot {
+    background-color: var(--accent-color-blue); /* Different color when speaking */
+    animation: pulse-dot 1s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.8);
+        opacity: 0.7;
     }
 }
 
@@ -686,6 +722,19 @@ body.theme-vibrant {
         z-index: 100;
         /* Ensure it's above other content */
     }
+
+    /* Voice Feedback Display Mobile Adjustments */
+    .voice-feedback-display {
+        padding: 15px 20px;
+        font-size: 1.1rem;
+        min-width: 240px;
+    }
+
+    .listening-indicator .dot {
+        width: 8px;
+        height: 8px;
+        gap: 6px;
+    }
 }
 
 /* Further specific adjustments for very small screens (e.g., iPhone SE) */
@@ -721,5 +770,65 @@ body.theme-vibrant {
     .solve-history-item .penalty-buttons button {
         font-size: 0.7rem;
         /* Smallest penalty button font */
+    }
+}
+
+
+/* Theme specific variables (kept same) */
+body.theme-dark {
+    --bg-color-primary: #0f172a;
+    --text-color-primary: #e2e8f0;
+    --bg-color-secondary: #1e293b;
+    --button-secondary-bg: #475569;
+    --button-secondary-text: #e2e8f0;
+    --button-secondary-hover-bg: #64748b;
+    --card-bg: #334155;
+    --timer-color: #818cf8;
+    --scramble-color: #a78bfa;
+    --stats-value-color: #67e8f9;
+}
+
+body.theme-light {
+    --bg-color-primary: #f0f2f5;
+    --text-color-primary: #333;
+    --bg-color-secondary: #ffffff;
+    --button-secondary-bg: #e2e8f0;
+    --button-secondary-text: #333;
+    --button-secondary-hover-bg: #cbd5e1;
+    --card-bg: #f9fafb;
+    --timer-color: #3b82f6;
+    --scramble-color: #1d4ed8;
+    --stats-value-color: #0ea5e9;
+}
+
+body.theme-vibrant {
+    --bg-color-primary: #2d0b57;
+    --text-color-primary: #f0f2f5;
+    --bg-color-secondary: #4a148c;
+    --button-secondary-bg: #8e24aa;
+    --button-secondary-text: #f0f2f5;
+    --button-secondary-hover-bg: #ab47bc;
+    --card-bg: #6a1b9a;
+    --timer-color: #e0f7fa;
+    --scramble-color: #ce93d8;
+    --stats-value-color: #80cbc4;
+}
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #fff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
     }
 }
