@@ -433,9 +433,9 @@ body.theme-vibrant {
 /* NEW: Voice Feedback Display Styling - More like a modern popup */
 .voice-feedback-display {
     position: fixed;
-    top: 50%; /* Center vertically */
+    bottom: 5%; /* Position from the bottom */
     left: 50%; /* Center horizontally */
-    transform: translate(-50%, -50%); /* Adjust for true centering */
+    transform: translateX(-50%); /* Adjust for true horizontal centering */
     background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque background */
     backdrop-filter: blur(8px); /* Subtle blur effect */
     -webkit-backdrop-filter: blur(8px); /* For Safari */
@@ -461,7 +461,8 @@ body.theme-vibrant {
 .voice-feedback-display.listening-active {
     opacity: 1;
     visibility: visible;
-    transform: translate(-50%, -50%); /* Ensure no initial transform for smooth entry */
+    /* No Y-transform on activation, only X for centering */
+    transform: translateX(-50%);
     pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
