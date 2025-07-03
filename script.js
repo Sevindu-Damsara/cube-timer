@@ -86,11 +86,17 @@ let audioContextResumed = false; // NEW: Flag to track if AudioContext has been 
 // It's added to the body and removes itself after the first execution.
 const resumeAudioContextOnFirstGesture = async () => {
     // Only attempt to resume if the context is suspended and not already resumed by our flag
-    if (!audioContextResumed && Tone.context.state === 'suspended') {
+    if (!audioContextResumed) {
         try {
+            // Attempt to resume the underlying AudioContext directly if it's suspended
+            if (Tone.context.state === 'suspended') {
+                await Tone.context.resume();
+                console.log("[DEBUG] Tone.js AudioContext explicitly resumed.");
+            }
+            // Now start Tone.js, which will ensure its internal state is 'running'
             await Tone.start();
             audioContextResumed = true;
-            console.log("[DEBUG] Tone.js AudioContext successfully resumed by user gesture.");
+            console.log("[DEBUG] Tone.js AudioContext successfully started/resumed by user gesture.");
         } catch (e) {
             console.error("[ERROR] Failed to resume Tone.js AudioContext on user gesture:", e);
         }
@@ -815,32 +821,47 @@ if (recognition) {
         if (finalTranscript) {
             console.log(`[DEBUG] Final voice transcript: "${finalTranscript.toLowerCase().trim()}"`);
 
+            // Clear any existing command timeout, as a new final transcript has arrived
             if (commandTimeoutId) {
                 console.log("[DEBUG] Clearing existing command timeout on new final transcript.");
                 clearTimeout(commandTimeoutId);
                 commandTimeoutId = null;
             }
 
+            const lowerTranscript = finalTranscript.toLowerCase().trim();
+            const jarvisIndex = lowerTranscript.indexOf('jarvis');
+
             if (awaitingActualCommand) {
+                // If already in command mode, process the whole transcript as a command
                 console.log("[DEBUG] Awaiting command mode is TRUE: Processing final transcript as command.");
-                updateVoiceFeedbackDisplay("Processing command...", false, true); // Show processing message
-                awaitingActualCommand = false; // Reset command mode after receiving a command
-                setTimeout(() => processVoiceCommandWithGemini(finalTranscript.toLowerCase().trim()), 50);
-                console.log("[DEBUG] AwaitingActualCommand set to FALSE after command processing.");
-            } else if (finalTranscript.toLowerCase().includes('jarvis')) {
-                console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
-                speakAsJarvis("At your service, Sir Sevindu. Your command?");
-                updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
-                awaitingActualCommand = true;
-                commandTimeoutId = setTimeout(() => {
-                    awaitingActualCommand = false;
-                    speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
-                    console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
-                }, 10000); // Increased timeout to 10 seconds for command input
+                awaitingActualCommand = false; // Reset after processing
+                processVoiceCommandWithGemini(lowerTranscript);
+            } else if (jarvisIndex !== -1) {
+                // Wake word detected.
+                const commandPart = lowerTranscript.substring(jarvisIndex + 'jarvis'.length).trim();
+                if (commandPart) {
+                    // Command immediately follows wake word in the same utterance
+                    console.log("[DEBUG] Wake word 'Jarvis' detected with immediate command. Processing command.");
+                    speakAsJarvis("At your service, Sir Sevindu. Processing your command.");
+                    processVoiceCommandWithGemini(commandPart);
+                    // No need to enter awaitingActualCommand mode, as command was given immediately
+                } else {
+                    // Only wake word detected, no immediate command. Enter awaitingActualCommand mode.
+                    console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
+                    speakAsJarvis("At your service, Sir Sevindu. Your command?");
+                    updateVoiceFeedbackDisplay("Command ready...", true, true);
+                    awaitingActualCommand = true;
+                    // Set a timeout for the follow-up command
+                    commandTimeoutId = setTimeout(() => {
+                        awaitingActualCommand = false;
+                        speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                        updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true);
+                        console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
+                    }, 10000); // 10 seconds timeout for follow-up command
+                }
             } else {
                 console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
-                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true); // Ensure display is consistent
+                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
             }
         }
     };
@@ -874,6 +895,7 @@ function speakAsJarvis(text) {
         return;
     }
 
+    // Only attempt to speak if sound effects are enabled AND AudioContext is resumed AND running
     if (enableSoundEffects && synth && SpeechSynthesis && audioContextResumed && Tone.context.state === 'running') {
         const utterance = new SpeechSynthesis(text);
         const voices = synth.getVoices();
@@ -1923,11 +1945,11 @@ async function updateUsername() {
  */
 function toggleTimer() {
     console.log("[DEBUG] Entering toggleTimer.");
-    // No need for Tone.start() here, it's handled by the global resumeAudioContextOnFirstGesture
-    // if (enableSoundEffects && Tone.context.state !== 'running') {
-    //     await Tone.start();
-    //     console.log("AudioContext ensured to be running (Tone.start() called).");
-    // }
+    // Ensure AudioContext is running before playing sounds
+    if (enableSoundEffects && !audioContextResumed) {
+        console.warn("[WARN] Attempted to toggle timer with sounds enabled but AudioContext not resumed. Attempting resume.");
+        resumeAudioContextOnFirstGesture(); // Attempt to resume on first interaction
+    }
 
     if (isTiming) {
         console.log("[DEBUG] toggleTimer: Currently timing, stopping timer.");
@@ -2347,7 +2369,7 @@ function setupEventListeners() {
                 commandTimeoutId = setTimeout(() => {
                     awaitingActualCommand = false;
                     speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
+                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true);
                     console.log("[DEBUG] Manual command mode timed out. Reverted to wake word listening.");
                 }, 5000); // 5 seconds to give a command after manual start
             }
@@ -2396,11 +2418,11 @@ function setupEventListeners() {
 
         if (e.code === 'Space') {
             e.preventDefault();
-            // No need for Tone.start() here, handled by global resumeAudioContextOnFirstGesture
-            // if (enableSoundEffects && Tone.context.state !== 'running') {
-            //      Tone.start();
-            //      console.log("AudioContext ensured to be running (Tone.start() called on Spacebar keydown).");
-            // }
+            // Ensure AudioContext is running before playing sounds
+            if (enableSoundEffects && !audioContextResumed) {
+                console.warn("[WARN] Attempted Spacebar press with sounds enabled but AudioContext not resumed. Attempting resume.");
+                resumeAudioContextOnFirstGesture(); // Attempt to resume on interaction
+            }
             if (e.repeat) return;
             spaceDownTime = Date.now();
             if (timerDisplay) timerDisplay.classList.add('ready');
