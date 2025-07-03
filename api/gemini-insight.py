@@ -14,6 +14,10 @@ import pycuber as pc
 app = Flask(__name__)
 CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
 
+# Gemini API configuration
+# Ensure GEMINI_API_KEY is set in your Vercel project's environment variables
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
     """HTTP endpoint that generates AI insight using Gemini API.
@@ -37,235 +41,143 @@ def gemini_insight_handler():
             return jsonify({"error": "No JSON body received."}), 400
 
         # Extract data from the request
-        scramble = request_json.get('scramble', 'unknown scramble')
-        print(f"DEBUG: Scramble received in request: '{scramble}'")
-        cube_type = request_json.get('cubeType', '3x3')
+        scramble = request_json.get('scramble')
+        cube_type = request_json.get('cubeType')
         solve_time_ms = request_json.get('solveTimeMs')
-        penalty = request_json.get('penalty', 'none')
-        user_level = request_json.get('userLevel', 'General Cubist')
+        penalty = request_json.get('penalty')
+        user_level = request_json.get('userLevel')
 
-        # Convert solve_time_ms to a human-readable format for the prompt
-        solve_time_formatted = "N/A"
-        if solve_time_ms is not None:
-            minutes = int(solve_time_ms / 60000)
-            seconds = int((solve_time_ms % 60000) / 1000)
-            milliseconds = int(solve_time_ms % 1000)
-            solve_time_formatted = f"{minutes:02}:{seconds:02}.{milliseconds:03}"
+        if not all([scramble, cube_type, solve_time_ms is not None, user_level]):
+            print("ERROR: Missing required fields in request.")
+            return jsonify({"error": "Missing required fields: scramble, cubeType, solveTimeMs, userLevel."}), 400
 
-        print(f"DEBUG: Insight request details - Scramble: {scramble}, Type: {cube_type}, Time: {solve_time_formatted}, Penalty: {penalty}, Level: {user_level}")
+        # --- Generate Optimal Solution using Kociemba (for 3x3) ---
+        optimal_solution = "Not applicable for this cube type or could not be calculated."
+        if cube_type == '3x3':
+            try:
+                # Kociemba expects a specific scramble format (e.g., "U F' D2 L2...")
+                # pycuber can help normalize this.
+                mycube = pc.Cube()
+                mycube(scramble) # Apply the scramble to a virtual cube
+                
+                # Get the cube's facelet string for Kociemba
+                # Kociemba's input format: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+                # pycuber's facelet string is compatible.
+                facelet_string = mycube.as_facelet_string()
+                
+                print(f"DEBUG: Kociemba input facelet string: {facelet_string}")
+                
+                # Solve using Kociemba's algorithm
+                solution_moves = kociemba.solve(facelet_string)
+                
+                # Further processing for phase breakdown
+                # This is a simplified breakdown. A true phase breakdown would require
+                # more complex logic or a specialized library.
+                # For now, we'll just present the full optimal solution.
+                
+                optimal_solution = f"Optimal Solution (Kociemba): {solution_moves} (length: {len(solution_moves.split())} moves)"
+                
+            except Exception as e:
+                print(f"WARNING: Kociemba solve failed for scramble '{scramble}': {e}")
+                optimal_solution = "Could not calculate optimal solution for this scramble."
+        else:
+            print(f"DEBUG: Kociemba not used for cube type: {cube_type}")
 
-        # Your Gemini API Key - This should be set as an environment variable in Vercel.
-        # For development, you might hardcode it here temporarily, but REMOVE for production.
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        if not gemini_api_key:
+        # --- Call Gemini API for personalized insight and tips ---
+        if not GEMINI_API_KEY:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
-            return jsonify({"error": "Server configuration error: Gemini API Key is not set."}), 500
+            return jsonify({"error": "Server configuration error: Gemini API key is missing."}), 500
 
-        # Construct the prompt for Gemini.
-        # Instruct Gemini to generate a general insight, an optimal solution, and a personalized tip.
-        # Explicitly ask for a JSON response structure.
-        # MODIFIED: Removed instructions for "Sir Sevindu" in the generated text content.
-        prompt = f"""
-        You are an advanced AI assistant named Jarvis, specialized in Rubik's Cube analysis.
-        Provide a concise general insight, an optimal solution if applicable, and a personalized tip for the following Rubik's Cube solve.
-        The user's cubing level is designated as {user_level}. The cube type used was {cube_type}.
-        The scramble for this solve was: {scramble}.
-        The recorded solve time was: {solve_time_formatted}.
-        Any penalty applied was: {penalty}.
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        
+        # Craft a more detailed prompt for Gemini
+        prompt_text = f"""
+        You are an expert Rubik's Cube coach and AI assistant named Jarvis.
+        The user, Sir Sevindu, has just completed a {cube_type} solve.
+        Scramble: {scramble}
+        Solve Time: {solve_time_ms / 1000:.2f} seconds
+        Penalty: {penalty if penalty else 'None'}
+        User's Estimated Level: {user_level}
 
-        Important instructions for your response:
-        1.  **General Insight:** Provide a brief, overall observation about the solve (e.g., "A solid solve," "Room for improvement in F2L"). Keep this under 30 words.
-        2.  **Optimal Solution:** Provide the optimal solution algorithm for the provided scramble. This should be the shortest possible sequence of moves to solve the cube from the scrambled state. For example: "F U R U' R' F'". If you cannot determine the optimal solution, state 'Not available' and briefly explain why it is not available or provide a best-effort solution.
-        3.  **Personalized Tip:** Offer one specific, actionable recommendation tailored to the user's current skill level ({user_level}) and the characteristics of this particular solve (e.g., "Consider practicing cross solutions," "Focus on look-ahead during OLL"). This should be a single, clear recommendation, under 40 words.
-        4.  **Tone:** Maintain a formal, respectful, and helpful tone throughout the generated text. Do not include specific salutations or direct addresses like "Sir Sevindu" within the 'insight', 'optimalSolution', or 'personalizedTip' fields.
+        Please provide a concise and encouraging analysis of this solve, focusing on actionable tips for improvement.
+        Your response should be structured as a JSON object with two fields:
+        1.  `optimalSolution`: A string describing the theoretical optimal solution (if available, otherwise state 'Not available'). For 3x3, incorporate the Kociemba solution provided. If a Kociemba solution is available, break it down into common phases (Cross, F2L, OLL, PLL) if possible, or explain it's the full optimal sequence.
+        2.  `personalizedTip`: A string with a personalized, encouraging tip based on the solve time, user level, and general cubing principles. Suggest specific areas to focus on (e.g., F2L efficiency, look-ahead, finger tricks, specific algorithm practice).
 
-        Respond ONLY with a JSON object in the following exact format:
+        Example for 3x3 with Kociemba:
         {{
-          "insight": "General insight text.",
-          "optimalSolution": "Optimal solution algorithm (e.g., F U R U' R' F') or 'Not available'.",
-          "personalizedTip": "Personalized tip text."
+            "optimalSolution": "Cross: R' D F, F2L: U R U' R' ..., OLL: ..., PLL: ... (Total: X moves)",
+            "personalizedTip": "Sir Sevindu, your solve demonstrates good foundational understanding. To improve, focus on reducing pauses between F2L pairs. Practice recognizing cases faster."
         }}
+
+        Example for other cubes or if Kociemba fails:
+        {{
+            "optimalSolution": "Not available for this cube type or could not be calculated.",
+            "personalizedTip": "Excellent effort, Sir Sevindu! For {cube_type} solves, consistent practice with finger tricks can significantly reduce your time. Consider drilling basic algorithms."
+        }}
+
+        Ensure the tone is always respectful and formal, addressing the user as "Sir Sevindu".
         """
 
-        gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-        headers = {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': gemini_api_key # Pass API key via header
-        }
-        payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {"text": prompt}
-                    ]
-                }
-            ],
-            # Use responseSchema to ensure structured output
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "insight": { "type": "STRING" },
-                        "optimalSolution": { "type": "STRING" },
-                        "personalizedTip": { "type": "STRING" }
-                    },
-                    "required": ["insight", "optimalSolution", "personalizedTip"]
-                }
+        # Define the response schema for structured output
+        generation_config = {
+            "response_mime_type": "application/json",
+            "response_schema": {
+                "type": "OBJECT",
+                "properties": {
+                    "optimalSolution": {"type": "STRING"},
+                    "personalizedTip": {"type": "STRING"}
+                },
+                "propertyOrdering": ["optimalSolution", "personalizedTip"]
             }
         }
 
-        print("DEBUG: Sending request to Gemini API.")
-        gemini_response = requests.post(gemini_url, headers=headers, json=payload, timeout=30)
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt_text}]}],
+            "generationConfig": generation_config
+        }
+
+        # Substitute the Kociemba solution into the prompt if available
+        if cube_type == '3x3' and "Kociemba" in optimal_solution:
+            payload["contents"][0]["parts"][0]["text"] = payload["contents"][0]["parts"][0]["text"].replace(
+                "Optimal Solution (Kociemba): {solution_moves} (length: {len(solution_moves.split())} moves)",
+                optimal_solution # Insert the actual Kociemba solution here
+            )
+            # Add a hint to Gemini to break it down if possible
+            payload["contents"][0]["parts"][0]["text"] += "\nIf possible, break down the optimal solution into Cross, F2L, OLL, and PLL phases."
+
+
+        # Gemini API URL
+        gemini_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+
+        print(f"DEBUG: Calling Gemini API at: {gemini_api_url}")
+        gemini_response = requests.post(gemini_api_url, headers=headers, data=json.dumps(payload), timeout=30)
         gemini_response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
 
         gemini_result = gemini_response.json()
-        print(f"DEBUG: Raw Gemini response: {json.dumps(gemini_result, indent=2)}")
+        print(f"DEBUG: Raw Gemini response: {gemini_result}")
 
-        # Extract content from Gemini's structured response
-        if gemini_result.get('candidates') and len(gemini_result['candidates']) > 0:
-            if gemini_result['candidates'][0].get('content') and gemini_result['candidates'][0]['content'].get('parts'):
-                try:
-                    # The content is a stringified JSON, so parse it
-                    gemini_content_str = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                    parsed_gemini_content = json.loads(gemini_content_str)
-                    
-                    insight = parsed_gemini_content.get('insight', 'No insight generated.')
-                    optimal_solution = parsed_gemini_content.get('optimalSolution', 'Not available.')
-                    personalized_tip = parsed_gemini_content.get('personalizedTip', 'No personalized tip generated.')
+        # Parse the structured JSON from Gemini
+        if gemini_result and gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and gemini_result['candidates'][0]['content'].get('parts'):
+            response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+            # Gemini returns a string that is a JSON object, so we need to parse it
+            parsed_insight = json.loads(response_text)
+            
+            # Ensure optimalSolution from Kociemba is prioritized if Gemini didn't provide a better one
+            final_optimal_solution = parsed_insight.get('optimalSolution', optimal_solution)
+            if cube_type == '3x3' and "Kociemba" in optimal_solution and "optimalSolution" in parsed_insight and "not available" in parsed_insight["optimalSolution"].lower():
+                 final_optimal_solution = optimal_solution # Use Kociemba if Gemini says not available
 
-                    # If Gemini did not provide an optimal solution, try to generate one locally
-                    if 'not available' in optimal_solution.strip().lower():
-                        try:
-                            # Validate scramble format for kociemba
-                            original_scramble = scramble.strip()
-                            print(f"DEBUG: Original scramble received: '{original_scramble}'")
-                            # Transform scramble to kociemba format if needed
-                            # For example, remove unwanted characters, normalize spacing
-                            transformed_scramble = original_scramble.replace('\n', ' ').replace('\r', ' ').strip()
-                            # Remove multiple spaces
-                            import re
-                            transformed_scramble = re.sub(r'\s+', ' ', transformed_scramble)
-                            print(f"DEBUG: Transformed scramble for local solver: '{transformed_scramble}'")
-                            # Validate transformed scramble
-                            if not transformed_scramble or any(c not in "URFDLBMESxyz' 0123456789 " for c in transformed_scramble):
-                                print(f"WARNING: Scramble format may be invalid for local solver: '{transformed_scramble}'")
-                                optimal_solution = "Not available (invalid scramble format for local solver)"
-                            else:
-                                print(f"DEBUG: Valid scramble for local solver: '{transformed_scramble}'")
-                                try:
-                                    # Use pycuber to create a cube and apply scramble
-                                    cube = pc.Cube()
-                                    try:
-                                        scramble_moves = pc.Formula(transformed_scramble)
-                                        print(f"DEBUG: Parsed scramble moves: {scramble_moves}")
-                                    except Exception as e:
-                                        print(f"ERROR: Failed to parse scramble moves: {e}")
-                                        raise e
-                                    cube(scramble_moves)
-                                    # Get cube state string for kociemba
-                                    # Convert pycuber Cube to kociemba cube string
-                                    def cube_to_kociemba_string(cube):
-                                        # The order of faces for kociemba: U, R, F, D, L, B
-                                        face_order = ['U', 'R', 'F', 'D', 'L', 'B']
-                                        facelet_order = [
-                                            [0,1,2,3,4,5,6,7,8],  # Each face's 9 facelets in row-major order
-                                        ]
-                                        # pycuber Cube facelets can be accessed via cube.get_face(face)
-                                        # Each face is a 3x3 matrix of Cubies with .color attribute
-                                        # We need to flatten each face's colors in the order expected by kociemba
-                                        result = ''
-                                        for face in face_order:
-                                            face_matrix = cube.get_face(face)
-                                            for row in range(3):
-                                                for col in range(3):
-                                                    # Access color name correctly from Square object
-                                                    square = face_matrix[row][col]
-                                                    if hasattr(square, 'color'):
-                                                        color = square.color
-                                                    elif hasattr(square, 'sticker'):
-                                                        color = square.sticker.color
-                                                    elif hasattr(square, 'color_name'):
-                                                        color = square.color_name
-                                                    else:
-                                                        color = str(square)
-                                                    print(f"DEBUG: Extracted color value: {repr(color)} (type: {type(color)}) on face '{face}' at position ({row},{col})")
-                                                    # Convert color to string and clean it
-                                                    color_str = str(color).strip("[]'\"").lower()
-                                                    print(f"DEBUG: Converted color string: {color_str}")
-                                                    # Map color to face letter (U,R,F,D,L,B)
-                                                    # Assuming standard color scheme:
-                                                    # White: U, Red: R, Green: F, Yellow: D, Orange: L, Blue: B
-                                                    color_map = {
-                                                        'white': 'U',
-                                                        'w': 'U',
-                                                        'red': 'R',
-                                                        'r': 'R',
-                                                        'green': 'F',
-                                                        'g': 'F',
-                                                        'yellow': 'D',
-                                                        'y': 'D',
-                                                        'orange': 'L',
-                                                        'o': 'L',
-                                                        'blue': 'B',
-                                                        'b': 'B'
-                                                    }
-                                                    facelet = color_map.get(color_str)
-                                                    if not facelet:
-                                                        raise ValueError(f"Unknown color '{color_str}' on face '{face}' at position ({row},{col})")
-                                                    result += facelet
-                                        return result
-
-                                    cube_state = cube_to_kociemba_string(cube)
-                                    print(f"DEBUG: Cube state string for kociemba: {cube_state} (length: {len(cube_state)})")
-
-                                    def validate_cube_state(state):
-                                        # kociemba expects a 54-character string with only these characters
-                                        valid_chars = set("URFDLB")
-                                        if len(state) != 54:
-                                            return False, f"Invalid length: {len(state)}"
-                                        if any(c not in valid_chars for c in state):
-                                            return False, "Invalid characters in cube state"
-                                        return True, "Valid cube state"
-
-                                    is_valid, validation_msg = validate_cube_state(cube_state)
-                                    print(f"DEBUG: Cube state validation: {validation_msg}")
-                                    if not is_valid:
-                                        raise ValueError(f"Cube state validation failed: {validation_msg}")
-
-                                    try:
-                                        print(f"DEBUG: Passing cube state to kociemba.solve: {cube_state}")
-                                        local_solution = kociemba.solve(cube_state)
-                                        optimal_solution = local_solution
-                                        print(f"DEBUG: Local optimal solution generated: {local_solution}")
-                                    except Exception as e:
-                                        print(f"ERROR: kociemba.solve failed: {e}")
-                                        raise e
-                                except Exception as e:
-                                    print(f"ERROR: Exception in local solver: {e}")
-                                    optimal_solution = f"Not available (local solver error: {e})"
-                        except Exception as e:
-                            print(f"ERROR: Failed to generate local optimal solution: {e}")
-
-                    return jsonify({
-                        "insight": insight,
-                        "optimalSolution": optimal_solution,
-                        "personalizedTip": personalized_tip
-                    }), 200
-
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: JSON decoding error on Gemini response: {e}. Raw response: '{gemini_content_str}'")
-                    return jsonify({"error": f"AI response malformed: {e}"}), 500
-                except Exception as e:
-                    print(f"ERROR: Unexpected error processing Gemini response: {e}")
-                    return jsonify({"error": f"An unexpected error occurred processing AI response: {e}"}), 500
-            else:
-                print("WARN: Gemini response 'content' or 'parts' missing.")
-                return jsonify({"error": "AI response content missing."}), 500
+            return jsonify({
+                "insight": "Analysis complete, Sir Sevindu.", # General message
+                "optimalSolution": final_optimal_solution,
+                "personalizedTip": parsed_insight.get('personalizedTip', "I am unable to provide a personalized tip at this moment, Sir Sevindu.")
+            }), 200
         else:
-            print("WARN: Gemini response 'candidates' missing or empty.")
-            return jsonify({"error": "AI response candidates missing or empty."}), 500
+            print("ERROR: Unexpected Gemini response structure or empty content.")
+            return jsonify({"error": "Failed to get a valid insight from AI. Unexpected response structure."}), 500
 
     except requests.exceptions.ConnectionError as conn_err:
         print(f"ERROR: Connection error during Gemini API call: {conn_err}")
@@ -277,12 +189,13 @@ def gemini_insight_handler():
         print(f"ERROR: General request error during Gemini API call: {req_err}")
         return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
     except json.JSONDecodeError as json_err:
-        # This occurs if the incoming request JSON is malformed.
+        # This occurs if the incoming request JSON is malformed or Gemini's response is malformed.
         raw_body = request.get_data(as_text=True)
-        print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
-        return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
+        print(f"ERROR: JSON decoding error: {json_err}. Raw request body: '{raw_body}' or Gemini response was malformed.")
+        return jsonify({"error": f"Invalid JSON format. Details: {json_err}"}), 400
     except Exception as e:
         # Catch any other unexpected errors and log them with a traceback.
         import traceback
         print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
+
