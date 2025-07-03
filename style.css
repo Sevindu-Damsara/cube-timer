@@ -1,4 +1,3 @@
-
 /* Custom CSS for a modern, colorful look */
 /* BASE STYLES: These apply by default, effectively serving as the DESKTOP-FIRST layout. */
 body {
@@ -43,46 +42,45 @@ body {
     --solve-time-color: #a78bfa;
 }
 
-/* Light theme */
+/* Light theme - Fully updated for a clean, modern look */
 body.theme-light {
-    --bg-color-primary: #e0e7ee; /* Lighter, soft background */
-    --text-color-primary: #2d3748; /* Darker, more prominent text */
-    --bg-color-secondary: #fdfefe; /* Clean white for container */
-    --button-secondary-bg: #e2e8f0;
-    --button-secondary-text: #4a5568; /* Darker text for secondary button */
-    --button-secondary-hover-bg: #d1d9e0; /* Softer hover */
-    --card-bg: #ffffff; /* White cards */
-    --timer-color: #3b82f6; /* Consistent blue for timer */
-    --scramble-color: #1d4ed8; /* Darker blue for scramble */
-    --stats-value-color: #0ea5e9; /* Bright blue for stats */
-    --solve-time-color: #1d4ed8; /* Darker blue for solve time */
-    --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03); /* Lighter shadow */
-    --border-color: #cbd5e1; /* Subtle border */
+    --bg-color-primary: #f0f2f5; /* Very light gray background */
+    --text-color-primary: #333; /* Dark text for contrast */
+    --bg-color-secondary: #ffffff; /* Pure white for the main container */
+    --button-secondary-bg: #e0e0e0; /* Soft gray for secondary buttons */
+    --button-secondary-text: #555; /* Slightly darker text for secondary buttons */
+    --button-secondary-hover-bg: #d0d0d0; /* Lighter hover for secondary buttons */
+    --card-bg: #ffffff; /* White cards for a clean feel */
+    --timer-color: #3b82f6; /* Bright blue for the timer */
+    --scramble-color: #1d4ed8; /* Deep blue for scramble text */
+    --stats-value-color: #0ea5e9; /* Sky blue for stats values */
+    --solve-time-color: #1d4ed8; /* Deep blue for solve times */
+    --border-color: #e2e8f0; /* Light gray border for subtle definition */
+    --box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.1), 0 4px 10px -4px rgba(0, 0, 0, 0.05); /* Softer, more diffused shadow */
 }
 
-/* Vibrant theme */
+/* Vibrant theme - Fully updated for a rich, deep, and energetic look */
 body.theme-vibrant {
-    --bg-color-primary: #1a0a38; /* Deeper, rich background */
-    --text-color-primary: #f0f2f5;
-    --bg-color-secondary: #3b0c6c; /* Richer purple for container */
-    --button-secondary-bg: #6c2a8c; /* Deeper purple secondary button */
-    --button-secondary-text: #f0f2f5;
-    --button-secondary-hover-bg: #8b3fa7; /* More vibrant hover */
-    --card-bg: #4a0f7c; /* Darker, richer purple for cards */
-    --timer-color: #a78bfa; /* Soft purple for timer */
-    --scramble-color: #e0f7fa; /* Light blue for scramble */
-    --stats-value-color: #80cbc4; /* Teal for stats */
-    --solve-time-color: #e0f7fa; /* Light blue for solve time */
-    --box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); /* Stronger shadow for depth */
-    --border-color: #5a1a9c; /* Complementary border */
+    --bg-color-primary: #1a0a38; /* Very deep purple background */
+    --text-color-primary: #f0f2f5; /* Light text for contrast */
+    --bg-color-secondary: #3b0c6c; /* Rich, darker purple for the main container */
+    --button-secondary-bg: #6a1b9a; /* Medium purple for secondary buttons */
+    --button-secondary-text: #f0f2f5; /* Light text for secondary buttons */
+    --button-secondary-hover-bg: #8e24aa; /* Brighter purple hover for secondary buttons */
+    --card-bg: #4a148c; /* Slightly lighter purple for cards */
+    --timer-color: #a78bfa; /* Soft lavender for the timer */
+    --scramble-color: #e0f7fa; /* Pale blue for scramble text */
+    --stats-value-color: #80cbc4; /* Muted teal for stats values */
+    --solve-time-color: #e0f7fa; /* Pale blue for solve times */
+    --border-color: #5a1a9c; /* Complementary dark purple border */
+    --box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); /* Stronger, more impactful shadow */
 }
 
 .container {
     background-color: var(--bg-color-secondary);
     border-radius: 1.5rem;
     /* Large rounded corners */
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-    /* Stronger shadow */
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
     max-width: 1200px;
     /* Desktop max-width */
     width: 90%;
@@ -157,13 +155,12 @@ body.theme-vibrant {
 
 .button-secondary {
     background-color: var(--button-secondary-bg);
-    /* Slate gray */
     color: var(--button-secondary-text);
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
     transition: all 0.2s ease-in-out;
-    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
+    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3); /* This shadow might need to be theme-aware too */
     border: none;
     cursor: pointer;
     font-size: 1rem;
@@ -218,14 +215,12 @@ body.theme-vibrant {
 
 .scramble-display {
     background-color: var(--card-bg);
-    /* Darker slate */
     padding: 1rem 1.5rem;
     border-radius: 0.75rem;
     font-size: 1.2rem;
     /* Desktop font size */
     font-weight: 500;
     color: var(--scramble-color);
-    /* Light purple */
     text-align: center;
     word-break: break-all;
     border: 1px solid var(--border-color); /* Added border for definition */
@@ -266,7 +261,7 @@ body.theme-vibrant {
     padding: 1rem;
     border-radius: 0.75rem;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
@@ -298,7 +293,7 @@ body.theme-vibrant {
 
 .solve-history-item:hover {
     transform: translateX(5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
 }
 
 .solve-history-item .time {
@@ -443,6 +438,7 @@ body.theme-vibrant {
     /* Prevent content from overflowing screen vertically */
     overflow-y: auto;
     /* Allow scrolling within modal if content is too long */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 /* Specifically for AI Insight Modal to take more width on desktop */
@@ -935,34 +931,6 @@ body.theme-dark {
     --scramble-color: #a78bfa;
     --stats-value-color: #67e8f9;
 }
-
-/* (These variables are now integrated into the main theme definitions above for consistency)
-body.theme-light {
-    --bg-color-primary: #f0f2f5;
-    --text-color-primary: #333;
-    --bg-color-secondary: #ffffff;
-    --button-secondary-bg: #e2e8f0;
-    --button-secondary-text: #333;
-    --button-secondary-hover-bg: #cbd5e1;
-    --card-bg: #f9fafb;
-    --timer-color: #3b82f6;
-    --scramble-color: #1d4ed8;
-    --stats-value-color: #0ea5e9;
-}
-
-body.theme-vibrant {
-    --bg-color-primary: #2d0b57;
-    --text-color-primary: #f0f2f5;
-    --bg-color-secondary: #4a148c;
-    --button-secondary-bg: #8e24aa;
-    --button-secondary-text: #f0f2f5;
-    --button-secondary-hover-bg: #ab47bc;
-    --card-bg: #6a1b9a;
-    --timer-color: #e0f7fa;
-    --scramble-color: #ce93d8;
-    --stats-value-color: #80cbc4;
-}
-*/
 
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
