@@ -134,17 +134,17 @@ async function fetchAndDisplayUsername(uid, email = null, displayName = null) {
                 console.log(`[DEBUG] Default username created and saved: ${defaultUsername}`);
                 customUsername = defaultUsername;
             }
-            // MODIFIED: Removed "User: " prefix from authenticated display
-            usernameDisplayElement.textContent = `${customUsername}`;
+            // MODIFIED: Ensure only the username is set, "Current User: " is in HTML
+            usernameDisplayElement.textContent = customUsername;
             console.log(`[DEBUG] Username display updated to: ${usernameDisplayElement.textContent}`);
 
         } catch (e) {
             console.error("[ERROR] Error fetching or setting username:", e);
-            // MODIFIED: Removed "User: " prefix from error fallback
+            // MODIFIED: Ensure only the UID is set for error, "Current User: " is in HTML
             usernameDisplayElement.textContent = `${uid} (Error fetching username)`;
         }
     } else { // Guest user (local storage)
-        // MODIFIED: Ensured it only sets 'Guest' directly
+        // MODIFIED: Ensure only 'Guest' is set, "Current User: " is in HTML
         usernameDisplayElement.textContent = 'Guest';
         console.log(`[DEBUG] Username display updated to: Guest (Local Mode)`);
     }
@@ -309,6 +309,7 @@ window.getSolveInsight = async function (solveId) {
     if (insightSpinner) insightSpinner.style.display = 'block';
     if (optimalSolutionDisplay) optimalSolutionDisplay.style.display = 'none';
     if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
+    if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none'; // NEW
     if (aiInsightModal) {
         aiInsightModal.classList.add('open');
         aiInsightModal.focus(); // Focus the modal for accessibility
@@ -363,6 +364,14 @@ window.getSolveInsight = async function (solveId) {
             insightMessageElement.textContent = "General insight unavailable.";
         }
 
+        // NEW: Display Scramble Analysis
+        if (result.scrambleAnalysis && scrambleAnalysisText && scrambleAnalysisDisplay) {
+            scrambleAnalysisText.textContent = result.scrambleAnalysis;
+            scrambleAnalysisDisplay.style.display = 'block';
+        } else {
+            if (scrambleAnalysisDisplay) scrambleAnalysisDisplay.style.display = 'none';
+        }
+
         if (result.optimalSolution && optimalSolutionText && optimalSolutionDisplay) {
             optimalSolutionText.textContent = result.optimalSolution;
             optimalSolutionDisplay.style.display = 'block';
@@ -390,6 +399,54 @@ window.getSolveInsight = async function (solveId) {
         console.log("[DEBUG] AI Insight generation process completed.");
     }
 };
+
+/**
+ * Fetches an AI-generated algorithm or explanation for a given query.
+ * @param {string} query - The user's query about an algorithm or concept.
+ * @returns {Promise<string>} A promise that resolves with the AI's response.
+ */
+async function getAlgorithmOrExplanation(query) {
+    console.log(`[DEBUG] Requesting algorithm/explanation for query: "${query}"`);
+
+    const requestData = {
+        type: "get_algorithm", // New type for algorithm requests
+        query: query
+    };
+
+    const apiUrl = geminiInsightFunctionUrl; // Re-using insight function for now, could be a separate endpoint
+
+    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
+        console.error("[ERROR] Gemini Insight Cloud Function URL not configured for algorithm lookup.");
+        return "Sir Sevindu, my knowledge base is currently offline. Please configure the cloud function URL.";
+    }
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("[DEBUG] Algorithm/Explanation Cloud Function raw response:", result);
+
+        if (result.algorithm || result.explanation) {
+            return result.algorithm || result.explanation;
+        } else {
+            return "Pardon me, Sir Sevindu. I could not find information for that algorithm or concept.";
+        }
+
+    } catch (e) {
+        console.error("[ERROR] Error calling Cloud Function for algorithm/explanation:", e);
+        return `Sir Sevindu, I encountered an error retrieving that information: ${e.message}`;
+    }
+}
+
 
 // --- Timer Variables ---
 let startTime;
@@ -431,6 +488,8 @@ let closeAiInsightModalBtn;
 let aiInsightContentDisplay;
 let insightMessageElement;
 let insightSpinner;
+let scrambleAnalysisDisplay; // NEW
+let scrambleAnalysisText;    // NEW
 let optimalSolutionDisplay; // New
 let optimalSolutionText;    // New
 let personalizedTipDisplay; // New
@@ -746,7 +805,7 @@ if (recognition) {
 
         const currentLiveTranscript = finalTranscript || interimTranscript; // Prioritize final if available
         if (currentLiveTranscript) {
-            console.log(`[DEBUG] Live Transcript: "${currentLiveTranscript.trim()}"`);
+            // console.log(`[DEBUG] Live Transcript: "${currentLiveTranscript.trim()}"`); // Avoid excessive logging
             updateVoiceFeedbackDisplay(
                 awaitingActualCommand ? "Command ready..." : "Listening for 'Jarvis'...",
                 true, true, false, currentLiveTranscript.trim()
@@ -856,8 +915,8 @@ function speakAsJarvis(text) {
             console.error("[ERROR] SpeechSynthesisUtterance error:", event);
             // Fallback to console log if speech fails
             console.log(`[DEBUG] Jarvis would speak (SpeechSynthesis error): "${text}"`);
-            updateVoiceFeedbackDisplay("Speech error", false, true); // Show error
-            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000); // Hide after 3s
+            updateVoiceFeedbackDisplay("Speech error", false, true);
+            setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000);
         };
 
         synth.speak(utterance);
@@ -906,8 +965,16 @@ async function processVoiceCommandWithGemini(rawTranscript) {
 
         const canonicalCommand = result.canonicalCommand;
         const commandValue = result.commandValue; // May be present for settings
+        const nluConfidence = result.confidence; // NEW: NLU confidence score
+
         if (canonicalCommand) {
-            handleCanonicalCommand(canonicalCommand, commandValue);
+            // If the command is to get an algorithm or explanation, handle it separately.
+            if (canonicalCommand === 'get_algorithm_or_explanation') {
+                const algorithmResponse = await getAlgorithmOrExplanation(commandValue);
+                speakAsJarvis(algorithmResponse);
+            } else {
+                handleCanonicalCommand(canonicalCommand, commandValue);
+            }
         } else {
             speakAsJarvis("Pardon me, Sir Sevindu. I could not determine a clear command from your request.");
             console.warn("[WARN] Gemini NLU did not return a canonical command.");
@@ -1260,6 +1327,13 @@ function generateScramble() {
             twistyPlayerPuzzleType = '3x3x3';
             for (let i = 0; i < length; i++) {
                 scrambleMoves.push(getRandomMove(moves3x3, suffixes));
+            }
+            break;
+        case '4x4': // Corrected 4x4 logic
+            length = 40 + Math.floor(Math.random() * 5); // 40-44 moves
+            twistyPlayerPuzzleType = '4x4x4'; // Correct puzzle type for 4x4
+            for (let i = 0; i < length; i++) {
+                scrambleMoves.push(getRandomMove(moves4x4, suffixes));
             }
             break;
         case 'pyraminx':
@@ -1799,9 +1873,9 @@ async function updateUsername() {
             console.log("[DEBUG] Username updated successfully in Firestore.");
 
             // Update the displayed username immediately
-            // MODIFIED: Direct assignment of username without "User:" prefix
+            // MODIFIED: Direct assignment of username. "Current User:" is in HTML
             const usernameDisplayElement = document.getElementById('usernameDisplay'); // Ensure this is defined
-            if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`;
+            if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
             console.log("[DEBUG] Displayed username refreshed after update.");
 
             setTimeout(() => {
@@ -1820,7 +1894,7 @@ async function updateUsername() {
             saveLocalUsername(newUsername);
             // MODIFIED: Direct assignment for fallback
             const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (usernameDisplayElement) usernameDisplayElement.textContent = `${newUsername}`;
+            if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
             console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
         }
     } else { // Guest user
@@ -1833,7 +1907,7 @@ async function updateUsername() {
         }
         // MODIFIED: Direct assignment for guest username
         const usernameDisplayElement = document.getElementById('usernameDisplay');
-        if (usernameDisplayElement) usernameDisplayElement.textContent = `Guest: ${newUsername}`;
+        if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
         setTimeout(() => {
             if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
             console.log("[DEBUG] Username update message hidden.");
@@ -2098,6 +2172,8 @@ function setupEventListeners() {
     aiInsightContentDisplay = document.getElementById('aiInsightContent');
     insightMessageElement = document.getElementById('insightMessage');
     insightSpinner = aiInsightContentDisplay ? aiInsightContentDisplay.querySelector('.spinner') : null; // Safely query
+    scrambleAnalysisDisplay = document.getElementById('scrambleAnalysisDisplay'); // NEW
+    scrambleAnalysisText = document.getElementById('scrambleAnalysisText');       // NEW
     optimalSolutionDisplay = document.getElementById('optimalSolutionDisplay');
     optimalSolutionText = document.getElementById('optimalSolutionText');
     personalizedTipDisplay = document.getElementById('personalizedTipDisplay');
@@ -2448,7 +2524,7 @@ function setupEventListeners() {
             return;
         }
         const email = emailInput ? emailInput.value : '';
-        const password = passwordInput ? passwordInput.value : '';
+        const password = passwordInput ? password.value : '';
         clearAuthError();
         try {
             await signInWithEmailAndPassword(auth, email, password);
@@ -2469,7 +2545,7 @@ function setupEventListeners() {
         }
         const email = emailInput ? emailInput.value : '';
         const username = usernameInputField ? usernameInputField.value.trim() : '';
-        const password = passwordInput ? passwordInput.value : '';
+        const password = passwordInput ? password.value : '';
         clearAuthError();
 
         if (!username) {
