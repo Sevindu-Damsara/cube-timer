@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rubik's Cube Timer - Cubically AI Edition</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tone.js for sound effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
@@ -21,79 +21,47 @@
     <div class="container mx-auto rounded-3xl">
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
         <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
+            <span id="usernameDisplay" class="text-white text-sm font-semibold px-3 py-1 rounded-full bg-gray-700 hidden sm:block">Guest</span>
             <button id="signInBtn" class="button-primary">Sign In</button>
             <button id="signUpBtn" class="button-secondary">Sign Up</button>
             <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
         </div>
 
-        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Rubik's Cube Timer</h1>
+        <h1 class="text-4xl font-bold text-center text-gradient mb-8">Cubically AI Edition</h1>
 
-        <!-- Username Display -->
-        <div class="text-sm text-center text-gray-400">
-            Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
-        </div>
+        <!-- Timer Display -->
+        <div id="timerDisplay" class="timer-display text-center">00:00.000</div>
 
-        <!-- Scramble Display (Text) -->
-        <div id="scrambleTextDisplay" class="scramble-display" style="display: block;">
-            Generating scramble...
-        </div>
+        <!-- Scramble Display -->
+        <div id="scrambleTextDisplay" class="scramble-display">Generating Scramble...</div>
 
-        <!-- 3D Cube Viewer Container (Initially hidden) -->
-        <div id="cube3DContainer" style="display: none;">
-            <!-- The twisty-player element for 3D visualization -->
-            <twisty-player id="scramble3DViewer" visualization="3D" alg="" puzzle="3x3x3"
-                style="width: 100%; height: 100%;" face-letters="false" control-panel="none"
-                hint-arrows="none"
-                camera-latitude="15"
-                camera-longitude="-45"
-                background="#0f172a"
-                ></twisty-player>
-            <!-- Custom Toolbar -->
-            <div id="customPreviewToolbar"
-                class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 p-2 bg-gray-800 bg-opacity-70 rounded-full shadow-lg z-10">
-
-                <button id="playPreviewBtn"
-                    class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                            clip-rule="evenodd"></path>
-                    </svg>
+        <!-- 3D Cube Container (Initially hidden, controlled by settings) -->
+        <div id="cube3DContainer" class="relative" style="display: none;">
+            <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
+            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                <button id="playPreviewBtn" class="button-secondary !p-2 !rounded-full !w-10 !h-10 flex items-center justify-center" aria-label="Play 3D scramble animation">
+                    <i class="fas fa-play"></i>
                 </button>
-
-                <button id="pausePreviewBtn"
-                    class="p-2 rounded-full bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
-                            clip-rule="evenodd"></path>
-                    </svg>
+                <button id="pausePreviewBtn" class="button-secondary !p-2 !rounded-full !w-10 !h-10 flex items-center justify-center" aria-label="Pause 3D scramble animation">
+                    <i class="fas fa-pause"></i>
                 </button>
-
-                <button id="restartPreviewBtn"
-                    class="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
-                    </svg>
+                <button id="restartPreviewBtn" class="button-secondary !p-2 !rounded-full !w-10 !h-10 flex items-center justify-content-center" aria-label="Restart 3D scramble animation">
+                    <i class="fas fa-redo"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Timer Display -->
-        <div id="timerDisplay" class="timer-display text-center">
-            00:00.000
-        </div>
-
         <!-- Control Buttons -->
         <div class="flex flex-col sm:flex-row justify-center gap-4">
-            <button id="startStopBtn" class="button-primary flex-1">Start / Stop (Space)</button>
-            <button id="resetBtn" class="button-secondary flex-1">Reset</button>
-            <button id="scrambleBtn" class="button-secondary flex-1">New Scramble</button>
-            <button id="settingsBtn" class="button-secondary flex-1">Settings</button>
+            <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
+            <button id="resetBtn" class="button-secondary">Reset</button>
+            <button id="scrambleBtn" class="button-secondary">New Scramble</button>
+            <button id="settingsBtn" class="button-secondary">Settings</button>
+            <!-- New Chat Button -->
+            <button id="openChatBtn" class="button-secondary">Chat <i class="fas fa-comment-dots ml-2"></i></button>
         </div>
 
-        <!-- Statistics -->
+        <!-- Statistics Grid -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="label text-gray-400">Best Time</div>
@@ -114,28 +82,10 @@
         </div>
 
         <!-- Solve History -->
-        <div>
-            <h2 class="text-2xl font-semibold text-gradient mb-4">Solve History</h2>
-            <div id="solveHistoryList" class="max-h-64 overflow-y-auto pr-2">
-                <!-- Solve times will be dynamically added here -->
-                <p class="text-center text-gray-500" id="noSolvesMessage">No solves yet. Start cubing!</p>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Floating Action Button for Voice Commands -->
-    <button id="voiceCommandBtn" class="fixed bottom-6 right-6 z-50">
-        <i class="fas fa-microphone"></i>
-    </button>
-
-    <!-- Voice Feedback Display (NEW) -->
-    <div id="voiceFeedbackDisplay" class="voice-feedback-display">
-        <span id="voiceListeningText"></span>
-        <div class="listening-indicator" id="voiceListeningIndicator">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
+        <h2 class="text-2xl font-bold text-gradient mb-4">Solve History</h2>
+        <div id="noSolvesMessage" class="text-center text-gray-400 mb-4" style="display: none;">No solves recorded yet. Start cubing!</div>
+        <div id="solveHistoryList" class="space-y-3">
+            <!-- Solve items will be dynamically added here -->
         </div>
     </div>
 
@@ -143,94 +93,97 @@
     <div id="settingsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
             <button class="modal-close-button" id="closeSettingsModal" aria-label="Close settings">&times;</button>
-            <h2 class="text-2xl font-bold text-gradient mb-6">Settings</h2>
-            <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                    <label for="inspectionToggle" class="text-lg">Enable 15s Inspection</label>
-                    <input type="checkbox" id="inspectionToggle"
-                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+            <h2 class="text-2xl font-bold text-gradient mb-4">Settings</h2>
+
+            <div class="space-y-4 text-gray-300">
+                <!-- Username Setting -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gradient mb-2">User Profile</h3>
+                    <label for="settingsUsernameInput" class="block text-sm font-medium mb-1">Username:</label>
+                    <input type="text" id="settingsUsernameInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter your username">
+                    <button id="saveUsernameBtn" class="button-primary mt-2">Save Username</button>
+                    <p id="usernameUpdateMessage" class="text-sm mt-2" style="display: none;"></p>
                 </div>
 
-                <div class="flex items-center justify-between">
-                    <label for="soundEffectsToggle" class="text-lg">Enable Sound Effects</label>
-                    <input type="checkbox" id="soundEffectsToggle"
-                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
+                <!-- Timer Settings -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Timer</h3>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="inspectionToggle" class="toggle-switch">
+                        <span>Enable Inspection (15s)</span>
+                    </label>
                 </div>
 
-                <div class="flex items-center justify-between">
-                    <label for="cubeTypeSelect" class="text-lg">Cube Type</label>
-                    <select id="cubeTypeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                <!-- Sound Settings -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Sound</h3>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="soundEffectsToggle" class="toggle-switch">
+                        <span>Enable Sound Effects</span>
+                    </label>
+                </div>
+
+                <!-- Cube Type Selection -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Cube Type</h3>
+                    <select id="cubeTypeSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                         <option value="3x3">3x3</option>
                         <option value="2x2">2x2</option>
                         <option value="4x4">4x4</option>
                         <option value="pyraminx">Pyraminx</option>
+                        <!-- Add more cube types as needed -->
                     </select>
                 </div>
 
-                <div class="flex items-center justify-between">
-                    <label for="themeSelect" class="text-lg">Theme</label>
-                    <select id="themeSelect" class="bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
-                        <option value="dark">Dark (Default)</option>
+                <!-- Theme Selection -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Theme</h3>
+                    <select id="themeSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <option value="dark">Dark</option>
                         <option value="light">Light</option>
                         <option value="vibrant">Vibrant</option>
                     </select>
                 </div>
 
-                <!-- New: 3D Cube View Toggle -->
-                <div class="flex items-center justify-between">
-                    <label for="cubeViewToggle" class="text-lg">Show 3D Cube Scramble</label>
-                    <input type="checkbox" id="cubeViewToggle"
-                        class="w-6 h-6 rounded focus:ring-purple-500 transition duration-150 ease-in-out text-purple-600 form-checkbox bg-gray-700 border-gray-600">
-                </div>
-
-                <div class="mt-4 pt-4 border-t border-gray-600">
-                    <h3 class="text-xl font-semibold text-gradient mb-3">Change Username</h3>
-                    <div class="mb-3">
-                        <label for="settingsUsernameInput" class="block text-gray-300 text-sm font-bold mb-2">New
-                            Username:</label>
-                        <input type="text" id="settingsUsernameInput"
-                            class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
-                            placeholder="Enter new username">
-                    </div>
-                    <button id="saveUsernameBtn" class="button-primary w-full">Save Username</button>
-                    <p id="usernameUpdateMessage" class="text-sm mt-2 text-center" style="display:none;"></p>
+                <!-- 3D Cube View Toggle -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble View</h3>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="cubeViewToggle" class="toggle-switch">
+                        <span>Show 3D Cube Scramble</span>
+                    </label>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Auth Modal -->
+    <!-- Authentication Modal -->
     <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-content">
-            <button class="modal-close-button" id="closeAuthModal"
-                aria-label="Close authentication modal">&times;</button>
-            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-6 text-center">Sign In</h2>
-
-            <div class="mb-4">
-                <label for="email" class="block text-gray-300 text-sm font-bold mb-2">Email:</label>
-                <input type="email" id="email"
-                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
-                    placeholder="your@email.com">
-            </div>
-            <div class="mb-4" id="usernameFieldGroup" style="display:none;">
-                <label for="usernameInput" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
-                <input type="text" id="usernameInput"
-                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
-                    placeholder="Enter your username">
-            </div>
-            <div class="mb-6">
-                <label for="password" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
-                <input type="password" id="password"
-                    class="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-900 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-200"
-                    placeholder="********">
-            </div>
-            <p id="authError" class="text-red-500 text-sm mb-4" style="display:none;"></p>
-
-            <div class="flex flex-col gap-3 mb-4">
+            <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication modal">&times;</button>
+            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-4">Sign In</h2>
+            <div class="space-y-4 text-gray-300">
+                <div>
+                    <label for="email" class="block text-sm font-medium mb-1">Email:</label>
+                    <input type="email" id="email" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="your.email@example.com">
+                </div>
+                <div id="usernameFieldGroup" style="display:none;">
+                    <label for="usernameInput" class="block text-sm font-medium mb-1">Username:</label>
+                    <input type="text" id="usernameInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Choose a username">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium mb-1">Password:</label>
+                    <input type="password" id="password" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter your password">
+                </div>
+                <p id="authError" class="text-red-500 text-sm" style="display:none;"></p>
                 <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
+                <div class="relative flex py-5 items-center">
+                    <div class="flex-grow border-t border-gray-600"></div>
+                    <span class="flex-shrink mx-4 text-gray-500">Or</span>
+                    <div class="flex-grow border-t border-gray-600"></div>
+                </div>
                 <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo"
-                        class="w-5 h-5">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5">
                     Sign In with Google
                 </button>
             </div>
@@ -254,6 +207,38 @@
                     <p id="personalizedTipText" class="text-white text-sm"></p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- NEW: Chat Modal -->
+    <div id="chatModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content !max-w-md !max-h-[80vh] flex flex-col">
+            <button class="modal-close-button" id="closeChatModal" aria-label="Close chat">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Jarvis Chat</h2>
+            <div id="chatHistory" class="flex-grow overflow-y-auto p-3 bg-gray-800 rounded-lg mb-4 space-y-2 text-sm custom-scrollbar">
+                <!-- Chat messages will be dynamically added here -->
+                <div class="chat-message jarvis-message">
+                    <span class="font-bold text-indigo-400">Jarvis:</span> At your service, Sir Sevindu. How may I assist you via text?
+                </div>
+            </div>
+            <div class="chat-input-container flex gap-2">
+                <textarea id="chatInput" class="flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows="2" placeholder="Type your command..."></textarea>
+                <button id="chatSendBtn" class="button-primary !p-3 !rounded-lg !w-auto flex-shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Jarvis Orb Voice Feedback Display (moved to bottom center) -->
+    <div id="voiceFeedbackDisplay" class="voice-feedback-display">
+        <p id="voiceListeningText">Listening for 'Jarvis'...</p>
+        <p id="voiceLiveTranscript" class="text-xs text-gray-400 italic mt-1" style="display: none;"></p>
+        <div id="voiceListeningIndicator" class="listening-indicator">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
         </div>
     </div>
 
