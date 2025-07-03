@@ -12,6 +12,10 @@ from flask_cors import CORS # Required for handling CORS in Flask functions
 app = Flask(__name__)
 CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
 
+# Gemini API configuration
+# Ensure GEMINI_API_KEY is set in your Vercel project's environment variables
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
 @app.route('/api/gemini-nlu', methods=['POST', 'OPTIONS'])
 def gemini_nlu_handler():
     """HTTP endpoint that uses Gemini to interpret natural language voice commands.
@@ -34,118 +38,104 @@ def gemini_nlu_handler():
             return jsonify({"error": "Invalid request: 'transcript' field is required."}), 400
 
         user_transcript = request_json['transcript']
-        print(f"DEBUG: Processing transcript: '{user_transcript}'")
 
-        # Your Gemini API Key - This should be set as an environment variable in Vercel.
-        # For development, you might hardcode it here temporarily, but REMOVE for production.
-        gemini_api_key = os.environ.get("GEMINI_API_KEY") 
-        if not gemini_api_key:
+        if not GEMINI_API_KEY:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
-            return jsonify({"error": "Server configuration error: Gemini API Key is not set."}), 500
+            return jsonify({"error": "Server configuration error: Gemini API key is missing."}), 500
 
-        # Define the set of canonical commands the front-end understands, including new settings commands.
-        canonical_commands = [
-            "start_timer",
-            "stop_timer",
-            "new_scramble",
-            "reset_timer",
-            "open_settings",
-            "close_settings",
-            "get_insight",
-            "toggle_inspection",
-            "toggle_sound_effects",
-            "set_cube_type", # Requires a value
-            "set_theme",     # Requires a value
-            "toggle_3d_cube_view",
-            "unknown" # Fallback for commands not understood
-        ]
-        
-        # Define valid values for parameters, important for Gemini's output
-        valid_cube_types = ["3x3", "2x2", "4x4", "pyraminx"]
-        valid_themes = ["dark", "light", "vibrant"]
+        headers = {
+            'Content-Type': 'application/json'
+        }
 
-        # Construct the prompt for Gemini.
-        # We explicitly ask for a JSON response with a 'canonicalCommand' and optionally 'commandValue'.
-        prompt = f"""
-        Analyze the following user command and determine its primary intent.
-        Map the user's intent to one of the following canonical commands:
-        {", ".join(canonical_commands)}.
-        
-        If the command is 'set_cube_type', identify the cube type from {", ".join(valid_cube_types)}.
-        If the command is 'set_theme', identify the theme from {", ".join(valid_themes)}.
-        If a value is identified, return it in the 'commandValue' field.
-        If the intent does not clearly match any of the canonical commands, return "unknown" for 'canonicalCommand'.
+        # Enhanced prompt for Gemini to understand more commands, including settings and stats
+        prompt_text = f"""
+        You are Jarvis, an AI assistant for a Rubik's Cube timer application.
+        Your task is to interpret user voice commands and convert them into a canonical, simplified action.
+        Respond with a JSON object containing `canonicalCommand` and, if applicable, `commandValue`.
 
-        User command: "{user_transcript}"
+        Here are the supported commands and their canonical forms:
 
-        Respond ONLY with a JSON object.
-        Example 1: {{"canonicalCommand": "start_timer"}}
-        Example 2: {{"canonicalCommand": "set_cube_type", "commandValue": "2x2"}}
-        Example 3: {{"canonicalCommand": "set_theme", "commandValue": "light"}}
-        Example 4: {{"canonicalCommand": "unknown"}}
+        -   **Timer Control:**
+            -   "start timer", "begin solve", "start" -> `start_timer`
+            -   "stop timer", "end solve", "stop" -> `stop_timer`
+            -   "new scramble", "generate new scramble" -> `new_scramble`
+            -   "reset timer", "clear timer" -> `reset_timer`
+
+        -   **Settings Control:**
+            -   "open settings", "go to settings" -> `open_settings`
+            -   "close settings", "exit settings" -> `close_settings`
+            -   "enable inspection", "turn on inspection" -> `toggle_inspection` (value implied true)
+            -   "disable inspection", "turn off inspection" -> `toggle_inspection` (value implied false)
+            -   "enable sound effects", "turn on sound" -> `toggle_sound_effects` (value implied true)
+            -   "disable sound effects", "turn off sound" -> `toggle_sound_effects` (value implied false)
+            -   "set cube type to [2x2/3x3/4x4/pyraminx]", "change cube to [2x2/3x3/4x4/pyraminx]" -> `set_cube_type` with `commandValue` (e.g., "3x3")
+            -   "set theme to [dark/light/vibrant]", "change theme to [dark/light/vibrant]" -> `set_theme` with `commandValue` (e.g., "light")
+            -   "show 3D cube", "enable 3D view" -> `toggle_3d_cube_view` (value implied true)
+            -   "hide 3D cube", "disable 3D view" -> `toggle_3d_cube_view` (value implied false)
+
+        -   **Statistics Queries:**
+            -   "what's my best time", "show best time" -> `get_best_time`
+            -   "what's my average of five", "show Ao5" -> `get_ao5`
+            -   "what's my average of twelve", "show Ao12" -> `get_ao12`
+
+        -   **Insight:**
+            -   "get insight", "analyze my solve" -> `get_insight`
+
+        -   **Fallback:**
+            -   If no clear command is recognized, use `unknown`.
+
+        User Transcript: "{user_transcript}"
+
+        Your JSON response:
         """
 
-        gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-        headers = {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': gemini_api_key # Pass API key via header
-        }
-        payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {"text": prompt}
-                    ]
-                }
-            ],
-            # Use responseSchema to ensure structured output
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "canonicalCommand": { "type": "STRING", "enum": canonical_commands },
-                        "commandValue": { "type": "STRING" } # Allow any string for commandValue, validation is client-side
-                    },
-                    "required": ["canonicalCommand"] # Ensure canonicalCommand is always present
-                }
+        # Define the response schema for structured output
+        generation_config = {
+            "response_mime_type": "application/json",
+            "response_schema": {
+                "type": "OBJECT",
+                "properties": {
+                    "canonicalCommand": {"type": "STRING"},
+                    "commandValue": {"type": "STRING", "nullable": True}
+                },
+                "propertyOrdering": ["canonicalCommand", "commandValue"]
             }
         }
 
-        print("DEBUG: Sending request to Gemini API.")
-        gemini_response = requests.post(gemini_url, headers=headers, json=payload, timeout=30)
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt_text}]}],
+            "generationConfig": generation_config
+        }
+
+        gemini_api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+
+        print(f"DEBUG: Calling Gemini API at: {gemini_api_url}")
+        gemini_response = requests.post(gemini_api_url, headers=headers, data=json.dumps(payload), timeout=15)
         gemini_response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
 
         gemini_result = gemini_response.json()
-        print(f"DEBUG: Raw Gemini response: {json.dumps(gemini_result, indent=2)}")
+        print(f"DEBUG: Raw Gemini response: {gemini_result}")
 
-        # Extract the canonical command and optional value from Gemini's structured response
-        if gemini_result and gemini_result.get('candidates') and len(gemini_result['candidates']) > 0:
-            if gemini_result['candidates'][0].get('content') and gemini_result['candidates'][0]['content'].get('parts'):
-                try:
-                    # Gemini's structured response comes as a string, parse it
-                    gemini_content_str = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                    parsed_gemini_content = json.loads(gemini_content_str)
-                    
-                    canonical_command = parsed_gemini_content.get('canonicalCommand')
-                    command_value = parsed_gemini_content.get('commandValue') # Get optional value
+        if gemini_result and gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and gemini_result['candidates'][0]['content'].get('parts'):
+            response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+            # Gemini returns a string that is a JSON object, so we need to parse it
+            parsed_command = json.loads(response_text)
+            
+            canonical_command = parsed_command.get('canonicalCommand', 'unknown')
+            command_value = parsed_command.get('commandValue')
 
-                    if canonical_command in canonical_commands:
-                        print(f"DEBUG: Canonical command identified: {canonical_command}, Value: {command_value}")
-                        return jsonify({"canonicalCommand": canonical_command, "commandValue": command_value}), 200
-                    else:
-                        print(f"WARN: Gemini returned an unrecognised canonical command: {canonical_command}. Falling back to 'unknown'.")
-                        return jsonify({"canonicalCommand": "unknown"}), 200
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: Failed to decode Gemini's JSON response: {e}. Raw: {gemini_content_str}")
-                    return jsonify({"canonicalCommand": "unknown", "error": "AI response malformed."}), 200
-                except Exception as e:
-                    print(f"ERROR: Unexpected error parsing Gemini response: {e}")
-                    return jsonify({"canonicalCommand": "unknown", "error": "Error processing AI response."}), 200
+            # Handle implicit boolean values for toggles
+            if canonical_command in ['toggle_inspection', 'toggle_sound_effects', 'toggle_3d_cube_view']:
+                # The prompt implies the value, but if Gemini doesn't return it,
+                # we can infer based on the phrasing if needed.
+                # For now, the JS side will handle the toggle logic.
+                pass 
+
+            print(f"DEBUG: Canonical command: {canonical_command}, Value: {command_value}")
+            return jsonify({"canonicalCommand": canonical_command, "commandValue": command_value}), 200
         else:
-            print("WARN: Gemini response did not contain expected 'candidates' or 'content'.")
-            return jsonify({"canonicalCommand": "unknown", "error": "AI response structure unexpected."}), 200
+            print("ERROR: Unexpected Gemini response structure or empty content.")
+            return jsonify({"error": "Failed to interpret command. Unexpected response structure."}), 500
 
     except requests.exceptions.ConnectionError as conn_err:
         print(f"ERROR: Connection error during Gemini API call: {conn_err}")
@@ -158,14 +148,10 @@ def gemini_nlu_handler():
         return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
-        print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
-        return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
+        print(f"ERROR: JSON decoding error: {json_err}. Raw request body: '{raw_body}' or Gemini response was malformed.")
+        return jsonify({"error": f"Invalid JSON format. Details: {json_err}"}), 400
     except Exception as e:
         import traceback
         print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
 
-# To run this with Vercel, ensure you have a 'requirements.txt' in the same 'api' directory:
-# Flask==3.*
-# requests==2.*
-# flask-cors==4.*
