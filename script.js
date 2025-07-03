@@ -592,7 +592,7 @@ function attemptRestartRecognition() {
 const recognitionOnEndHandler = () => {
     console.log(`[DEBUG] Voice recognition ENDED. recognition object:`, recognition, `State: isListeningForVoice=${isListeningForVoice}, awaitingActualCommand=${awaitingActualCommand}, recognitionStopInitiated=${recognitionStopInitiated}, recognition.readyState=${recognition ? recognition.readyState : "N/A"}`);
     isListeningForVoice = false; // No longer continuously listening
-    awaitingActualCommand = false; // Reset command mode
+    // awaitingActualCommand = false; // This state is now managed by onresult/button click
     if (voiceCommandBtn) voiceCommandBtn.classList.remove('active');
     updateVoiceFeedbackDisplay("", false, false); // Hide feedback display
 
@@ -732,18 +732,15 @@ if (recognition) {
             commandTimeoutId = null;
         }
 
+        // IMPORTANT CHANGE: If awaitingActualCommand is true, process it directly.
+        // Otherwise, check for wake word.
         if (awaitingActualCommand) {
             console.log("[DEBUG] Awaiting command mode is TRUE: Processing transcript as command.");
             updateVoiceFeedbackDisplay("Processing command...", false, true); // Show processing message
-            recognitionStopInitiated = true;
-            // Delay recognition.stop() slightly to ensure full command capture
-            setTimeout(() => {
-                console.log("[DEBUG] Calling recognition.stop() for command processing after delay.");
-                recognition.stop();
-            }, 200);
-            awaitingActualCommand = false;
+            // No recognition.stop() here. The continuous listener remains active.
+            awaitingActualCommand = false; // Reset command mode after receiving a command
             setTimeout(() => processVoiceCommandWithGemini(transcript), 50);
-            console.log("[DEBUG] Recognition stop scheduled and awaitingActualCommand set to FALSE after command processing.");
+            console.log("[DEBUG] AwaitingActualCommand set to FALSE after command processing.");
         } else if (transcript.includes('jarvis')) {
             console.log("[DEBUG] Wake word 'Jarvis' detected. Entering command mode.");
             speakAsJarvis("At your service, Sir Sevindu. Your command?");
@@ -754,9 +751,7 @@ if (recognition) {
                 speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
                 updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
                 console.log("[DEBUG] Command mode timed out. Reverted to wake word listening.");
-                recognitionStopInitiated = true;
-                console.log("[DEBUG] Calling recognition.stop() due to command timeout.");
-                recognition.stop();
+                // No recognition.stop() here. The continuous listener remains active.
             }, 10000); // Increased timeout to 10 seconds for command input
         } else {
             console.log("[DEBUG] No wake word detected and not in command mode. Continuing continuous listening for 'Jarvis'.");
@@ -899,7 +894,13 @@ async function processVoiceCommandWithGemini(rawTranscript) {
         // Use the centralized restart function
         console.log("[DEBUG] processVoiceCommandWithGemini: Initiating controlled recognition restart after command processing.");
         // updateVoiceFeedbackDisplay("", false, false); // Hide processing message (handled by speakAsJarvis.onend)
-        attemptRestartRecognition();
+        // No need to call attemptRestartRecognition here, as the continuous listener is always on.
+        // We just need to ensure the UI reverts to wake word listening state.
+        if (isListeningForVoice) { // Only if continuous listening is still active
+            updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
+        } else {
+            updateVoiceFeedbackDisplay("", false, false); // Hide if not listening
+        }
     }
 }
 
@@ -2142,57 +2143,33 @@ function setupEventListeners() {
     // Voice Command Button Listener
     if (voiceCommandBtn && recognition) { // Only add if both exist
         voiceCommandBtn.addEventListener('click', () => {
-            console.log("[DEBUG] Voice command button clicked. isListeningForVoice:", isListeningForVoice);
-            if (isListeningForVoice) { // If currently listening (continuously)
-                console.log("[DEBUG] Recognition is active, stopping it manually.");
-                recognitionStopInitiated = true; // Set flag before stopping
-                // Temporarily clear handlers before stopping
-                recognition.onend = null;
-                recognition.onerror = null;
-                console.log("[DEBUG] Temporarily cleared recognition.onend and .onerror handlers before manual stop.");
-                console.log("[DEBUG] Calling recognition.stop() from button click.");
-                recognition.stop(); // Stop continuous listening
-                speakAsJarvis("Voice input suspended, Sir Sevindu.");
-                updateVoiceFeedbackDisplay("Voice suspended", false, true); // Show message
-                setTimeout(() => updateVoiceFeedbackDisplay("", false, false), 3000); // Hide after 3s
+            console.log("[DEBUG] Voice command button clicked. awaitingActualCommand:", awaitingActualCommand);
 
-                if (commandTimeoutId) {
-                    clearTimeout(commandTimeoutId);
-                    commandTimeoutId = null;
-                    console.log("[DEBUG] Command timeout cleared on manual stop.");
-                }
+            if (awaitingActualCommand) { // If currently in command mode (button pressed again)
+                console.log("[DEBUG] Command mode cancelled by button press.");
+                clearTimeout(commandTimeoutId);
+                commandTimeoutId = null;
                 awaitingActualCommand = false;
-                console.log("[DEBUG] Awaiting command mode set to FALSE on manual stop.");
-                // Re-assign handlers after a short delay to allow internal state to settle
-                setTimeout(() => {
-                    recognition.onend = recognitionOnEndHandler;
-                    recognition.onerror = recognitionOnErrorHandler;
-                    console.log("[DEBUG] Re-assigned recognition.onend and .onerror handlers after manual stop.");
-                }, 100);
-            } else { // If not listening, start continuous listening
-                try {
-                    console.log("[DEBUG] Recognition is inactive, attempting to start for continuous listening.");
-                    attemptRestartRecognition(); // Use the controlled restart
-                    // Immediately enter command mode for a short duration after manual start
-                    awaitingActualCommand = true;
-                    speakAsJarvis("Listening for your command, Sir Sevindu."); // Immediate feedback
-                    updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
-
-                    if (commandTimeoutId) clearTimeout(commandTimeoutId); // Clear any old timeout
-                    commandTimeoutId = setTimeout(() => {
-                        awaitingActualCommand = false;
-                        speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
-                        updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
-                        console.log("[DEBUG] Manual command mode timed out. Reverted to wake word listening.");
-                        recognitionStopInitiated = true; // Mark as programmatic stop to prevent onend restart
-                        console.log("[DEBUG] Calling recognition.stop() due to manual command timeout.");
-                        recognition.stop(); // Stop and let onend handle restart (or not, if programmatic)
-                    }, 5000); // 5 seconds to give a command after manual start
-                } catch (e) {
-                    console.error("[ERROR] Failed to start recognition from button click:", e);
-                    speakAsJarvis("Pardon me, Sir Sevindu. I could not activate voice input. Please check microphone permissions.");
-                    updateVoiceFeedbackDisplay("Error activating voice input", false, true);
+                speakAsJarvis("Command mode cancelled, Sir Sevindu. I am now listening for the wake word.");
+                updateVoiceFeedbackDisplay("Listening for 'Jarvis'...", true, true);
+            } else { // If in wake word listening mode, or recognition is off, activate command mode
+                if (!isListeningForVoice) { // If recognition is not even started, try to start it
+                    console.log("[DEBUG] Recognition not active, attempting to start it first.");
+                    attemptRestartRecognition(); // This will set isListeningForVoice = true
                 }
+                
+                // Now, regardless of whether it just started or was already listening, enter command mode
+                awaitingActualCommand = true;
+                speakAsJarvis("At your service, Sir Sevindu. Your command?");
+                updateVoiceFeedbackDisplay("Command ready...", true, true); // Show command ready message
+
+                if (commandTimeoutId) clearTimeout(commandTimeoutId); // Clear any old timeout
+                commandTimeoutId = setTimeout(() => {
+                    awaitingActualCommand = false;
+                    speakAsJarvis("No command received, Sir Sevindu. I shall continue to listen for your instructions.");
+                    updateVoiceFeedbackDisplay("No command. Listening for 'Jarvis'...", true, true); // Show timeout message
+                    console.log("[DEBUG] Manual command mode timed out. Reverted to wake word listening.");
+                }, 5000); // 5 seconds to give a command after manual start
             }
         });
     } else if (voiceCommandBtn) {
