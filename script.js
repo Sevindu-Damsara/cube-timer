@@ -1417,7 +1417,7 @@ function generateScramble() {
 function calculateAverage(solveList, n) {
     console.log(`[DEBUG] Entering calculateAverage for N=${n} with ${solveList.length} solves.`);
     if (solveList.length < n) {
-        console.log(`[DEBUG] calculateAverage: Not enough solves (${solveList.length} < ${n}). Returning '--:--.--'.`);
+        console.log(`[DEBUG] calculateAverage: Not enough solves ( ${solveList.length} < ${n}). Returning '--:--.--'.`);
         return '--:--.--';
     }
 
@@ -2393,6 +2393,11 @@ function setupEventListeners() {
 
 
     document.addEventListener('keydown', (e) => {
+        // FIX: Prevent spacebar from triggering timer when typing in chat input
+        if (e.target === chatInput && e.code === 'Space') {
+            return; // Do nothing, let the browser handle the space in the textarea
+        }
+
         if (e.code === 'Escape') {
             const settingsModal = document.getElementById('settingsModal');
             if (settingsModal && settingsModal.classList.contains('open')) {
@@ -2430,6 +2435,11 @@ function setupEventListeners() {
     });
 
     document.addEventListener('keyup', (e) => {
+        // FIX: Prevent spacebar from triggering timer when typing in chat input
+        if (e.target === chatInput && e.code === 'Space') {
+            return; // Do nothing, let the browser handle the space in the textarea
+        }
+
         if (e.code === 'Space') {
             e.preventDefault();
             const spaceUpTime = Date.now();
