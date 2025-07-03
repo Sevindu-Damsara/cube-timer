@@ -1991,7 +1991,7 @@ function toggleTimer() {
             timerDisplay.classList.remove('ready'); // Remove ready state if it was there
             timerDisplay.textContent = formatTime(0);
         }
-        if (startStopBtn) startStopBtn.textContent = 'Stop (Space)';
+        if (startStopBtn) startStopBtn.textContent = 'Start (Space)';
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 10); // Update every 10ms for millisecond precision
         if (enableSoundEffects && audioContextResumed && Tone.context.state === 'running') {
