@@ -21,13 +21,17 @@
     <div class="container mx-auto rounded-3xl">
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
         <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
-            <span id="usernameDisplay" class="text-white text-sm font-semibold px-3 py-1 rounded-full bg-gray-700 hidden sm:block">Guest</span>
             <button id="signInBtn" class="button-primary">Sign In</button>
             <button id="signUpBtn" class="button-secondary">Sign Up</button>
             <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
         </div>
 
-        <h1 class="text-4xl font-bold text-center text-gradient mb-8">Cubically AI Edition</h1>
+        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Cubically AI Edition</h1>
+
+        <!-- Username Display - Reverted to old structure -->
+        <div class="text-sm text-center text-gray-400">
+            Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+        </div>
 
         <!-- Timer Display -->
         <div id="timerDisplay" class="timer-display text-center">00:00.000</div>
@@ -39,13 +43,14 @@
         <div id="cube3DContainer" class="relative" style="display: none;">
             <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
             <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                <button id="playPreviewBtn" class="button-secondary !p-2 !rounded-full !w-10 !h-10 flex items-center justify-center" aria-label="Play 3D scramble animation">
+                <!-- Buttons here will be styled via specific CSS rules -->
+                <button id="playPreviewBtn" class="button-preview-control" aria-label="Play 3D scramble animation">
                     <i class="fas fa-play"></i>
                 </button>
-                <button id="pausePreviewBtn" class="button-secondary !p-2 !rounded-full !w-10 !h-10 flex items-center justify-center" aria-label="Pause 3D scramble animation">
+                <button id="pausePreviewBtn" class="button-preview-control" aria-label="Pause 3D scramble animation">
                     <i class="fas fa-pause"></i>
                 </button>
-                <button id="restartPreviewBtn" class="button-secondary !p-2 !rounded-full !w-10 !h-10 flex items-center justify-content-center" aria-label="Restart 3D scramble animation">
+                <button id="restartPreviewBtn" class="button-preview-control" aria-label="Restart 3D scramble animation">
                     <i class="fas fa-redo"></i>
                 </button>
             </div>
@@ -57,8 +62,6 @@
             <button id="resetBtn" class="button-secondary">Reset</button>
             <button id="scrambleBtn" class="button-secondary">New Scramble</button>
             <button id="settingsBtn" class="button-secondary">Settings</button>
-            <!-- New Chat Button -->
-            <button id="openChatBtn" class="button-secondary">Chat <i class="fas fa-comment-dots ml-2"></i></button>
         </div>
 
         <!-- Statistics Grid -->
@@ -198,10 +201,17 @@
             <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
                 <div class="spinner mx-auto my-4" style="display: none;"></div>
                 <p id="insightMessage" class="text-center">Generating insight...</p>
+                <!-- NEW: AI Scramble Analysis Display -->
+                <div id="scrambleAnalysisDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble Analysis:</h3>
+                    <p id="scrambleAnalysisText" class="text-white text-sm"></p>
+                </div>
+                <!-- Existing Optimal Solution Display -->
                 <div id="optimalSolutionDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
                     <h3 class="text-lg font-semibold text-gradient mb-2">Optimal Solution:</h3>
                     <p id="optimalSolutionText" class="font-mono text-white text-sm"></p>
                 </div>
+                <!-- Existing Personalized Tip Display -->
                 <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
                     <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
                     <p id="personalizedTipText" class="text-white text-sm"></p>
@@ -230,7 +240,6 @@
         </div>
     </div>
 
-
     <!-- Jarvis Orb Voice Feedback Display (moved to bottom center) -->
     <div id="voiceFeedbackDisplay" class="voice-feedback-display">
         <p id="voiceListeningText">Listening for 'Jarvis'...</p>
@@ -241,6 +250,17 @@
             <div class="dot"></div>
         </div>
     </div>
+
+    <!-- Voice Command Button (fixed position) -->
+    <button id="voiceCommandBtn" class="fixed bottom-20 right-4 md:bottom-20 md:right-20 z-50 button-primary !rounded-full !w-14 !h-14 !p-0 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200">
+        <i class="fas fa-microphone text-2xl"></i>
+    </button>
+
+    <!-- Chat Button (fixed position, mirroring voice button) -->
+    <button id="openChatBtn" class="fixed bottom-20 left-4 md:bottom-20 md:left-20 z-50 button-primary !rounded-full !w-14 !h-14 !p-0 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200">
+        <i class="fas fa-comment-dots text-2xl"></i>
+    </button>
+
 
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
