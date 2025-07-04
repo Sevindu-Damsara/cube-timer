@@ -181,6 +181,66 @@ def gemini_insight_handler():
                 print("ERROR: No candidates found in Gemini response for algorithm/explanation.")
                 return jsonify({"error": "No AI response generated for algorithm/explanation."}), 500
 
+        # NEW: Handler for general questions about cubing or the web application
+        elif request_type == 'get_answer':
+            query = request_json.get('query')
+            if not query:
+                print("ERROR: Missing 'query' for get_answer.")
+                return jsonify({"error": "Missing 'query' for answer generation."}), 400
+
+            prompt = f"""
+            You are Jarvis, an AI assistant for a Rubik's Cube timer application.
+            Your task is to answer user questions concisely and accurately.
+
+            The user's query is: "{query}".
+
+            Respond to the query. If the question is about Rubik's Cubes (history, concepts, algorithms, techniques, etc.) or about the features and usage of *this* Rubik's Cube timer web application, provide a direct answer.
+            If the question is beyond your scope (e.g., unrelated general knowledge), state that you cannot answer.
+
+            Do not provide optimal solutions for full cube solves.
+
+            Format your response as a JSON object with an "answer" key:
+            {{ "answer": "..." }}
+            """
+
+            # Call Gemini API
+            gemini_api_key = os.environ.get("GEMINI_API_KEY")
+            if not gemini_api_key:
+                print("ERROR: GEMINI_API_KEY environment variable not set.")
+                return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
+
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+            headers = {'Content-Type': 'application/json'}
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
+            }
+
+            print("DEBUG: Sending request to Gemini API for answer.")
+            gemini_response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            gemini_response.raise_for_status()
+
+            gemini_result = gemini_response.json()
+            print(f"DEBUG: Received response from Gemini: {gemini_result}")
+
+            if gemini_result and gemini_result.get('candidates'):
+                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                try:
+                    answer_data = json.loads(response_text)
+                    if "answer" in answer_data:
+                        return jsonify({"answer": answer_data["answer"]})
+                    else:
+                        print("ERROR: Gemini response for get_answer missing 'answer' key.")
+                        return jsonify({"error": "AI did not provide a valid answer."}), 500
+                except json.JSONDecodeError as e:
+                    print(f"ERROR: Failed to decode JSON from Gemini response for get_answer: {e}. Raw response: {response_text}")
+                    return jsonify({"error": f"Failed to parse AI response: Invalid JSON format from AI. Details: {e}"}), 500
+            else:
+                print("ERROR: No candidates found in Gemini response for get_answer.")
+                return jsonify({"error": "No AI response generated for get_answer."}), 500
+
         else:
             print(f"ERROR: Unknown request type: {request_type}")
             return jsonify({"error": f"Unknown request type: {request_type}"}), 400
