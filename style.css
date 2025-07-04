@@ -874,13 +874,13 @@ body.theme-vibrant #aiInsightModal .modal-content {
         width: 50px;
         height: 50px;
         font-size: 1.5rem;
-        bottom: 16px; /* Slightly lower for mobile */
+        bottom: 8px; /* Further reduced for mobile */
     }
     #voiceCommandBtn {
-        right: 16px;
+        right: 8px; /* Further reduced for mobile */
     }
     #openChatBtn {
-        left: 16px;
+        left: 8px; /* Further reduced for mobile */
     }
 
 
