@@ -466,6 +466,54 @@ async function getAlgorithmOrExplanation(query) {
     }
 }
 
+/**
+ * Fetches a general answer from the AI for a given query.
+ * This is used for questions about cubing concepts, history, or the web application itself.
+ * @param {string} query - The user's general question.
+ * @returns {Promise<string>} A promise that resolves with the AI's answer.
+ */
+async function getGeneralAnswer(query) {
+    console.log(`[DEBUG] Requesting general answer for query: "${query}"`);
+
+    const requestData = {
+        type: "get_answer", // New type for general questions
+        query: query
+    };
+
+    const apiUrl = geminiInsightFunctionUrl; // Using the same insight function endpoint
+
+    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
+        console.error("[ERROR] Gemini Insight Cloud Function URL not configured for general answers.");
+        return "Sir Sevindu, my knowledge base is currently offline. Please configure the cloud function URL.";
+    }
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("[DEBUG] General Answer Cloud Function raw response:", result);
+
+        if (result.answer) {
+            return result.answer;
+        } else {
+            return "Pardon me, Sir Sevindu. I could not find an answer to that question.";
+        }
+
+    } catch (e) {
+        console.error("[ERROR] Error calling Cloud Function for general answer:", e);
+        return `Sir Sevindu, I encountered an error retrieving that information: ${e.message}`;
+    }
+}
+
 
 // --- Timer Variables ---
 let startTime;
@@ -980,15 +1028,10 @@ async function processVoiceCommandWithGemini(rawTranscript) {
         const canonicalCommand = result.canonicalCommand;
         const commandValue = result.commandValue; // May be present for settings
         const nluConfidence = result.confidence; // NEW: NLU confidence score
+        const query = result.query; // NEW: Query for general questions
 
         if (canonicalCommand) {
-            // If the command is to get an algorithm or explanation, handle it separately.
-            if (canonicalCommand === 'get_algorithm_or_explanation') {
-                const algorithmResponse = await getAlgorithmOrExplanation(commandValue);
-                speakAsJarvis(algorithmResponse);
-            } else {
-                handleCanonicalCommand(canonicalCommand, commandValue);
-            }
+            handleCanonicalCommand(canonicalCommand, commandValue, query); // Pass query to handler
         } else {
             speakAsJarvis("Pardon me, Sir Sevindu. I could not determine a clear command from your request.");
             console.warn("[WARN] Gemini NLU did not return a canonical command.");
@@ -1017,9 +1060,10 @@ async function processVoiceCommandWithGemini(rawTranscript) {
  * Handles the canonical command received from Gemini NLU.
  * @param {string} canonicalCommand - The simplified, standardized command (e.g., "start_timer").
  * @param {string} [value] - Optional value for commands like setting cube type or theme.
+ * @param {string} [query] - Optional query for general questions.
  */
-function handleCanonicalCommand(canonicalCommand, value = null) {
-    console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}" with value: "${value}"`);
+async function handleCanonicalCommand(canonicalCommand, value = null, query = null) {
+    console.log(`[DEBUG] Handling canonical command: "${canonicalCommand}" with value: "${value}", query: "${query}"`);
 
     switch (canonicalCommand) {
         case 'start_timer':
@@ -1064,7 +1108,7 @@ function handleCanonicalCommand(canonicalCommand, value = null) {
                 // speakAsJarvis("The settings panel is not currently open, Sir Sevindu.");
             }
             break;
-        case 'get_insight':
+        case 'analyze_solve': // Renamed from get_insight
             if (solves.length > 0) {
                 speakAsJarvis("Accessing neural network for solve analysis, Sir Sevindu.");
                 getSolveInsight(solves[solves.length - 1].id); // Get insight for the last solve
@@ -1123,6 +1167,15 @@ function handleCanonicalCommand(canonicalCommand, value = null) {
             break;
         case 'get_ao12':
             speakAsJarvis(`Your average of twelve is ${ao12Display.textContent}, Sir Sevindu.`);
+            break;
+        case 'general_query': // NEW: Handle general questions
+            if (query) {
+                speakAsJarvis("Accessing knowledge base, Sir Sevindu. Please wait.");
+                const answer = await getGeneralAnswer(query);
+                speakAsJarvis(answer);
+            } else {
+                speakAsJarvis("Pardon me, Sir Sevindu. I received a general query without a specific question.");
+            }
             break;
         case 'unknown':
         default:
