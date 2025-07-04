@@ -17,40 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<body class="theme-dark">
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <h2 class="text-xl font-bold text-white">Cubically AI</h2>
-            <button id="closeSidebarBtn" class="sidebar-toggle-btn">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="#" id="sidebarHomeBtn" class="sidebar-nav-item active">
-                <i class="fas fa-home mr-3"></i> Home
-            </a>
-            <a href="#" id="sidebarLessonsBtn" class="sidebar-nav-item">
-                <i class="fas fa-book-open mr-3"></i> Lessons
-            </a>
-            <a href="#" id="sidebarStatsBtn" class="sidebar-nav-item">
-                <i class="fas fa-chart-line mr-3"></i> Statistics
-            </a>
-            <a href="#" id="sidebarHistoryBtn" class="sidebar-nav-item">
-                <i class="fas fa-history mr-3"></i> History
-            </a>
-            <a href="#" id="sidebarSettingsBtn" class="sidebar-nav-item">
-                <i class="fas fa-cog mr-3"></i> Settings
-            </a>
-        </nav>
-    </aside>
-
-    <!-- Sidebar Toggle Button (Hamburger Icon) -->
-    <button id="openSidebarBtn" class="fixed top-4 left-4 z-50 button-primary !rounded-full !w-12 !h-12 !p-0 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 sidebar-toggle-btn">
-        <i class="fas fa-bars text-xl"></i>
-    </button>
-
-
+<body class="theme-dark"> <!-- Set default theme class here -->
     <div class="container mx-auto rounded-3xl">
         <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
         <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
@@ -82,6 +49,9 @@
                 <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
                 <button id="resetBtn" class="button-secondary">Reset</button>
                 <button id="scrambleBtn" class="button-secondary">New Scramble</button>
+                <!-- NEW: Lessons Button added back to main layout -->
+                <button id="openLessonsBtn" class="button-secondary">Lessons</button>
+                <button id="settingsBtn" class="button-secondary">Settings</button>
             </div>
         </div>
 
