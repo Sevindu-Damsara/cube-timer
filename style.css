@@ -444,10 +444,27 @@ body.theme-vibrant {
 /* Specifically for AI Insight Modal to take more width on desktop */
 #aiInsightModal .modal-content {
     max-width: 700px;
-    /* Wider for insight display */
-    background: linear-gradient(135deg, var(--bg-color-secondary), #101520); /* Subtle gradient for AI modal */
-    border: 1px solid #334155; /* Light border */
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); /* Enhanced shadow */
+    color: var(--text-color-primary); /* Ensure text color is theme-aware */
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    /* Default background, overridden by theme-specific rules below */
+    background-color: var(--card-bg);
+}
+
+/* AI Insight Modal specific styling for Light Theme */
+body.theme-light #aiInsightModal .modal-content {
+    background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
+    color: var(--text-color-primary); /* Ensure text is dark */
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+/* AI Insight Modal specific styling for Vibrant Theme */
+body.theme-vibrant #aiInsightModal .modal-content {
+    background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
+    color: var(--text-color-primary); /* Ensure text is light */
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
 }
 
 
