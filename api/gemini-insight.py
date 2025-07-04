@@ -241,6 +241,90 @@ def gemini_insight_handler():
                 print("ERROR: No candidates found in Gemini response for get_answer.")
                 return jsonify({"error": "No AI response generated for get_answer."}), 500
 
+        # NEW: Handler for lesson generation
+        elif request_type == 'generate_lesson':
+            topic = request_json.get('topic')
+            cube_type = request_json.get('cubeType')
+            user_level = request_json.get('userLevel')
+
+            if not all([topic, cube_type, user_level]):
+                print("ERROR: Missing required fields for generate_lesson.")
+                return jsonify({"error": "Missing topic, cubeType, or userLevel for lesson generation."}), 400
+
+            prompt = f"""
+            You are Jarvis, an AI assistant and expert Rubik's Cube instructor.
+            Your task is to generate a structured lesson on the topic of "{topic}" for a {cube_type} cube, tailored for a {user_level} user.
+            The lesson should be concise, clear, and include multiple steps.
+            For steps that involve an algorithm or a specific sequence of moves, provide the `visualAlgorithm` as a standard cubing notation string (e.g., "R U R' U'").
+            For conceptual steps, set `visualAlgorithm` to `null`.
+            Provide a brief `explanation` for each step.
+            Ensure the lesson is educational and actionable.
+
+            Do not provide optimal solutions for full cube solves. Focus on teaching specific techniques or concepts.
+
+            Format your response as a JSON object with the following structure:
+            {{
+              "lessonTitle": "...",
+              "lessonDescription": "...",
+              "cubeType": "{cube_type}",
+              "targetUserLevel": "{user_level}",
+              "steps": [
+                {{
+                  "stepTitle": "...",
+                  "stepDescription": "...",
+                  "visualAlgorithm": "R U R' U'", // or null
+                  "explanation": "..."
+                }},
+                {{
+                  "stepTitle": "...",
+                  "stepDescription": "...",
+                  "visualAlgorithm": null,
+                  "explanation": "..."
+                }}
+                // ... more steps
+              ]
+            }}
+            """
+
+            # Call Gemini API
+            gemini_api_key = os.environ.get("GEMINI_API_KEY")
+            if not gemini_api_key:
+                print("ERROR: GEMINI_API_KEY environment variable not set.")
+                return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
+
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+            headers = {'Content-Type': 'application/json'}
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
+            }
+
+            print("DEBUG: Sending request to Gemini API for lesson generation.")
+            gemini_response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            gemini_response.raise_for_status()
+
+            gemini_result = gemini_response.json()
+            print(f"DEBUG: Received response from Gemini: {gemini_result}")
+
+            if gemini_result and gemini_result.get('candidates'):
+                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                try:
+                    lesson_data = json.loads(response_text)
+                    # Basic validation of lesson structure
+                    if "lessonTitle" in lesson_data and "steps" in lesson_data and isinstance(lesson_data["steps"], list):
+                        return jsonify(lesson_data)
+                    else:
+                        print("ERROR: Gemini response for generate_lesson missing expected keys or malformed.")
+                        return jsonify({"error": "AI did not provide a valid lesson structure."}), 500
+                except json.JSONDecodeError as e:
+                    print(f"ERROR: Failed to decode JSON from Gemini response for generate_lesson: {e}. Raw response: {response_text}")
+                    return jsonify({"error": f"Failed to parse AI response: Invalid JSON format from AI. Details: {e}"}), 500
+            else:
+                print("ERROR: No candidates found in Gemini response for generate_lesson.")
+                return jsonify({"error": "No AI response generated for lesson."}), 500
+
         else:
             print(f"ERROR: Unknown request type: {request_type}")
             return jsonify({"error": f"Unknown request type: {request_type}"}), 400
