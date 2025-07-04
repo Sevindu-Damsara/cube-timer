@@ -30,391 +30,400 @@ body {
     --button-bg-hover: #475569;
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
 
-    /* NEW Theme variables for light and vibrant */
+/* Theme specific variables (kept same) */
+body.theme-dark {
+    --bg-color-primary: #0f172a;
+    --text-color-primary: #e2e8f0;
+    --bg-color-secondary: #1e293b;
     --button-secondary-bg: #475569;
     --button-secondary-text: #e2e8f0;
     --button-secondary-hover-bg: #64748b;
     --card-bg: #334155;
-    --timer-color: #818cf8;
-    --scramble-color: #a78bfa;
-    --stats-value-color: #67e8f9;
-    --solve-time-color: #a78bfa;
+    --modal-bg: #1e293b;
+    --modal-border: #475569;
+    --input-bg: #475569;
+    --input-border: #64748b;
+    --input-text: #e2e8f0;
+    --spinner-color: #3b82f6;
+    --chat-bg: #1e293b;
+    --chat-border: #334155;
 }
 
-/* Light theme - Fully upgraded for a pristine, modern look */
 body.theme-light {
-    --bg-color-primary: #f8f9fa; /* Very light, almost white background */
-    --text-color-primary: #343a40; /* Soft dark gray for primary text */
-    --bg-color-secondary: #ffffff; /* Pure white for the main container */
-    --button-secondary-bg: #e9ecef; /* Very light gray for secondary buttons */
-    --button-secondary-text: #495057; /* Medium dark gray for secondary button text */
-    --button-secondary-hover-bg: #dee2e6; /* Slightly darker light gray for secondary button hover */
-    --card-bg: #ffffff; /* White cards for a clean feel */
-    --timer-color: #007bff; /* Vibrant blue for the timer */
-    --scramble-color: #0056b3; /* Deep blue for scramble text */
-    --stats-value-color: #17a2b8; /* Clear cyan for stats values */
-    --solve-time-color: #0056b3; /* Deep blue for solve times */
-    --border-color: #f1f3f5; /* Extremely subtle light gray border */
-    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
+    --bg-color-primary: #f0f2f5;
+    --text-color-primary: #1e293b;
+    --bg-color-secondary: #ffffff;
+    --button-secondary-bg: #e2e8f0;
+    --button-secondary-text: #1e293b;
+    --button-secondary-hover-bg: #cbd5e1;
+    --card-bg: #ffffff;
+    --modal-bg: #ffffff;
+    --modal-border: #cbd5e1;
+    --input-bg: #e2e8f0;
+    --input-border: #cbd5e1;
+    --input-text: #1e293b;
+    --spinner-color: #3b82f6;
+    --chat-bg: #ffffff;
+    --chat-border: #cbd5e1;
 }
 
-/* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
 body.theme-vibrant {
-    --bg-color-primary: #120724; /* Deeper, luxurious dark purple background */
-    --text-color-primary: #f8f9fa; /* Slightly warmer off-white text */
-    --bg-color-secondary: #2c0a52; /* Rich, dark sapphire/amethyst for the main container */
-    --button-secondary-bg: #7b2cbf; /* Vibrant, but not neon, purple for secondary buttons */
-    --button-secondary-text: #f8f9fa; /* Light text for secondary buttons */
-    --button-secondary-hover-bg: #9c36f0; /* Lighter, more saturated purple for secondary button hover */
-    --card-bg: #3a0e6c; /* Medium-dark, rich purple for cards */
-    --timer-color: #c084fc; /* Bright, almost electric lavender for the timer */
-    --scramble-color: #e0f7fa; /* Very light, cool tone for scramble text */
-    --stats-value-color: #20c997; /* Vibrant, slightly deeper teal for stats values */
-    --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
-    --border-color: #4a148c; /* More distinct, yet harmonious purple border */
-    --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
+    --bg-color-primary: #2d0b57;
+    /* Deep purple */
+    --text-color-primary: #e0f2fe;
+    /* Light blue */
+    --bg-color-secondary: #4a148c;
+    /* Darker purple */
+    --button-secondary-bg: #6a1b9a;
+    /* Medium purple */
+    --button-secondary-text: #e0f2fe;
+    --button-secondary-hover-bg: #8e24aa;
+    /* Lighter purple */
+    --accent-color-blue: #00bcd4;
+    /* Cyan */
+    --accent-color-green: #aed581;
+    /* Light green */
+    --accent-color-red: #ff7043;
+    /* Orange */
+    --card-bg: #6a1b9a;
+    --modal-bg: #4a148c;
+    --modal-border: #8e24aa;
+    --input-bg: #6a1b9a;
+    --input-border: #8e24aa;
+    --input-text: #e0f2fe;
+    --spinner-color: #00bcd4;
+    --chat-bg: #4a148c;
+    --chat-border: #6a1b9a;
 }
 
+
+/* General Layout */
 .container {
-    background-color: var(--bg-color-secondary);
-    border-radius: 1.5rem;
-    /* Large rounded corners */
-    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
-    max-width: 1200px;
-    /* Desktop max-width */
-    width: 90%;
-    /* Desktop relative width */
-    padding: 2.5rem;
-    /* Desktop padding */
+    max-width: 960px;
+    background-color: var(--bg-color-secondary, #1e293b);
+    padding: 30px;
+    box-shadow: var(--box-shadow);
+    text-align: center;
+    position: relative;
+    z-index: 10;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    /* Desktop gap */
-    position: relative;
-    /* For absolute positioning of elements like modals */
-    border: 1px solid var(--border-color); /* Added border for definition */
+    gap: 20px;
+    min-height: 80vh;
+    /* Ensure container has minimum height */
+    margin-top: 50px;
+    /* Space for sidebar toggle */
+    margin-bottom: 50px;
+    /* Space for voice/chat buttons */
 }
 
-/* Authentication buttons in the corner */
 .auth-corner-buttons {
     position: absolute;
-    top: 1.5rem;
-    right: 2.5rem;
-    z-index: 50;
-    /* Ensure they are above other content */
+    top: 20px;
+    right: 20px;
+    z-index: 20;
 }
+
+/* Sidebar Styles (NEW) */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Hidden by default */
+    width: 250px;
+    height: 100%;
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color-primary);
+    padding: 20px;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+    transition: left 0.3s ease-in-out;
+    z-index: 100; /* Above everything else */
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+}
+
+.sidebar.open {
+    left: 0; /* Slide in */
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.sidebar-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: var(--button-bg-hover);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-radius: 12px;
+    color: var(--text-color-primary);
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-nav-item:hover {
+    background-color: var(--button-bg-hover);
+    color: var(--accent-color-blue);
+}
+
+.sidebar-nav-item.active {
+    background-color: var(--accent-color-blue);
+    color: white;
+    font-weight: bold;
+}
+
+.sidebar-nav-item.active:hover {
+    background-color: var(--accent-color-blue); /* Keep same background on hover for active */
+    color: white;
+}
+
+
+/* Main Content Sections */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.scramble-display-container {
+    width: 100%;
+    min-height: 60px;
+    /* Ensure it has height even when 3D is off */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--card-bg);
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+.scramble-display {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-color-green);
+    text-align: center;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.3;
+}
+
+.cube-3d-container {
+    width: 100%;
+    height: 250px;
+    /* Fixed height for 3D viewer */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+twisty-player {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    /* Ensure rounded corners */
+}
+
+.twisty-player-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px 15px;
+    border-radius: 15px;
+    z-index: 5;
+}
+
+.twisty-player-controls .button-secondary {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
 
 .timer-display {
-    font-size: 6rem;
-    /* Desktop font size for timer */
-    font-weight: 700;
-    color: var(--timer-color);
-    text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
-    letter-spacing: -0.05em;
-    margin-bottom: 1rem;
-}
-
-.timer-display.inspection {
-    color: #fbbf24;
-    /* Amber for inspection */
+    font-size: 5rem;
+    font-weight: bold;
+    color: var(--accent-color-blue);
+    margin: 20px 0;
+    transition: color 0.2s ease-in-out;
 }
 
 .timer-display.ready {
-    color: #22c55e;
-    /* Green when ready */
+    color: var(--accent-color-green);
+}
+
+.timer-display.inspection {
+    color: var(--accent-color-red);
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.button-primary,
+.button-secondary {
+    padding: 12px 25px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    box-shadow: var(--box-shadow);
 }
 
 .button-primary {
-    background: linear-gradient(145deg, #6366f1, #818cf8);
-    /* Gradient button */
+    background-color: var(--accent-color-blue);
     color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    /* Base for desktop */
 }
 
 .button-primary:hover {
+    background-color: #2563eb;
+    /* Darker blue */
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
-}
-
-.button-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.4);
 }
 
 .button-secondary {
     background-color: var(--button-secondary-bg);
     color: var(--button-secondary-text);
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3); /* This shadow might need to be theme-aware too */
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    /* Base for desktop */
 }
 
 .button-secondary:hover {
     background-color: var(--button-secondary-hover-bg);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -5px rgba(71, 85, 105, 0.4);
 }
 
-.button-secondary:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
-}
-
-/* NEW: Styling for preview control buttons to make them colorful */
-.button-preview-control {
-    background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
-    color: white;
-    padding: 0.5rem; /* Smaller padding */
-    border-radius: 50%; /* Circular */
-    width: 40px; /* Fixed size */
-    height: 40px; /* Fixed size */
-    font-size: 1.2rem; /* Icon size */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
-    transition: all 0.2s ease-in-out;
-}
-
-.button-preview-control:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 12px rgba(34, 197, 94, 0.6);
-}
-
-.button-preview-control:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(34, 197, 94, 0.3);
-}
-
-/* Specific colors for play/pause/restart if needed, otherwise rely on general .button-preview-control */
-/* Example:
-#playPreviewBtn { background: linear-gradient(145deg, #3b82f6, #60a5fa); }
-#pausePreviewBtn { background: linear-gradient(145deg, #fbbf24, #fcd34d); }
-#restartPreviewBtn { background: linear-gradient(145deg, #ef4444, #f87171); }
-*/
-
-
-.scramble-display {
-    background-color: var(--card-bg);
-    padding: 1rem 1.5rem;
-    border-radius: 0.75rem;
-    font-size: 1.2rem;
-    /* Desktop font size */
-    font-weight: 500;
-    color: var(--scramble-color);
-    text-align: center;
-    word-break: break-all;
-    border: 1px solid var(--border-color); /* Added border for definition */
-}
-
-/* 3D Cube Container Styling */
-#cube3DContainer {
-    background-color: var(--bg-color-primary);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 300px;
-    /* Desktop height */
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-    border: 1px solid var(--border-color); /* Added border for definition */
-}
-
-/* Twisty player needs a height */
-#scramble3DViewer {
-    height: calc(100% - 60px);
-    width: 100%;
-}
-
+/* Stats Grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    /* Desktop grid layout */
-    gap: 1rem;
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 30px;
 }
 
 .stat-card {
     background-color: var(--card-bg);
-    padding: 1rem;
-    border-radius: 0.75rem;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: var(--box-shadow);
     text-align: center;
-    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
-    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+.stat-card .label {
+    font-size: 0.9rem;
+    color: var(--text-color-secondary);
+    margin-bottom: 5px;
 }
 
 .stat-card .value {
-    font-size: 1.8rem;
-    /* Desktop font size */
-    font-weight: 700;
-    color: var(--stats-value-color);
-    /* Cyan */
-    margin-top: 0.5rem;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-color-green);
+}
+
+/* Solve History */
+.solve-history-section {
+    background-color: var(--card-bg);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: var(--box-shadow);
+    width: 100%;
+}
+
+.solve-history-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+    /* Space for scrollbar */
 }
 
 .solve-history-item {
-    background-color: var(--card-bg);
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.5rem;
-    margin-bottom: 0.75rem;
     display: flex;
-    /* Default to row for desktop */
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s ease-in-out;
-    flex-wrap: nowrap;
-    /* Prevent wrapping on desktop */
-    gap: 1rem;
-    /* Desktop gap */
-    border: 1px solid var(--border-color); /* Added border for definition */
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
 }
 
-.solve-history-item:hover {
-    transform: translateX(5px);
-    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+.solve-history-item:last-child {
+    border-bottom: none;
 }
 
 .solve-history-item .time {
     font-size: 1.2rem;
-    /* Desktop font size */
     font-weight: 600;
-    color: var(--solve-time-color);
+    color: var(--text-color-primary);
+    flex-grow: 1;
+    text-align: left;
 }
 
 .solve-history-item .penalty-buttons {
     display: flex;
-    gap: 0.5rem;
-    /* Space between penalty buttons */
-    flex-wrap: nowrap;
-    /* Prevent wrapping on desktop */
-    justify-content: flex-end;
-    flex-grow: 1;
+    gap: 8px;
 }
 
 .solve-history-item .penalty-buttons button {
-    background-color: #f87171;
-    /* Red for DNF */
-    color: white;
-    padding: 0.3rem 0.7rem;
-    border-radius: 0.375rem;
+    padding: 6px 10px;
     font-size: 0.8rem;
-    cursor: pointer;
-    border: none;
-    transition: background-color 0.2s;
+    border-radius: 8px;
 }
 
-.solve-history-item .penalty-buttons button.plus2 {
-    background-color: #fbbf24;
-    /* Amber for +2 */
-}
-
-.solve-history-item .penalty-buttons button.clear-penalty {
-    background-color: #60a5fa;
-    /* Blue for clear */
-}
-
-.solve-history-item .penalty-buttons button.delete {
-    background-color: #dc2626;
-    /* Strong red for delete */
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-}
-
-.solve-history-item .penalty-buttons button.insight-button {
-    background-color: #4CAF50;
-    /* Green for Insight */
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
-}
-
-.solve-history-item .penalty-buttons button.insight-button:hover {
-    background-color: #45a049;
-}
-
-/* Voice Command Button Styling (fixed position) */
-#voiceCommandBtn, #openChatBtn {
-    background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
-    color: white;
-    border-radius: 50%; /* Circular */
-    width: 56px; /* Larger touch target */
-    height: 56px; /* Larger touch target */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem; /* Icon size */
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Shadow from primary color */
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    z-index: 100; /* Ensure it's above other content */
-    border: none; /* No border */
-}
-
-#voiceCommandBtn:hover, #openChatBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
-}
-
-#voiceCommandBtn:active, #openChatBtn:active {
-    transform: translateY(0);
-    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
-}
-
-#voiceCommandBtn.active {
-    background-color: #dc3545; /* Red when active */
-    animation: pulse-red 1s infinite;
-}
-
-@keyframes pulse-red {
-    0% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-    }
-}
-
+/* Modals */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
 
 .modal.open {
@@ -423,482 +432,442 @@ body.theme-vibrant {
 }
 
 .modal-content {
-    background-color: var(--bg-color-secondary);
-    padding: 2rem;
-    /* Desktop padding */
-    border-radius: 1rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    width: 90%;
-    /* Desktop width */
+    background-color: var(--modal-bg);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: var(--box-shadow);
     max-width: 500px;
-    /* Desktop max-width */
+    width: 90%;
     position: relative;
     color: var(--text-color-primary);
-    max-height: 90vh;
-    /* Prevent content from overflowing screen vertically */
-    overflow-y: auto;
-    /* Allow scrolling within modal if content is too long */
-    border: 1px solid var(--border-color); /* Added border for definition */
+    border: 1px solid var(--modal-border);
+    max-height: 90vh; /* Limit height for scrollable content */
+    overflow-y: auto; /* Enable scrolling for content that exceeds height */
 }
 
-/* Specifically for AI Insight Modal to take more width on desktop */
-#aiInsightModal .modal-content {
-    max-width: 700px;
-    color: var(--text-color-primary); /* Ensure text color is theme-aware */
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    /* Default background, overridden by theme-specific rules below */
-    background-color: var(--card-bg);
-}
-
-/* AI Insight Modal specific styling for Light Theme */
-body.theme-light #aiInsightModal .modal-content {
-    background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
-    color: var(--text-color-primary); /* Ensure text is dark */
-    border-color: var(--border-color);
-    box-shadow: var(--box-shadow);
-}
-
-/* AI Insight Modal specific styling for Vibrant Theme */
-body.theme-vibrant #aiInsightModal .modal-content {
-    background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
-    color: var(--text-color-primary); /* Ensure text is light */
-    border-color: var(--border-color);
-    box-shadow: var(--box-shadow);
-}
-
-
-.modal-close-button {
+.close-button {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 15px;
+    right: 20px;
     background: none;
     border: none;
-    font-size: 1.5rem;
-    color: var(--text-color-primary);
+    font-size: 2rem;
+    color: var(--text-color-secondary);
     cursor: pointer;
+    transition: color 0.2s;
 }
 
-.text-gradient {
-    background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.close-button:hover {
+    color: var(--accent-color-red);
 }
 
-/* NEW: Voice Feedback Display Styling - Moved to bottom center */
+/* Settings Specifics */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.setting-label {
+    font-size: 1.1rem;
+    color: var(--text-color-primary);
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--button-secondary-bg);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--accent-color-blue);
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px var(--accent-color-blue);
+}
+
+input:checked+.slider:before {
+    transform: translateX(22px);
+}
+
+/* Select Box & Text Input */
+.select-box,
+.text-input {
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--input-border);
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select-box:focus,
+.text-input:focus {
+    border-color: var(--accent-color-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    outline: none;
+}
+
+/* AI Insight Modal Specifics */
+.insight-section {
+    background-color: var(--bg-color-secondary);
+    padding: 15px;
+    border-radius: 12px;
+    margin-top: 15px;
+    text-align: left;
+    border: 1px solid var(--border-color);
+}
+
+.insight-section h3 {
+    color: var(--accent-color-blue);
+}
+
+.insight-section p {
+    color: var(--text-color-primary);
+    line-height: 1.5;
+}
+
+/* Spinner */
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid var(--spinner-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Voice Feedback Display (moved to bottom center) */
 .voice-feedback-display {
     position: fixed;
-    bottom: 5%; /* Position from the bottom */
-    left: 50%; /* Center horizontally */
-    transform: translateX(-50%); /* Adjust for true horizontal centering */
-    background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque background */
-    backdrop-filter: blur(8px); /* Subtle blur effect */
-    -webkit-backdrop-filter: blur(8px); /* For Safari */
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 20px 30px; /* More padding */
-    border-radius: 15px; /* More rounded corners */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Stronger shadow */
-    font-size: 1.3rem; /* Larger font */
-    font-weight: 600;
-    z-index: 1002; /* Above modals */
+    padding: 10px 20px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    z-index: 900;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.4s ease-out, transform 0.4s ease-out; /* Smooth transitions */
-    display: flex;
-    flex-direction: column; /* Stack text and indicator */
-    align-items: center;
-    gap: 10px; /* Space between text and indicator */
-    min-width: 280px; /* Minimum width for the popup */
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    min-width: 200px;
     text-align: center;
-    pointer-events: none; /* Allow clicks to pass through when hidden */
 }
 
 .voice-feedback-display.listening-active {
     opacity: 1;
     visibility: visible;
-    /* No Y-transform on activation, only X for centering */
-    transform: translateX(-50%);
-    pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
-/* Listening Indicator Dots */
 .listening-indicator {
     display: flex;
-    gap: 8px; /* Larger gap between dots */
+    gap: 5px;
+    margin-top: 5px;
 }
 
 .listening-indicator .dot {
-    width: 10px; /* Larger dots */
-    height: 10px; /* Larger dots */
-    background-color: var(--accent-color-green);
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-color-blue);
     border-radius: 50%;
-    opacity: 0.3;
-    animation: bounce 1.4s infinite ease-in-out both;
+    animation: bounce 1.4s infinite ease-in-out;
 }
 
-.listening-indicator .dot:nth-child(1) {
-    animation-delay: -0.32s;
-}
 .listening-indicator .dot:nth-child(2) {
-    animation-delay: -0.16s;
+    animation-delay: -0.2s;
 }
+
 .listening-indicator .dot:nth-child(3) {
-    animation-delay: 0s;
+    animation-delay: -0.4s;
 }
 
 @keyframes bounce {
     0%, 80%, 100% {
         transform: scale(0);
-        opacity: 0.3;
     }
+
     40% {
-    transform: scale(1);
-        opacity: 1;
+        transform: scale(1);
     }
 }
 
-/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
+/* New: Speaking animation for Jarvis Orb */
 .voice-feedback-display.speaking .listening-indicator .dot {
-    background-color: var(--accent-color-blue); /* Different color when speaking */
-    animation: pulse-dot 1s infinite ease-in-out;
+    animation: speak-pulse 0.8s infinite alternate;
 }
 
-@keyframes pulse-dot {
+@keyframes speak-pulse {
     0% {
-        transform: scale(0.8);
+        transform: scale(0.6);
         opacity: 0.7;
     }
-    50% {
+    100% {
         transform: scale(1.2);
         opacity: 1;
     }
-    100% {
-        transform: scale(0.8);
-        opacity: 0.7;
-    }
 }
 
-/* NEW: Chat Modal Styling */
-#chatModal .modal-content {
-    max-width: 450px; /* Slightly wider for chat */
-    max-height: 80vh; /* Controlled height */
+
+/* Chat Modal (NEW) */
+.chat-modal {
+    z-index: 1001; /* Higher than other modals */
+}
+
+.chat-modal-content {
     display: flex;
     flex-direction: column;
-    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for chat */
-    border: 1px solid #334155;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    height: 80vh; /* Make chat modal taller */
+    max-height: 80vh;
+    max-width: 600px;
+    width: 95%;
+    padding-bottom: 15px; /* Adjust padding for input */
+    background-color: var(--chat-bg);
+    border: 1px solid var(--chat-border);
 }
 
-#chatHistory {
+.chat-history {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 1rem;
-    background-color: #1a202c; /* Darker background for chat history */
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    scroll-behavior: smooth; /* Smooth scrolling for new messages */
-    border: 1px solid #2d3748;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    background-color: var(--bg-color-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .chat-message {
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.75rem;
-    max-width: 85%; /* Limit width for messages */
-    word-wrap: break-word; /* Ensure long words break */
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 90%;
+    word-wrap: break-word;
 }
 
 .user-message {
-    text-align: right;
-    color: #e2e8f0; /* Light text for user */
-    background-color: #3b82f6; /* Blue background for user messages */
-    margin-left: auto; /* Push to right */
-    border-bottom-right-radius: 0; /* Flat corner on sender side */
+    background-color: var(--accent-color-blue);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
 }
 
 .jarvis-message {
-    text-align: left;
-    color: #cbd5e1; /* Slightly darker text for Jarvis */
-    background-color: #475569; /* Slate background for Jarvis messages */
-    margin-right: auto; /* Push to left */
-    border-bottom-left-radius: 0; /* Flat corner on sender side */
-}
-
-.chat-message .font-bold {
-    font-weight: 700;
-}
-
-.chat-message .text-indigo-400 {
-    color: #818cf8; /* Jarvis's name color */
-}
-
-.chat-message .text-green-400 {
-    color: #d1fae5; /* Lighter green for user's name on blue background */
+    background-color: var(--button-secondary-bg);
+    color: var(--text-color-primary);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
 }
 
 .chat-input-container {
     display: flex;
-    gap: 0.5rem;
-    align-items: flex-end; /* Align input and button at the bottom */
+    gap: 10px;
+    align-items: center;
 }
 
-#chatInput {
+.chat-text-input {
     flex-grow: 1;
-    min-height: 40px; /* Minimum height for textarea */
-    max-height: 120px; /* Max height before scrolling */
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    background-color: #2d3748; /* Darker input background */
-    border: 1px solid #4a5568;
-    color: white;
-    font-size: 0.9rem;
-    resize: vertical; /* Allow vertical resizing */
+    border-radius: 8px;
 }
 
-#chatSendBtn {
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 1rem;
+.chat-send-button {
+    padding: 10px 20px;
+    border-radius: 8px;
 }
 
-/* Custom Scrollbar for chat history */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
+/* Lessons Modal Specifics (NEW) */
+.lessons-modal-content {
+    max-width: 800px; /* Wider for lessons */
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #2d3748; /* Darker track */
+.lesson-steps-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.lesson-step-card {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: var(--box-shadow);
+    text-align: left;
+    border: 1px solid var(--border-color);
+}
+
+.twisty-player-lesson-container {
+    width: 100%;
+    height: 300px; /* Fixed height for lesson visualizer */
+    margin-top: 15px;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--bg-color-primary); /* Background for the player area */
+    display: flex; /* Use flex to center twisty-player content if smaller */
+    justify-content: center;
+    align-items: center;
+    position: relative; /* For potential future controls */
+}
+
+.lesson-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.lesson-navigation button {
+    padding: 10px 20px;
     border-radius: 10px;
+    font-weight: 600;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #4a5568; /* Scrollbar thumb color */
-    border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #64748b; /* Darker on hover */
-}
-
-
-/* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
-/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
-@media (max-width: 767px) {
-    body {
-        padding: 16px;
-        /* Reduced padding for mobile */
-    }
-
+/* Responsive Adjustments */
+/* For tablets and smaller desktops */
+@media (max-width: 768px) {
     .container {
-        padding: 1.5rem;
-        /* Reduced padding for mobile */
-        gap: 1.5rem;
-        /* Reduced gap for mobile */
-        max-width: 100%;
-        /* Take full width on mobile */
-        width: 100%;
-    }
-
-    .auth-corner-buttons {
-        /* On mobile, stack buttons vertically and align to the right, inside the container flow */
-        flex-direction: column;
-        align-items: flex-end;
-        margin-top: 0.5rem;
-        /* Adjust to fit content well */
-        margin-bottom: 0.5rem;
-    }
-
-    .auth-corner-buttons button {
-        padding: 0.5rem 1rem;
-        /* Slightly larger touch targets */
-        font-size: 0.875rem;
-        /* Slightly larger font for readability */
-        width: auto;
-        /* Allow buttons to size to content */
-    }
-
-    h1 {
-        font-size: 2.5rem;
-        /* Smaller heading for mobile */
-        margin-bottom: 1rem;
-        /* Adjusted margin */
+        padding: 20px;
+        margin-top: 60px; /* Adjust for sidebar toggle */
+        margin-bottom: 60px;
     }
 
     .timer-display {
         font-size: 4rem;
-        /* Smaller timer font for mobile */
-        margin-bottom: 0.5rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
     }
 
     .scramble-display {
-        font-size: 1rem;
-        /* Smaller scramble font for mobile */
-        padding: 0.8rem 1rem;
-        /* Adjusted padding */
+        font-size: 1.2rem;
     }
 
-    #cube3DContainer {
-        height: 250px;
-        /* Adjusted height for mobile */
+    .stat-card .value {
+        font-size: 1.8rem;
     }
 
-    /* Control buttons flex-direction is already column for sm: (which is 640px)
-       but we can specify here for max-width just to be explicit if needed */
-    .flex-col.sm\:flex-row {
-        /* Targeting the control buttons div */
-        flex-direction: column;
-        gap: 0.75rem;
-        /* Adjusted gap */
+    .button-group {
+        gap: 10px;
     }
 
     .button-primary,
     .button-secondary {
-        padding: 0.7rem 1.2rem;
-        /* Ensure good touch target */
+        padding: 10px 20px;
         font-size: 0.95rem;
-        /* Slightly smaller font */
-    }
-
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        /* 2 columns on mobile, adjusts */
-        gap: 0.8rem;
-        /* Smaller gap for stats */
-    }
-
-    .stat-card {
-        padding: 0.7rem;
-        /* Adjusted padding */
-    }
-
-    .stat-card .value {
-        font-size: 1.5rem;
-        /* Smaller stat value font */
-    }
-
-    .solve-history-item {
-        flex-direction: column;
-        /* Stack time and buttons */
-        align-items: flex-start;
-        /* Align contents to start */
-        gap: 0.5rem;
-        /* Gap between time and buttons block */
-        padding: 0.6rem 1rem;
-        /* Smaller padding */
-    }
-
-    .solve-history-item .time {
-        font-size: 1rem;
-        /* Smaller time font */
-        margin-bottom: 0;
-        /* No bottom margin, flex gap handles it */
     }
 
     .solve-history-item .penalty-buttons {
         flex-wrap: wrap;
-        /* Allow buttons to wrap */
-        justify-content: flex-start;
-        /* Align buttons to the left within their block */
-        width: 100%;
-        /* Take full width */
-        margin-top: 0.25rem;
-        /* Small margin above buttons when stacked */
-        gap: 0.4rem;
-        /* Smaller gap between penalty buttons */
+        justify-content: flex-end;
+        gap: 5px;
     }
 
     .solve-history-item .penalty-buttons button {
-        padding: 0.3rem 0.6rem;
-        /* Smaller penalty buttons */
+        padding: 5px 8px;
         font-size: 0.75rem;
     }
 
-    .solve-history-item .penalty-buttons button.insight-button,
-    .solve-history-item .penalty-buttons button.delete {
-        padding: 0.35rem 0.7rem;
-        /* Slightly larger for main action buttons */
+    .auth-corner-buttons {
+        top: 10px;
+        right: 10px;
+        gap: 5px;
+    }
+
+    .auth-corner-buttons button {
+        padding: 8px 12px;
         font-size: 0.8rem;
     }
 
-    .modal-content {
-        padding: 1.5rem;
-        /* Adjusted padding for mobile modals */
+    /* Sidebar on smaller screens */
+    .sidebar {
+        width: 220px; /* Slightly narrower */
+        left: -250px;
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .open-sidebar-btn {
+        left: 10px;
+        top: 10px;
+        width: 45px;
+        height: 45px;
+    }
+
+    .chat-modal-content {
+        width: 90%;
+        height: 70vh;
+    }
+
+    .lessons-modal-content {
         width: 95%;
-        /* Fill almost full width */
-        max-width: none;
-        /* No max width on mobile */
-        max-height: 90vh;
-        /* Control vertical height */
-        overflow-y: auto;
-        /* Allow scrolling within modal */
-    }
-
-    /* Adjust AI Insight Modal for mobile */
-    #aiInsightModal .modal-content {
-        max-width: none;
-        /* No max-width on mobile */
-    }
-
-    .modal-close-button {
-        font-size: 1.75rem;
-        /* Larger close button for touch */
-        padding: 0.5rem;
-        /* Increase touch area */
-    }
-
-    /* Adjustments within settings modal for smaller screens */
-    .modal-content label {
-        font-size: 0.95rem;
-        /* Smaller label font */
-    }
-
-    .modal-content select,
-    .modal-content input[type="text"],
-    .modal-content input[type="email"],
-    .modal-content input[type="password"] {
-        padding: 0.6rem 0.8rem;
-        /* Adjusted input padding */
-        font-size: 0.9rem;
-        /* Adjusted input font size */
-    }
-
-    .modal-content h3 {
-        font-size: 1.1rem;
-        /* Smaller subheading */
-        margin-bottom: 0.75rem;
-    }
-
-    /* Voice Command Button Mobile Adjustments */
-    #voiceCommandBtn, #openChatBtn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-        bottom: 8px; /* Further reduced for mobile */
-    }
-    #voiceCommandBtn {
-        right: 8px; /* Further reduced for mobile */
-    }
-    #openChatBtn {
-        left: 8px; /* Further reduced for mobile */
-    }
-
-
-    /* Voice Feedback Display Mobile Adjustments */
-    .voice-feedback-display {
-        padding: 15px 20px;
-        font-size: 1.1rem;
-        min-width: 240px;
-    }
-
-    .listening-indicator .dot {
-        width: 8px;
-        height: 8px;
-        gap: 6px;
     }
 }
 
-/* Further specific adjustments for very small screens (e.g., iPhone SE) */
+/* For very small screens (e.g., iPhone SE) */
 @media (max-width: 479px) {
     .timer-display {
         font-size: 3rem;
@@ -932,38 +901,34 @@ body.theme-vibrant #aiInsightModal .modal-content {
         font-size: 0.7rem;
         /* Smallest penalty button font */
     }
-}
 
-
-/* Theme specific variables (kept same) */
-body.theme-dark {
-    --bg-color-primary: #0f172a;
-    --text-color-primary: #e2e8f0;
-    --bg-color-secondary: #1e293b;
-    --button-secondary-bg: #475569;
-    --button-secondary-text: #e2e8f0;
-    --button-secondary-hover-bg: #64748b;
-    --card-bg: #334155;
-    --timer-color: #818cf8;
-    --scramble-color: #a78bfa;
-    --stats-value-color: #67e8f9;
-}
-
-.spinner {
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid #fff;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
+    .sidebar {
+        width: 100%; /* Full width overlay */
+        left: -100%;
+        box-shadow: none;
     }
-
-    100% {
-        transform: rotate(360deg);
+    .sidebar.open {
+        left: 0;
+    }
+    .sidebar-header {
+        margin-bottom: 20px;
+    }
+    .sidebar-nav-item {
+        font-size: 1rem;
+        padding: 10px 12px;
+    }
+    .open-sidebar-btn {
+        left: 5px;
+        top: 5px;
+        width: 40px;
+        height: 40px;
+    }
+    .auth-corner-buttons {
+        top: 5px;
+        right: 5px;
+    }
+    .auth-corner-buttons button {
+        padding: 6px 10px;
+        font-size: 0.7rem;
     }
 }
