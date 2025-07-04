@@ -514,6 +514,81 @@ async function getGeneralAnswer(query) {
     }
 }
 
+/**
+ * Requests a structured lesson from the AI.
+ * @param {string} topic - The topic for the lesson (e.g., "F2L Introduction").
+ * @param {string} cubeType - The type of cube (e.g., "3x3").
+ * @param {string} userLevel - The user's cubing level (e.g., "Intermediate").
+ * @returns {Promise<Object|null>} A promise that resolves with the lesson data or null on error.
+ */
+async function requestLessonFromAI(topic, cubeType, userLevel) {
+    console.log(`[DEBUG] Requesting lesson from AI for topic: "${topic}", cubeType: "${cubeType}", userLevel: "${userLevel}"`);
+
+    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
+    if (lessonGenerationError) lessonGenerationError.style.display = 'none';
+    if (lessonContentDisplay) lessonContentDisplay.style.display = 'none'; // Hide previous content
+
+    const requestData = {
+        type: "generate_lesson",
+        topic: topic,
+        cubeType: cubeType,
+        userLevel: userLevel
+    };
+
+    const apiUrl = geminiInsightFunctionUrl; // Using the same insight function endpoint
+
+    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
+        console.error("[ERROR] Gemini Insight Cloud Function URL not configured for lesson generation.");
+        if (lessonGenerationError) {
+            lessonGenerationError.textContent = "AI Lesson service not configured. Please check the backend URL.";
+            lessonGenerationError.style.display = 'block';
+        }
+        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+        speakAsJarvis("Sir Sevindu, the AI lesson service is currently offline. Please configure the cloud function URL.");
+        return null;
+    }
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("[DEBUG] Lesson Generation Cloud Function raw response:", result);
+
+        if (result.lessonTitle && result.steps) {
+            if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+            displayLesson(result);
+            return result;
+        } else {
+            if (lessonGenerationError) {
+                lessonGenerationError.textContent = "AI could not generate a complete lesson for that topic. Please try a different query.";
+                lessonGenerationError.style.display = 'block';
+            }
+            if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+            speakAsJarvis("Pardon me, Sir Sevindu. I could not generate a complete lesson for that topic. Please try a different query.");
+            return null;
+        }
+
+    } catch (e) {
+        console.error("[ERROR] Error calling Cloud Function for lesson generation:", e);
+        if (lessonGenerationError) {
+            lessonGenerationError.textContent = `Failed to generate lesson: ${e.message}`;
+            lessonGenerationError.style.display = 'block';
+        }
+        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+        speakAsJarvis(`Sir Sevindu, I encountered an error while generating the lesson: ${e.message}`);
+        return null;
+    }
+}
+
 
 // --- Timer Variables ---
 let startTime;
@@ -584,6 +659,41 @@ let chatHistoryDisplay;
 let chatInput;
 let chatSendBtn;
 let openChatBtn;
+
+// Sidebar elements (NEW)
+let sidebar;
+let openSidebarBtn;
+let closeSidebarBtn;
+let sidebarHomeBtn;
+let sidebarLessonsBtn;
+let sidebarStatsBtn;
+let sidebarHistoryBtn;
+let sidebarSettingsBtn;
+
+// Lessons Modal elements (NEW)
+let lessonsModal;
+let closeLessonsModalBtn;
+let lessonModalTitle;
+let lessonTopicSelection;
+let lessonTopicInput;
+let generateLessonBtn;
+let lessonGenerationError;
+let lessonContentDisplay;
+let lessonTitleDisplay;
+let lessonDescriptionDisplay;
+let lessonStepsContainer;
+let lessonStepTitleDisplay;
+let lessonStepDescriptionDisplay;
+let lessonVisualContainer;
+let lessonExplanationDisplay;
+let prevLessonStepBtn;
+let nextLessonStepBtn;
+let lessonStepCounter;
+let lessonLoadingSpinner;
+
+// Lesson state variables (NEW)
+let currentLesson = null;
+let currentLessonStepIndex = 0;
 
 
 // NEW: State variables for SpeechRecognition management
@@ -1168,13 +1278,24 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
         case 'get_ao12':
             speakAsJarvis(`Your average of twelve is ${ao12Display.textContent}, Sir Sevindu.`);
             break;
-        case 'general_query': // NEW: Handle general questions
+        case 'general_query': // Handle general questions
             if (query) {
                 speakAsJarvis("Accessing knowledge base, Sir Sevindu. Please wait.");
                 const answer = await getGeneralAnswer(query);
                 speakAsJarvis(answer);
             } else {
                 speakAsJarvis("Pardon me, Sir Sevindu. I received a general query without a specific question.");
+            }
+            break;
+        case 'generate_lesson': // NEW: Handle lesson generation
+            if (query) {
+                speakAsJarvis(`Generating a lesson on ${query}, Sir Sevindu. This may take a moment.`);
+                openLessonsModal(); // Open the modal and show loading
+                // Pass the query as the topic for the lesson
+                const userLevel = getUserLevel(0, cubeType); // Get current user level for context
+                requestLessonFromAI(query, cubeType, userLevel);
+            } else {
+                speakAsJarvis("Pardon me, Sir Sevindu. To generate a lesson, please specify a topic.");
             }
             break;
         case 'unknown':
@@ -2203,6 +2324,126 @@ function closeChatModal() {
     }
 }
 
+// --- Lessons Functions (NEW) ---
+
+/**
+ * Opens the lessons modal and prepares for lesson generation.
+ */
+function openLessonsModal() {
+    if (lessonsModal) {
+        lessonsModal.classList.add('open');
+        lessonsModal.focus();
+        // Reset modal state
+        if (lessonTopicSelection) lessonTopicSelection.style.display = 'block';
+        if (lessonContentDisplay) lessonContentDisplay.style.display = 'none';
+        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+        if (lessonGenerationError) lessonGenerationError.style.display = 'none';
+        if (lessonTopicInput) lessonTopicInput.value = ''; // Clear previous topic
+        currentLesson = null;
+        currentLessonStepIndex = 0;
+        if (lessonStepCounter) lessonStepCounter.textContent = 'Step 0 of 0'; // Reset counter
+    }
+}
+
+/**
+ * Closes the lessons modal.
+ */
+function closeLessonsModal() {
+    if (lessonsModal) {
+        lessonsModal.classList.remove('open');
+        // Optionally, reset the content of the modal when closed
+        if (lessonContentDisplay) lessonContentDisplay.style.display = 'none';
+        if (lessonTopicSelection) lessonTopicSelection.style.display = 'block';
+        currentLesson = null;
+        currentLessonStepIndex = 0;
+    }
+}
+
+/**
+ * Displays the loaded lesson data in the modal.
+ * @param {Object} lessonData - The structured lesson data from the AI.
+ */
+function displayLesson(lessonData) {
+    currentLesson = lessonData;
+    currentLessonStepIndex = 0;
+
+    if (lessonTopicSelection) lessonTopicSelection.style.display = 'none';
+    if (lessonContentDisplay) lessonContentDisplay.style.display = 'block';
+    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+    if (lessonGenerationError) lessonGenerationError.style.display = 'none';
+
+    if (lessonTitleDisplay) lessonTitleDisplay.textContent = lessonData.lessonTitle;
+    if (lessonDescriptionDisplay) lessonDescriptionDisplay.textContent = lessonData.lessonDescription;
+
+    renderCurrentLessonStep();
+}
+
+/**
+ * Renders the current step of the lesson.
+ */
+function renderCurrentLessonStep() {
+    if (!currentLesson || !currentLesson.steps || currentLesson.steps.length === 0) {
+        console.warn("[WARN] No lesson data or steps to render.");
+        return;
+    }
+
+    const currentStep = currentLesson.steps[currentLessonStepIndex];
+
+    if (lessonStepTitleDisplay) lessonStepTitleDisplay.textContent = currentStep.stepTitle;
+    if (lessonStepDescriptionDisplay) lessonStepDescriptionDisplay.textContent = currentStep.stepDescription;
+    if (lessonExplanationDisplay) lessonExplanationDisplay.textContent = currentStep.explanation || '';
+
+    // Handle twisty-player visualization
+    if (lessonVisualContainer) {
+        lessonVisualContainer.innerHTML = ''; // Clear previous player
+        if (currentStep.visualAlgorithm) {
+            const twistyPlayerElement = document.createElement('twisty-player');
+            twistyPlayerElement.setAttribute('alg', currentStep.visualAlgorithm);
+            twistyPlayerElement.setAttribute('puzzle', currentLesson.cubeType === 'pyraminx' ? 'pyraminx' : `${currentLesson.cubeType}x${currentLesson.cubeType}`);
+            twistyPlayerElement.setAttribute('control-panel', 'bottom'); // Show controls
+            twistyPlayerElement.setAttribute('background', getThemeBackgroundColorHex(currentTheme)); // Match theme
+            twistyPlayerElement.style.width = '100%';
+            twistyPlayerElement.style.height = '100%';
+            lessonVisualContainer.appendChild(twistyPlayerElement);
+            lessonVisualContainer.style.display = 'flex'; // Show container
+            console.log(`[DEBUG] Twisty-player loaded for lesson step: alg="${currentStep.visualAlgorithm}", puzzle="${twistyPlayerElement.getAttribute('puzzle')}"`);
+        } else {
+            lessonVisualContainer.style.display = 'none'; // Hide container if no algorithm
+        }
+    }
+
+    // Update navigation buttons and step counter
+    if (prevLessonStepBtn) {
+        prevLessonStepBtn.disabled = currentLessonStepIndex === 0;
+    }
+    if (nextLessonStepBtn) {
+        nextLessonStepBtn.disabled = currentLessonStepIndex === currentLesson.steps.length - 1;
+    }
+    if (lessonStepCounter) {
+        lessonStepCounter.textContent = `Step ${currentLessonStepIndex + 1} of ${currentLesson.steps.length}`;
+    }
+}
+
+/**
+ * Navigates to the next lesson step.
+ */
+function nextLessonStep() {
+    if (currentLesson && currentLessonStepIndex < currentLesson.steps.length - 1) {
+        currentLessonStepIndex++;
+        renderCurrentLessonStep();
+    }
+}
+
+/**
+ * Navigates to the previous lesson step.
+ */
+function prevLessonStep() {
+    if (currentLesson && currentLessonStepIndex > 0) {
+        currentLessonStepIndex--;
+        renderCurrentLessonStep();
+    }
+}
+
 
 // --- Event Listeners ---
 
@@ -2266,6 +2507,37 @@ function setupEventListeners() {
     chatInput = document.getElementById('chatInput');
     chatSendBtn = document.getElementById('chatSendBtn');
     openChatBtn = document.getElementById('openChatBtn');
+
+    // Sidebar elements (NEW)
+    sidebar = document.getElementById('sidebar');
+    openSidebarBtn = document.getElementById('openSidebarBtn');
+    closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    sidebarHomeBtn = document.getElementById('sidebarHomeBtn');
+    sidebarLessonsBtn = document.getElementById('sidebarLessonsBtn');
+    sidebarStatsBtn = document.getElementById('sidebarStatsBtn');
+    sidebarHistoryBtn = document.getElementById('sidebarHistoryBtn');
+    sidebarSettingsBtn = document.getElementById('sidebarSettingsBtn');
+
+    // Lessons Modal elements (NEW)
+    lessonsModal = document.getElementById('lessonsModal');
+    closeLessonsModalBtn = document.getElementById('closeLessonsModalBtn');
+    lessonModalTitle = document.getElementById('lessonModalTitle');
+    lessonTopicSelection = document.getElementById('lessonTopicSelection');
+    lessonTopicInput = document.getElementById('lessonTopicInput');
+    generateLessonBtn = document.getElementById('generateLessonBtn');
+    lessonGenerationError = document.getElementById('lessonGenerationError');
+    lessonContentDisplay = document.getElementById('lessonContentDisplay');
+    lessonTitleDisplay = document.getElementById('lessonTitleDisplay');
+    lessonDescriptionDisplay = document.getElementById('lessonDescriptionDisplay');
+    lessonStepsContainer = document.getElementById('lessonStepsContainer');
+    lessonStepTitleDisplay = document.getElementById('lessonStepTitleDisplay');
+    lessonStepDescriptionDisplay = document.getElementById('lessonStepDescriptionDisplay');
+    lessonVisualContainer = document.getElementById('lessonVisualContainer');
+    lessonExplanationDisplay = document.getElementById('lessonExplanationDisplay');
+    prevLessonStepBtn = document.getElementById('prevLessonStepBtn');
+    nextLessonStepBtn = document.getElementById('nextLessonStepBtn');
+    lessonStepCounter = document.getElementById('lessonStepCounter');
+    lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
 
 
     // Authentication related elements
@@ -2439,11 +2711,70 @@ function setupEventListeners() {
         }
     });
 
+    // NEW: Sidebar event listeners
+    if (openSidebarBtn) openSidebarBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.add('open');
+    });
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('open');
+    });
+
+    // NEW: Sidebar navigation items
+    if (sidebarHomeBtn) sidebarHomeBtn.addEventListener('click', () => {
+        // Close sidebar, navigate to home (which is the main timer view)
+        if (sidebar) sidebar.classList.remove('open');
+        // No specific navigation needed as it's the default view
+        console.log("[DEBUG] Sidebar Home button clicked.");
+    });
+    if (sidebarLessonsBtn) sidebarLessonsBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('open');
+        openLessonsModal();
+        console.log("[DEBUG] Sidebar Lessons button clicked.");
+    });
+    if (sidebarStatsBtn) sidebarStatsBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('open');
+        // For now, these just close the sidebar. Actual navigation to sections would be implemented here.
+        // For this app, stats are on the main page, so just close sidebar.
+        console.log("[DEBUG] Sidebar Statistics button clicked.");
+    });
+    if (sidebarHistoryBtn) sidebarHistoryBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('open');
+        // History is also on the main page.
+        console.log("[DEBUG] Sidebar History button clicked.");
+    });
+    if (sidebarSettingsBtn) sidebarSettingsBtn.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('open');
+        if (settingsBtn) settingsBtn.click(); // Re-use existing settings button logic
+        console.log("[DEBUG] Sidebar Settings button clicked.");
+    });
+
+
+    // NEW: Lessons Modal event listeners
+    if (closeLessonsModalBtn) closeLessonsModalBtn.addEventListener('click', closeLessonsModal);
+    if (generateLessonBtn) generateLessonBtn.addEventListener('click', () => {
+        const topic = lessonTopicInput.value.trim();
+        if (topic) {
+            const userLevel = getUserLevel(0, cubeType); // Use current cube type and estimated level
+            requestLessonFromAI(topic, cubeType, userLevel);
+        } else {
+            if (lessonGenerationError) {
+                lessonGenerationError.textContent = "Please enter a lesson topic.";
+                lessonGenerationError.style.display = 'block';
+            }
+        }
+    });
+    if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', prevLessonStep);
+    if (nextLessonStepBtn) nextLessonStepBtn.addEventListener('click', nextLessonStep);
+
 
     document.addEventListener('keydown', (e) => {
         // FIX: Prevent spacebar from triggering timer when typing in chat input
         if (e.target === chatInput && e.code === 'Space') {
             return; // Do nothing, let the browser handle the space in the textarea
+        }
+        // Prevent spacebar from triggering timer when typing in lesson topic input
+        if (e.target === lessonTopicInput && e.code === 'Space') {
+            return;
         }
 
         if (e.code === 'Escape') {
@@ -2467,6 +2798,14 @@ function setupEventListeners() {
                 chatModal.classList.remove('open');
                 console.log("[DEBUG] Chat modal closed by Escape key.");
             }
+            if (lessonsModal && lessonsModal.classList.contains('open')) { // Close lessons modal on Escape
+                lessonsModal.classList.remove('open');
+                console.log("[DEBUG] Lessons modal closed by Escape key.");
+            }
+            if (sidebar && sidebar.classList.contains('open')) { // Close sidebar on Escape
+                sidebar.classList.remove('open');
+                console.log("[DEBUG] Sidebar closed by Escape key.");
+            }
         }
 
         if (e.code === 'Space') {
@@ -2486,6 +2825,10 @@ function setupEventListeners() {
         // FIX: Prevent spacebar from triggering timer when typing in chat input
         if (e.target === chatInput && e.code === 'Space') {
             return; // Do nothing, let the browser handle the space in the textarea
+        }
+        // Prevent spacebar from triggering timer when typing in lesson topic input
+        if (e.target === lessonTopicInput && e.code === 'Space') {
+            return;
         }
 
         if (e.code === 'Space') {
@@ -2583,7 +2926,7 @@ function setupEventListeners() {
                 const docSnap = await getDoc(userProfileRef);
                 if (!docSnap.exists() || !docSnap.data().username) {
                     const defaultUsername = user.displayName || (user.email ? user.email.split('@')[0] : 'GoogleUser');
-                    await setDoc(userProfileRef, { username: defaultUsername }, { merge: true });
+                    await setSetDoc(userProfileRef, { username: defaultUsername }, { merge: true });
                     console.log(`[DEBUG] Default username saved for new Google user: ${defaultUsername}`);
                 }
             }
