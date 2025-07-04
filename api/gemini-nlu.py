@@ -42,7 +42,8 @@ def gemini_nlu_handler():
 
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
 
-        # MODIFIED PROMPT: To distinguish between commands and general questions
+        # MODIFIED PROMPT: To distinguish between commands and general questions,
+        # and to explicitly include web application related questions for 'general_query'.
         prompt = f"""
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.
         Your task is to interpret user voice commands.
@@ -64,7 +65,7 @@ def gemini_nlu_handler():
         - "stop timer": canonicalCommand: 'stop_timer'
         - "reset timer": canonicalCommand: 'reset_timer'
 
-        If it's a **general question** about cubing, algorithms, history, or any related topic, set `canonicalCommand` to 'general_query' and extract the `query` itself.
+        If it's a **general question** about cubing (e.g., algorithms, history, concepts) or about the features and usage of *this* Rubik's Cube timer web application, set `canonicalCommand` to 'general_query' and extract the `query` itself.
 
         Respond with a JSON object. Ensure the `confidence` score is between 0 and 1.
 
@@ -80,6 +81,13 @@ def gemini_nlu_handler():
             "canonicalCommand": "general_query",
             "query": "What is F2L?",
             "confidence": 0.9
+        }}
+
+        Example Question about the app:
+        {{
+            "canonicalCommand": "general_query",
+            "query": "How do I change the theme?",
+            "confidence": 0.95
         }}
 
         Example Unknown Command Response:
@@ -142,7 +150,7 @@ def gemini_nlu_handler():
         return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
     except Exception as e:
         import traceback
-        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\\n{traceback.format_exc()}")
+        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
 
 # To run this with Vercel, ensure you have a 'requirements.txt' in the same 'api' directory:
