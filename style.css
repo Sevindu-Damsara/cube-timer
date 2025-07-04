@@ -113,10 +113,8 @@ body.theme-vibrant {
     gap: 20px;
     min-height: 80vh;
     /* Ensure container has minimum height */
-    margin-top: 50px;
-    /* Space for sidebar toggle */
-    margin-bottom: 50px;
-    /* Space for voice/chat buttons */
+    margin-top: 20px; /* Reverted margin */
+    margin-bottom: 20px; /* Reverted margin */
 }
 
 .auth-corner-buttons {
@@ -125,84 +123,6 @@ body.theme-vibrant {
     right: 20px;
     z-index: 20;
 }
-
-/* Sidebar Styles (NEW) */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: -280px; /* Hidden by default */
-    width: 250px;
-    height: 100%;
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-primary);
-    padding: 20px;
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
-    transition: left 0.3s ease-in-out;
-    z-index: 100; /* Above everything else */
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border-color);
-}
-
-.sidebar.open {
-    left: 0; /* Slide in */
-}
-
-.sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
-.sidebar-toggle-btn {
-    background: none;
-    border: none;
-    color: var(--text-color-primary);
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 8px;
-    transition: background-color 0.2s;
-}
-
-.sidebar-toggle-btn:hover {
-    background-color: var(--button-bg-hover);
-}
-
-.sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.sidebar-nav-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    border-radius: 12px;
-    color: var(--text-color-primary);
-    text-decoration: none;
-    font-size: 1.1rem;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.sidebar-nav-item:hover {
-    background-color: var(--button-bg-hover);
-    color: var(--accent-color-blue);
-}
-
-.sidebar-nav-item.active {
-    background-color: var(--accent-color-blue);
-    color: white;
-    font-weight: bold;
-}
-
-.sidebar-nav-item.active:hover {
-    background-color: var(--accent-color-blue); /* Keep same background on hover for active */
-    color: white;
-}
-
 
 /* Main Content Sections */
 .main-content {
@@ -401,6 +321,8 @@ twisty-player {
 .solve-history-item .penalty-buttons {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    justify-content: flex-end; /* Align to the right */
 }
 
 .solve-history-item .penalty-buttons button {
@@ -526,6 +448,7 @@ input:checked+.slider {
 
 input:focus+.slider {
     box-shadow: 0 0 1px var(--accent-color-blue);
+    outline: none; /* Added to remove default focus outline */
 }
 
 input:checked+.slider:before {
@@ -788,8 +711,8 @@ input:checked+.slider:before {
 @media (max-width: 768px) {
     .container {
         padding: 20px;
-        margin-top: 60px; /* Adjust for sidebar toggle */
-        margin-bottom: 60px;
+        margin-top: 20px; /* Reverted margin */
+        margin-bottom: 20px; /* Reverted margin */
     }
 
     .timer-display {
@@ -840,23 +763,6 @@ input:checked+.slider:before {
         font-size: 0.8rem;
     }
 
-    /* Sidebar on smaller screens */
-    .sidebar {
-        width: 220px; /* Slightly narrower */
-        left: -250px;
-    }
-
-    .sidebar.open {
-        left: 0;
-    }
-
-    .open-sidebar-btn {
-        left: 10px;
-        top: 10px;
-        width: 45px;
-        height: 45px;
-    }
-
     .chat-modal-content {
         width: 90%;
         height: 70vh;
@@ -902,27 +808,6 @@ input:checked+.slider:before {
         /* Smallest penalty button font */
     }
 
-    .sidebar {
-        width: 100%; /* Full width overlay */
-        left: -100%;
-        box-shadow: none;
-    }
-    .sidebar.open {
-        left: 0;
-    }
-    .sidebar-header {
-        margin-bottom: 20px;
-    }
-    .sidebar-nav-item {
-        font-size: 1rem;
-        padding: 10px 12px;
-    }
-    .open-sidebar-btn {
-        left: 5px;
-        top: 5px;
-        width: 40px;
-        height: 40px;
-    }
     .auth-corner-buttons {
         top: 5px;
         right: 5px;
