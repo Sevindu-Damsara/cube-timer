@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cubing Lessons - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound effects (if lessons page needs it for any reason) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Cubing.js for 3D scramble visualization -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="theme-dark"> <!-- Theme class will be applied by lessons.js -->
+    <div class="lessons-page-container">
+        <!-- Back to Timer Button -->
+        <div class="flex justify-start mb-4">
+            <a href="index.html" class="button-secondary flex items-center justify-center gap-2">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Timer
+            </a>
+        </div>
+
+        <h2 id="lessonModalTitle" class="text-2xl font-bold text-gradient mb-4">Cubing Lessons</h2>
+
+        <!-- Lesson Topic Selection / Input -->
+        <div id="lessonTopicSelection" class="mb-4">
+            <p class="mb-2 text-gray-300">What cubing topic would you like to learn about, Sir Sevindu?</p>
+            <input type="text" id="lessonTopicInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., F2L, OLL, Beginner Method, Pyraminx basics">
+            <button id="generateLessonBtn" class="button-primary mt-3 w-full">Generate Lesson</button>
+            <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
+        </div>
+
+        <!-- Lesson Content Display -->
+        <div id="lessonContentDisplay" style="display: none;">
+            <h3 id="lessonTitleDisplay" class="text-xl font-semibold text-gradient mb-2"></h3>
+            <p id="lessonDescriptionDisplay" class="text-gray-300 mb-4"></p>
+
+            <div id="lessonStepsContainer" class="space-y-4">
+                <!-- Lesson steps will be dynamically loaded here -->
+                <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
+                    <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
+                    <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
+                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center" style="display: none;">
+                        <!-- twisty-player will be inserted here dynamically -->
+                    </div>
+                    <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
+                </div>
+            </div>
+
+            <div class="lesson-navigation mt-6 flex justify-between items-center">
+                <button id="prevLessonStepBtn" class="button-secondary" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+                <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
+                <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
+            </div>
+        </div>
+
+        <div id="lessonLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
+    </div>
+
+    <!-- Link to external JavaScript file for lessons -->
+    <script type="module" src="lessons.js"></script>
+</body>
+
+</html>
