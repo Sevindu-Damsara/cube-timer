@@ -681,7 +681,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Lessons Modal Styling */
+/* NEW: Lessons Modal Styling - Added for AI Lesson integration */
 #lessonsModal .modal-content {
     max-width: 800px; /* Wider for lessons */
     background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
@@ -818,7 +818,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 
     .solve-history-item .time {
-        font-size: 1rem;
+        font-size: 1.0rem;
         /* Smaller time font */
         margin-bottom: 0;
         /* No bottom margin, flex gap handles it */
