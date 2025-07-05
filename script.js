@@ -14,16 +14,7 @@ console.log("[DEBUG] Firebase imports completed.");
 // Go to Firebase Console -> Firestore Database -> Rules tab, and REPLACE the content with this:
 /*
 rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Rule for private user data: Allows read/write only if the user is authenticated
-    // and the 'userId' in the path matches their authenticated UID.
-    // This now only applies to explicitly signed-in users.
-    match /artifacts/{appId}/users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
+service cloud.firestore {\n  match /databases/{database}/documents {\n    // Rule for private user data: Allows read/write only if the user is authenticated\n    // and the 'userId' in the path matches their authenticated UID.\n    // This now only applies to explicitly signed-in users.\n    match /artifacts/{appId}/users/{userId}/{document=**} {\n      allow read, write: if request.auth != null && request.auth.uid == userId;\n    }\n  }\n}
 */
 // =====================================================================================================
 
@@ -514,82 +505,6 @@ async function getGeneralAnswer(query) {
     }
 }
 
-/**
- * Requests a structured lesson from the AI.
- * @param {string} topic - The topic for the lesson (e.g., "F2L Introduction").
- * @param {string} cubeType - The type of cube (e.g., "3x3").
- * @param {string} userLevel - The user's cubing level (e.g., "Intermediate").
- * @returns {Promise<Object|null>} A promise that resolves with the lesson data or null on error.
- */
-async function requestLessonFromAI(topic, cubeType, userLevel) {
-    console.log(`[DEBUG] Requesting lesson from AI for topic: "${topic}", cubeType: "${cubeType}", userLevel: "${userLevel}"`);
-
-    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
-    if (lessonGenerationError) lessonGenerationError.style.display = 'none';
-    if (lessonContentDisplay) lessonContentDisplay.style.display = 'none'; // Hide previous content
-
-    const requestData = {
-        type: "generate_lesson",
-        topic: topic,
-        cubeType: cubeType,
-        userLevel: userLevel
-    };
-
-    const apiUrl = geminiInsightFunctionUrl; // Using the same insight function endpoint
-
-    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
-        console.error("[ERROR] Gemini Insight Cloud Function URL not configured for lesson generation.");
-        if (lessonGenerationError) {
-            lessonGenerationError.textContent = "AI Lesson service not configured. Please check the backend URL.";
-            lessonGenerationError.style.display = 'block';
-        }
-        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-        speakAsJarvis("Sir Sevindu, the AI lesson service is currently offline. Please configure the cloud function URL.");
-        return null;
-    }
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log("[DEBUG] Lesson Generation Cloud Function raw response:", result);
-
-        if (result.lessonTitle && result.steps) {
-            if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-            displayLesson(result);
-            return result;
-        } else {
-            if (lessonGenerationError) {
-                lessonGenerationError.textContent = "AI could not generate a complete lesson for that topic. Please try a different query.";
-                lessonGenerationError.style.display = 'block';
-            }
-            if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-            speakAsJarvis("Pardon me, Sir Sevindu. I could not generate a complete lesson for that topic. Please try a different query.");
-            return null;
-        }
-
-    } catch (e) {
-        console.error("[ERROR] Error calling Cloud Function for lesson generation:", e);
-        if (lessonGenerationError) {
-            lessonGenerationError.textContent = `Failed to generate lesson: ${e.message}`;
-            lessonGenerationError.style.display = 'block';
-        }
-        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-        speakAsJarvis(`Sir Sevindu, I encountered an error while generating the lesson: ${e.message}`);
-        return null;
-    }
-}
-
-
 // --- Timer Variables ---
 let startTime;
 let elapsedTime = 0;
@@ -660,33 +575,12 @@ let chatInput;
 let chatSendBtn;
 let openChatBtn;
 
-// NEW: Lessons Button - Added for AI Lesson integration
+// NEW: Lessons Button - Moved to sidebar, now a link
 let openLessonsBtn;
 
-// NEW: Lessons Modal elements - Added for AI Lesson integration
-let lessonsModal;
-let closeLessonsModalBtn;
-let lessonModalTitle;
-let lessonTopicSelection;
-let lessonTopicInput;
-let generateLessonBtn;
-let lessonGenerationError;
-let lessonContentDisplay;
-let lessonTitleDisplay;
-let lessonDescriptionDisplay;
-let lessonStepsContainer;
-let lessonStepTitleDisplay;
-let lessonStepDescriptionDisplay;
-let lessonVisualContainer;
-let lessonExplanationDisplay;
-let prevLessonStepBtn;
-let nextLessonStepBtn;
-let lessonStepCounter;
-let lessonLoadingSpinner;
-
-// NEW: Lesson state variables - Added for AI Lesson integration
-let currentLesson = null;
-let currentLessonStepIndex = 0;
+// NEW: Lesson state variables (no longer in this script)
+// let currentLesson = null;
+// let currentLessonStepIndex = 0;
 
 
 // NEW: State variables for SpeechRecognition management
@@ -1280,13 +1174,12 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
                 speakAsJarvis("Pardon me, Sir Sevindu. I received a general query without a specific question.");
             }
             break;
-        case 'generate_lesson': // NEW: Handle lesson generation for AI Lesson integration
+        case 'generate_lesson': // NEW: Handle lesson generation, now redirects to lessons page
             if (query) {
-                speakAsJarvis(`Generating a lesson on ${query}, Sir Sevindu. This may take a moment.`);
-                openLessonsModal(); // Open the modal and show loading
-                // Pass the query as the topic for the lesson
-                const userLevel = getUserLevel(0, cubeType); // Get current user level for context
-                requestLessonFromAI(query, cubeType, userLevel);
+                speakAsJarvis(`Redirecting to lessons, Sir Sevindu. Generating a lesson on ${query}.`);
+                // Store the topic in session storage so lessons.js can retrieve it
+                sessionStorage.setItem('lessonTopicForAI', query);
+                window.location.href = 'lessons.html'; // Navigate to the lessons page
             } else {
                 speakAsJarvis("Pardon me, Sir Sevindu. To generate a lesson, please specify a topic.");
             }
@@ -2317,126 +2210,20 @@ function closeChatModal() {
     }
 }
 
-// --- NEW: Lessons Functions - Added for AI Lesson integration ---
-
-/**
- * Opens the lessons modal and prepares for lesson generation.
- */
-function openLessonsModal() {
-    if (lessonsModal) {
-        lessonsModal.classList.add('open');
-        lessonsModal.focus();
-        // Reset modal state
-        if (lessonTopicSelection) lessonTopicSelection.style.display = 'block';
-        if (lessonContentDisplay) lessonContentDisplay.style.display = 'none';
-        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-        if (lessonGenerationError) lessonGenerationError.style.display = 'none';
-        if (lessonTopicInput) lessonTopicInput.value = ''; // Clear previous topic
-        currentLesson = null;
-        currentLessonStepIndex = 0;
-        if (lessonStepCounter) lessonStepCounter.textContent = 'Step 0 of 0'; // Reset counter
+// --- Utility function for theme background color (needed by lessons.js) ---
+// This function needs to be globally accessible or passed to lessons.js
+window.getThemeBackgroundColorHex = function(theme) {
+    switch (theme) {
+        case 'dark':
+            return '#0f172a';
+        case 'light':
+            return '#f0f2f5';
+        case 'vibrant':
+            return '#2d0b57';
+        default:
+            return '#0f172a'; // Default to dark theme's primary background
     }
-}
-
-/**
- * Closes the lessons modal.
- */
-function closeLessonsModal() {
-    if (lessonsModal) {
-        lessonsModal.classList.remove('open');
-        // Optionally, reset the content of the modal when closed
-        if (lessonContentDisplay) lessonContentDisplay.style.display = 'none';
-        if (lessonTopicSelection) lessonTopicSelection.style.display = 'block';
-        currentLesson = null;
-        currentLessonStepIndex = 0;
-    }
-}
-
-/**
- * Displays the loaded lesson data in the modal.
- * @param {Object} lessonData - The structured lesson data from the AI.
- */
-function displayLesson(lessonData) {
-    currentLesson = lessonData;
-    currentLessonStepIndex = 0;
-
-    if (lessonTopicSelection) lessonTopicSelection.style.display = 'none';
-    if (lessonContentDisplay) lessonContentDisplay.style.display = 'block';
-    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-    if (lessonGenerationError) lessonGenerationError.style.display = 'none';
-
-    if (lessonTitleDisplay) lessonTitleDisplay.textContent = lessonData.lessonTitle;
-    if (lessonDescriptionDisplay) lessonDescriptionDisplay.textContent = lessonData.lessonDescription;
-
-    renderCurrentLessonStep();
-}
-
-/**
- * Renders the current step of the lesson.
- */
-function renderCurrentLessonStep() {
-    if (!currentLesson || !currentLesson.steps || currentLesson.steps.length === 0) {
-        console.warn("[WARN] No lesson data or steps to render.");
-        return;
-    }
-
-    const currentStep = currentLesson.steps[currentLessonStepIndex];
-
-    if (lessonStepTitleDisplay) lessonStepTitleDisplay.textContent = currentStep.stepTitle;
-    if (lessonStepDescriptionDisplay) lessonStepDescriptionDisplay.textContent = currentStep.stepDescription;
-    if (lessonExplanationDisplay) lessonExplanationDisplay.textContent = currentStep.explanation || '';
-
-    // Handle twisty-player visualization
-    if (lessonVisualContainer) {
-        lessonVisualContainer.innerHTML = ''; // Clear previous player
-        if (currentStep.visualAlgorithm) {
-            const twistyPlayerElement = document.createElement('twisty-player');
-            twistyPlayerElement.setAttribute('alg', currentStep.visualAlgorithm);
-            twistyPlayerElement.setAttribute('puzzle', currentLesson.cubeType === 'pyraminx' ? 'pyraminx' : `${currentLesson.cubeType}x${currentLesson.cubeType}`);
-            twistyPlayerElement.setAttribute('control-panel', 'bottom'); // Show controls
-            twistyPlayerElement.setAttribute('background', getThemeBackgroundColorHex(currentTheme)); // Match theme
-            twistyPlayerElement.style.width = '100%';
-            twistyPlayerElement.style.height = '100%';
-            lessonVisualContainer.appendChild(twistyPlayerElement);
-            lessonVisualContainer.style.display = 'flex'; // Show container
-            console.log(`[DEBUG] Twisty-player loaded for lesson step: alg="${currentStep.visualAlgorithm}", puzzle="${twistyPlayerElement.getAttribute('puzzle')}"`);
-        } else {
-            lessonVisualContainer.style.display = 'none'; // Hide container if no algorithm
-        }
-    }
-
-    // Update navigation buttons and step counter
-    if (prevLessonStepBtn) {
-        prevLessonStepBtn.disabled = currentLessonStepIndex === 0;
-    }
-    if (nextLessonStepBtn) {
-        nextLessonStepBtn.disabled = currentLessonStepIndex === currentLesson.steps.length - 1;
-    }
-    if (lessonStepCounter) {
-        lessonStepCounter.textContent = `Step ${currentLessonStepIndex + 1} of ${currentLesson.steps.length}`;
-    }
-}
-
-/**
- * Navigates to the next lesson step.
- */
-function nextLessonStep() {
-    if (currentLesson && currentLessonStepIndex < currentLesson.steps.length - 1) {
-        currentLessonStepIndex++;
-        renderCurrentLessonStep();
-    }
-}
-
-/**
- * Navigates to the previous lesson step.
- */
-function prevLessonStep() {
-    if (currentLesson && currentLessonStepIndex > 0) {
-        currentLessonStepIndex--;
-        renderCurrentLessonStep();
-    }
-}
-
+};
 
 // --- Event Listeners ---
 
@@ -2453,7 +2240,7 @@ function setupEventListeners() {
     startStopBtn = document.getElementById('startStopBtn');
     resetBtn = document.getElementById('resetBtn');
     scrambleBtn = document.getElementById('scrambleBtn');
-    settingsBtn = document.getElementById('settingsBtn');
+    // settingsBtn = document.getElementById('settingsBtn'); // Now in sidebar
     solveHistoryList = document.getElementById('solveHistoryList');
     bestTimeDisplay = document.getElementById('bestTime');
     ao5Display = document.getElementById('ao5');
@@ -2501,29 +2288,11 @@ function setupEventListeners() {
     chatSendBtn = document.getElementById('chatSendBtn');
     openChatBtn = document.getElementById('openChatBtn');
 
-    // NEW: Lessons Button - Added for AI Lesson integration
-    openLessonsBtn = document.getElementById('openLessonsBtn');
+    // NEW: Lessons Button - Now a link, so no direct JS event listener here for navigation
+    // openLessonsBtn = document.getElementById('openLessonsBtn'); // No longer a button, but an anchor tag
 
-    // NEW: Lessons Modal elements - Added for AI Lesson integration
-    lessonsModal = document.getElementById('lessonsModal');
-    closeLessonsModalBtn = document.getElementById('closeLessonsModalBtn');
-    lessonModalTitle = document.getElementById('lessonModalTitle');
-    lessonTopicSelection = document.getElementById('lessonTopicSelection');
-    lessonTopicInput = document.getElementById('lessonTopicInput');
-    generateLessonBtn = document.getElementById('generateLessonBtn');
-    lessonGenerationError = document.getElementById('lessonGenerationError');
-    lessonContentDisplay = document.getElementById('lessonContentDisplay');
-    lessonTitleDisplay = document.getElementById('lessonTitleDisplay');
-    lessonDescriptionDisplay = document.getElementById('lessonDescriptionDisplay');
-    lessonStepsContainer = document.getElementById('lessonStepsContainer');
-    lessonStepTitleDisplay = document.getElementById('lessonStepTitleDisplay');
-    lessonStepDescriptionDisplay = document.getElementById('lessonStepDescriptionDisplay');
-    lessonVisualContainer = document.getElementById('lessonVisualContainer');
-    lessonExplanationDisplay = document.getElementById('lessonExplanationDisplay');
-    prevLessonStepBtn = document.getElementById('prevLessonStepBtn');
-    nextLessonStepBtn = document.getElementById('nextLessonStepBtn');
-    lessonStepCounter = document.getElementById('lessonStepCounter');
-    lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
+    // Settings button (now in sidebar)
+    settingsBtn = document.getElementById('settingsBtn');
 
 
     // Authentication related elements
@@ -2547,6 +2316,7 @@ function setupEventListeners() {
         scramble = generateScramble();
         resetTimer();
     }); else console.error("[ERROR] scrambleBtn not found!");
+    // Settings button listener (now in sidebar)
     if (settingsBtn) settingsBtn.addEventListener('click', () => {
         const settingsModal = document.getElementById('settingsModal');
         if (settingsModal) {
@@ -2697,26 +2467,8 @@ function setupEventListeners() {
         }
     });
 
-    // NEW: Lessons Button Listener - Added for AI Lesson integration
-    if (openLessonsBtn) openLessonsBtn.addEventListener('click', openLessonsModal);
-
-
-    // NEW: Lessons Modal event listeners - Added for AI Lesson integration
-    if (closeLessonsModalBtn) closeLessonsModalBtn.addEventListener('click', closeLessonsModal);
-    if (generateLessonBtn) generateLessonBtn.addEventListener('click', () => {
-        const topic = lessonTopicInput.value.trim();
-        if (topic) {
-            const userLevel = getUserLevel(0, cubeType); // Use current cube type and estimated level
-            requestLessonFromAI(topic, cubeType, userLevel);
-        } else {
-            if (lessonGenerationError) {
-                lessonGenerationError.textContent = "Please enter a lesson topic.";
-                lessonGenerationError.style.display = 'block';
-            }
-        }
-    });
-    if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', prevLessonStep);
-    if (nextLessonStepBtn) nextLessonStepBtn.addEventListener('click', nextLessonStep);
+    // openLessonsBtn is now an anchor tag, its navigation is handled by the browser.
+    // No direct JS event listener needed here for navigation.
 
 
     document.addEventListener('keydown', (e) => {
@@ -2725,9 +2477,10 @@ function setupEventListeners() {
             return; // Do nothing, let the browser handle the space in the textarea
         }
         // Prevent spacebar from triggering timer when typing in lesson topic input
-        if (e.target === lessonTopicInput && e.code === 'Space') {
-            return;
-        }
+        // This input is now on lessons.html, so this check is less critical here but harmless.
+        // if (e.target === lessonTopicInput && e.code === 'Space') {
+        //     return;
+        // }
 
         if (e.code === 'Escape') {
             const settingsModal = document.getElementById('settingsModal');
@@ -2750,11 +2503,11 @@ function setupEventListeners() {
                 chatModal.classList.remove('open');
                 console.log("[DEBUG] Chat modal closed by Escape key.");
             }
-            // NEW: Close lessons modal on Escape - Added for AI Lesson integration
-            if (lessonsModal && lessonsModal.classList.contains('open')) {
-                lessonsModal.classList.remove('open');
-                console.log("[DEBUG] Lessons modal closed by Escape key.");
-            }
+            // Lessons modal is now on a separate page, so this check is not needed here
+            // if (lessonsModal && lessonsModal.classList.contains('open')) {
+            //     lessonsModal.classList.remove('open');
+            //     console.log("[DEBUG] Lessons modal closed by Escape key.");
+            // }
         }
 
         if (e.code === 'Space') {
@@ -2776,9 +2529,10 @@ function setupEventListeners() {
             return; // Do nothing, let the browser handle the space in the textarea
         }
         // Prevent spacebar from triggering timer when typing in lesson topic input
-        if (e.target === lessonTopicInput && e.code === 'Space') {
-            return;
-        }
+        // This input is now on lessons.html, so this check is less critical here but harmless.
+        // if (e.target === lessonTopicInput && e.code === 'Space') {
+        //     return;
+        // }
 
         if (e.code === 'Space') {
             e.preventDefault();
