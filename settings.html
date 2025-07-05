@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="theme-dark main-layout-settings"> <!-- Set default theme class here, add specific class for settings page layout -->
+    <!-- Main Layout Container for Sidebar and Main Content -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="text-2xl font-bold text-gradient mb-6 text-center">Navigation</h2>
+                <button id="sidebarToggleBtn" class="sidebar-toggle-btn" aria-label="Toggle sidebar">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            <nav class="space-y-4">
+                <!-- Back to Timer Button -->
+                <a href="index.html" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-clock mr-2"></i> <span class="nav-text">Timer</span>
+                </a>
+                <!-- Lessons Button -->
+                <a href="lessons.html" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-book-open mr-2"></i> <span class="nav-text">Lessons</span>
+                </a>
+                <!-- History Button -->
+                <a href="history.html" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-history mr-2"></i> <span class="nav-text">History</span>
+                </a>
+                 <!-- Settings Button (Active on this page) -->
+                 <a href="settings.html" class="button-primary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-cog mr-2"></i> <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="content-area">
+            <div class="settings-page-container container mx-auto rounded-3xl">
+
+                <h1 class="text-4xl font-bold text-center text-gradient mb-6">Settings</h1>
+
+                <div class="space-y-4 text-gray-300">
+                    <!-- Username Setting -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gradient mb-2">User Profile</h3>
+                        <label for="settingsUsernameInput" class="block text-sm font-medium mb-1">Username:</label>
+                        <input type="text" id="settingsUsernameInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter your username">
+                        <button id="saveUsernameBtn" class="button-primary mt-2">Save Username</button>
+                        <p id="usernameUpdateMessage" class="text-sm mt-2" style="display: none;"></p>
+                    </div>
+
+                    <!-- Timer Settings -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gradient mb-2">Timer</h3>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="inspectionToggle" class="toggle-switch">
+                            <span>Enable Inspection (15s)</span>
+                        </label>
+                    </div>
+
+                    <!-- Sound Settings -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gradient mb-2">Sound</h3>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="soundEffectsToggle" class="toggle-switch">
+                            <span>Enable Sound Effects</span>
+                        </label>
+                    </div>
+
+                    <!-- Cube Type Selection -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gradient mb-2">Cube Type</h3>
+                        <select id="cubeTypeSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <option value="3x3">3x3</option>
+                            <option value="2x2">2x2</option>
+                            <option value="4x4">4x4</option>
+                            <option value="pyraminx">Pyraminx</option>
+                            <!-- Add more cube types as needed -->
+                        </select>
+                    </div>
+
+                    <!-- Theme Selection -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gradient mb-2">Theme</h3>
+                        <select id="themeSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                            <option value="vibrant">Vibrant</option>
+                        </select>
+                    </div>
+
+                    <!-- 3D Cube View Toggle -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gradient mb-2">Scramble View</h3>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="cubeViewToggle" class="toggle-switch">
+                            <span>Show 3D Cube Scramble</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript file for settings -->
+    <script type="module" src="settings.js"></script>
+</body>
+
+</html>

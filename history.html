@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solve History & Stats - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound effects (if needed on this page, e.g., for insight) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Cubing.js for 3D scramble visualization (if needed for insight) -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="theme-dark main-layout-history"> <!-- Set default theme class here, add specific class for history page layout -->
+    <!-- Main Layout Container for Sidebar and Main Content -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="text-2xl font-bold text-gradient mb-6 text-center">Navigation</h2>
+                <button id="sidebarToggleBtn" class="sidebar-toggle-btn" aria-label="Toggle sidebar">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            <nav class="space-y-4">
+                <!-- Back to Timer Button -->
+                <a href="index.html" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-clock mr-2"></i> <span class="nav-text">Timer</span>
+                </a>
+                <!-- Lessons Button -->
+                <a href="lessons.html" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-book-open mr-2"></i> <span class="nav-text">Lessons</span>
+                </a>
+                <!-- Settings Button -->
+                <a href="settings.html" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-cog mr-2"></i> <span class="nav-text">Settings</span>
+                </a>
+                 <!-- History Button (Active on this page) -->
+                 <a href="history.html" class="button-primary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-history mr-2"></i> <span class="nav-text">History</span>
+                </a>
+            </nav>
+
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="content-area">
+            <div class="history-page-container container mx-auto rounded-3xl">
+
+                <h1 class="text-4xl font-bold text-center text-gradient mb-6">Solve History & Statistics</h1>
+
+                <!-- Statistics Grid -->
+                <div class="stats-grid mt-8">
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Best Time</div>
+                        <div id="bestTime" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Ao5</div>
+                        <div id="ao5" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Ao12</div>
+                        <div id="ao12" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Solves</div>
+                        <div id="solveCount" class="value">0</div>
+                    </div>
+                </div>
+
+                <!-- Solve History Section -->
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Solve History</h2>
+                    <div id="noSolvesMessage" class="text-center text-gray-400 mb-4" style="display: none;">No solves recorded yet. Start cubing!</div>
+                    <div id="solveHistoryList" class="space-y-3">
+                        <!-- Solve items will be dynamically added here -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insight Modal (Needed here as it's triggered from history items) -->
+    <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
+                <div class="spinner mx-auto my-4" style="display: none;"></div>
+                <p id="insightMessage" class="text-center">Generating insight...</p>
+                <!-- AI Scramble Analysis Display -->
+                <div id="scrambleAnalysisDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble Analysis:</h3>
+                    <p id="scrambleAnalysisText" class="text-white text-sm"></p>
+                </div>
+                <!-- Personalized Tip Display -->
+                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
+                    <p id="personalizedTipText" class="text-white text-sm"></p>
+                </div>
+                <!-- Targeted Practice Focus Section -->
+                <div id="targetedPracticeFocusDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Targeted Practice Focus:</h3>
+                    <p id="targetedPracticeFocusText" class="text-white text-sm"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container (Needed here for insight messages) -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Link to external JavaScript file for history -->
+    <script type="module" src="history.js"></script>
+</body>
+
+</html>
