@@ -6,7 +6,7 @@ body {
     /* Dark blue-gray background */
     color: var(--text-color-primary, #e2e8f0);
     /* Light text color */
-    display: flex;
+    display: flex; /* Changed to flex for main-layout */
     justify-content: center;
     align-items: center;
     min-height: 100vh;
@@ -76,13 +76,54 @@ body.theme-vibrant {
     --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
 }
 
+/* NEW: Main Layout for Sidebar and Content */
+.main-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh; /* Ensure it takes full height */
+    padding: 0; /* Remove body padding, handled by layout */
+    margin: 0;
+}
+
+/* NEW: Sidebar Styling */
+.sidebar {
+    width: 280px; /* Fixed width for sidebar on desktop */
+    background-color: var(--bg-color-secondary);
+    padding: 2.5rem;
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    overflow-y: auto; /* Enable scrolling for sidebar content if needed */
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+}
+
+.sidebar .button-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Align text to left */
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    text-decoration: none; /* For the link button */
+}
+
+/* NEW: Content Area Styling */
+.content-area {
+    flex-grow: 1; /* Take remaining space */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; /* Padding for the main content timer */
+    overflow-y: auto; /* Allow scrolling for main content */
+}
+
 .container {
     background-color: var(--bg-color-secondary);
     border-radius: 1.5rem;
     /* Large rounded corners */
     box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
-    max-width: 1200px;
-    /* Desktop max-width */
+    max-width: 900px; /* Adjusted max-width for main content */
     width: 90%;
     /* Desktop relative width */
     padding: 2.5rem;
@@ -681,12 +722,17 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Lessons Modal Styling - Added for AI Lesson integration */
-#lessonsModal .modal-content {
-    max-width: 800px; /* Wider for lessons */
+/* NEW: Lessons Page/Modal Styling (moved from index.html) */
+.lessons-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
     border: 1px solid #334155;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 800px; /* Wider for lessons */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin: 20px auto; /* Center the container on the page */
+    color: var(--text-color-primary);
 }
 
 .lesson-step-card {
@@ -710,13 +756,34 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-weight: 600;
 }
 
-
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
 /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
 @media (max-width: 767px) {
     body {
         padding: 16px;
         /* Reduced padding for mobile */
+    }
+
+    .main-layout {
+        flex-direction: column; /* Stack sidebar and content vertically */
+        padding: 0; /* Handled by child elements */
+    }
+
+    .sidebar {
+        width: 100%; /* Full width on mobile */
+        padding: 1.5rem;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color); /* Separator */
+        box-shadow: none; /* Remove sidebar shadow on mobile */
+        gap: 1.5rem;
+    }
+
+    .sidebar .button-secondary {
+        justify-content: center; /* Center buttons in sidebar on mobile */
+    }
+
+    .content-area {
+        padding: 16px; /* Padding for main content on mobile */
     }
 
     .container {
@@ -736,6 +803,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
         margin-top: 0.5rem;
         /* Adjust to fit content well */
         margin-bottom: 0.5rem;
+        position: static; /* Remove absolute positioning on mobile */
     }
 
     .auth-corner-buttons button {
@@ -924,6 +992,13 @@ body.theme-vibrant #aiInsightModal .modal-content {
         width: 8px;
         height: 8px;
         gap: 6px;
+    }
+
+    /* Lessons Page container on mobile */
+    .lessons-page-container {
+        padding: 1.5rem;
+        width: 95%;
+        margin: 16px auto;
     }
 }
 
