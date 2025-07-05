@@ -18,79 +18,99 @@
 </head>
 
 <body class="theme-dark"> <!-- Set default theme class here -->
-    <div class="container mx-auto rounded-3xl">
-        <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
-        <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
-            <button id="signInBtn" class="button-primary">Sign In</button>
-            <button id="signUpBtn" class="button-secondary">Sign Up</button>
-            <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
-        </div>
-
-        <h1 class="text-4xl font-bold text-center text-gradient mb-6">Cubically AI Edition</h1>
-
-        <!-- Username Display - Reverted to old structure -->
-        <div class="text-sm text-center text-gray-400">
-            Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
-        </div>
-
-        <!-- Timer Display -->
-        <div id="timerDisplay" class="timer-display text-center">00:00.000</div>
-
-        <!-- Scramble Display -->
-        <div id="scrambleTextDisplay" class="scramble-display">Generating Scramble...</div>
-
-        <!-- 3D Cube Container (Initially hidden, controlled by settings) -->
-        <div id="cube3DContainer" class="relative" style="display: none;">
-            <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
-            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                <!-- Buttons here will be styled via specific CSS rules -->
-                <button id="playPreviewBtn" class="button-preview-control" aria-label="Play 3D scramble animation">
-                    <i class="fas fa-play"></i>
+    <!-- Main Layout Container for Sidebar and Main Content -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <h2 class="text-2xl font-bold text-gradient mb-6 text-center">Navigation</h2>
+            <nav class="space-y-4">
+                <!-- Lessons Button (now a link to a separate page) -->
+                <a href="lessons.html" id="openLessonsBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-book-open mr-2"></i> Lessons
+                </a>
+                <!-- Settings Button -->
+                <button id="settingsBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-cog mr-2"></i> Settings
                 </button>
-                <button id="pausePreviewBtn" class="button-preview-control" aria-label="Pause 3D scramble animation">
-                    <i class="fas fa-pause"></i>
-                </button>
-                <button id="restartPreviewBtn" class="button-preview-control" aria-label="Restart 3D scramble animation">
-                    <i class="fas fa-redo"></i>
-                </button>
-            </div>
-        </div>
+            </nav>
 
-        <!-- Control Buttons -->
-        <div class="flex flex-col sm:flex-row justify-center gap-4">
-            <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
-            <button id="resetBtn" class="button-secondary">Reset</button>
-            <button id="scrambleBtn" class="button-secondary">New Scramble</button>
-            <!-- NEW: Lessons Button added for AI Lesson integration -->
-            <button id="openLessonsBtn" class="button-secondary">Lessons</button>
-            <button id="settingsBtn" class="button-secondary">Settings</button>
-        </div>
+            <!-- Solve History Section (moved to sidebar) -->
+            <div class="mt-8">
+                <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Solve History</h2>
+                <div id="noSolvesMessage" class="text-center text-gray-400 mb-4" style="display: none;">No solves recorded yet. Start cubing!</div>
+                <div id="solveHistoryList" class="space-y-3">
+                    <!-- Solve items will be dynamically added here -->
+                </div>
+            </div>
 
-        <!-- Statistics Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="label text-gray-400">Best Time</div>
-                <div id="bestTime" class="value">--:--.--</div>
+            <!-- Statistics Grid (moved to sidebar) -->
+            <div class="stats-grid mt-8">
+                <div class="stat-card">
+                    <div class="label text-gray-400">Best Time</div>
+                    <div id="bestTime" class="value">--:--.--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label text-gray-400">Ao5</div>
+                    <div id="ao5" class="value">--:--.--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label text-gray-400">Ao12</div>
+                    <div id="ao12" class="value">--:--.--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label text-gray-400">Solves</div>
+                    <div id="solveCount" class="value">0</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="label text-gray-400">Ao5</div>
-                <div id="ao5" class="value">--:--.--</div>
-            </div>
-            <div class="stat-card">
-                <div class="label text-gray-400">Ao12</div>
-                <div id="ao12" class="value">--:--.--</div>
-            </div>
-            <div class="stat-card">
-                <div class="label text-gray-400">Solves</div>
-                <div id="solveCount" class="value">0</div>
-            </div>
-        </div>
+        </aside>
 
-        <!-- Solve History -->
-        <h2 class="text-2xl font-bold text-gradient mb-4">Solve History</h2>
-        <div id="noSolvesMessage" class="text-center text-gray-400 mb-4" style="display: none;">No solves recorded yet. Start cubing!</div>
-        <div id="solveHistoryList" class="space-y-3">
-            <!-- Solve items will be dynamically added here -->
+        <!-- Main Content Area -->
+        <div class="content-area">
+            <div class="container mx-auto rounded-3xl">
+                <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
+                <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
+                    <button id="signInBtn" class="button-primary">Sign In</button>
+                    <button id="signUpBtn" class="button-secondary">Sign Up</button>
+                    <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
+                </div>
+
+                <h1 class="text-4xl font-bold text-center text-gradient mb-6">Cubically AI Edition</h1>
+
+                <!-- Username Display -->
+                <div class="text-sm text-center text-gray-400">
+                    Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+                </div>
+
+                <!-- Timer Display -->
+                <div id="timerDisplay" class="timer-display text-center">00:00.000</div>
+
+                <!-- Scramble Display -->
+                <div id="scrambleTextDisplay" class="scramble-display">Generating Scramble...</div>
+
+                <!-- 3D Cube Container (Initially hidden, controlled by settings) -->
+                <div id="cube3DContainer" class="relative" style="display: none;">
+                    <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                        <!-- Buttons here will be styled via specific CSS rules -->
+                        <button id="playPreviewBtn" class="button-preview-control" aria-label="Play 3D scramble animation">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="pausePreviewBtn" class="button-preview-control" aria-label="Pause 3D scramble animation">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button id="restartPreviewBtn" class="button-preview-control" aria-label="Restart 3D scramble animation">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
+                    <button id="resetBtn" class="button-secondary">Reset</button>
+                    <button id="scrambleBtn" class="button-secondary">New Scramble</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -219,48 +239,6 @@
                     <p id="targetedPracticeFocusText" class="text-white text-sm"></p>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- NEW: Lessons Modal - Added for AI Lesson integration -->
-    <div id="lessonsModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
-        <div class="modal-content !max-w-3xl">
-            <button class="modal-close-button" id="closeLessonsModalBtn" aria-label="Close lessons">&times;</button>
-            <h2 id="lessonModalTitle" class="text-2xl font-bold text-gradient mb-4">Cubing Lessons</h2>
-
-            <!-- Lesson Topic Selection / Input -->
-            <div id="lessonTopicSelection" class="mb-4">
-                <p class="mb-2 text-gray-300">What cubing topic would you like to learn about, Sir Sevindu?</p>
-                <input type="text" id="lessonTopicInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., F2L, OLL, Beginner Method, Pyraminx basics">
-                <button id="generateLessonBtn" class="button-primary mt-3 w-full">Generate Lesson</button>
-                <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
-            </div>
-
-            <!-- Lesson Content Display -->
-            <div id="lessonContentDisplay" style="display: none;">
-                <h3 id="lessonTitleDisplay" class="text-xl font-semibold text-gradient mb-2"></h3>
-                <p id="lessonDescriptionDisplay" class="text-gray-300 mb-4"></p>
-
-                <div id="lessonStepsContainer" class="space-y-4">
-                    <!-- Lesson steps will be dynamically loaded here -->
-                    <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
-                        <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
-                        <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
-                        <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center" style="display: none;">
-                            <!-- twisty-player will be inserted here dynamically -->
-                        </div>
-                        <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
-                    </div>
-                </div>
-
-                <div class="lesson-navigation mt-6 flex justify-between items-center">
-                    <button id="prevLessonStepBtn" class="button-secondary" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
-                    <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
-                    <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
-                </div>
-            </div>
-
-            <div id="lessonLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
         </div>
     </div>
 
