@@ -660,10 +660,10 @@ let chatInput;
 let chatSendBtn;
 let openChatBtn;
 
-// NEW: Lessons Button
+// NEW: Lessons Button - Added for AI Lesson integration
 let openLessonsBtn;
 
-// Lessons Modal elements (NEW)
+// NEW: Lessons Modal elements - Added for AI Lesson integration
 let lessonsModal;
 let closeLessonsModalBtn;
 let lessonModalTitle;
@@ -684,7 +684,7 @@ let nextLessonStepBtn;
 let lessonStepCounter;
 let lessonLoadingSpinner;
 
-// Lesson state variables (NEW)
+// NEW: Lesson state variables - Added for AI Lesson integration
 let currentLesson = null;
 let currentLessonStepIndex = 0;
 
@@ -1280,7 +1280,7 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
                 speakAsJarvis("Pardon me, Sir Sevindu. I received a general query without a specific question.");
             }
             break;
-        case 'generate_lesson': // NEW: Handle lesson generation
+        case 'generate_lesson': // NEW: Handle lesson generation for AI Lesson integration
             if (query) {
                 speakAsJarvis(`Generating a lesson on ${query}, Sir Sevindu. This may take a moment.`);
                 openLessonsModal(); // Open the modal and show loading
@@ -2317,7 +2317,7 @@ function closeChatModal() {
     }
 }
 
-// --- Lessons Functions (NEW) ---
+// --- NEW: Lessons Functions - Added for AI Lesson integration ---
 
 /**
  * Opens the lessons modal and prepares for lesson generation.
@@ -2501,10 +2501,10 @@ function setupEventListeners() {
     chatSendBtn = document.getElementById('chatSendBtn');
     openChatBtn = document.getElementById('openChatBtn');
 
-    // NEW: Lessons Button
+    // NEW: Lessons Button - Added for AI Lesson integration
     openLessonsBtn = document.getElementById('openLessonsBtn');
 
-    // Lessons Modal elements (NEW)
+    // NEW: Lessons Modal elements - Added for AI Lesson integration
     lessonsModal = document.getElementById('lessonsModal');
     closeLessonsModalBtn = document.getElementById('closeLessonsModalBtn');
     lessonModalTitle = document.getElementById('lessonModalTitle');
@@ -2697,11 +2697,11 @@ function setupEventListeners() {
         }
     });
 
-    // NEW: Lessons Button Listener
+    // NEW: Lessons Button Listener - Added for AI Lesson integration
     if (openLessonsBtn) openLessonsBtn.addEventListener('click', openLessonsModal);
 
 
-    // NEW: Lessons Modal event listeners
+    // NEW: Lessons Modal event listeners - Added for AI Lesson integration
     if (closeLessonsModalBtn) closeLessonsModalBtn.addEventListener('click', closeLessonsModal);
     if (generateLessonBtn) generateLessonBtn.addEventListener('click', () => {
         const topic = lessonTopicInput.value.trim();
@@ -2750,7 +2750,8 @@ function setupEventListeners() {
                 chatModal.classList.remove('open');
                 console.log("[DEBUG] Chat modal closed by Escape key.");
             }
-            if (lessonsModal && lessonsModal.classList.contains('open')) { // Close lessons modal on Escape
+            // NEW: Close lessons modal on Escape - Added for AI Lesson integration
+            if (lessonsModal && lessonsModal.classList.contains('open')) {
                 lessonsModal.classList.remove('open');
                 console.log("[DEBUG] Lessons modal closed by Escape key.");
             }
