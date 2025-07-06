@@ -18,49 +18,80 @@
 </head>
 
 <body class="theme-dark"> <!-- Theme class will be applied by lessons.js -->
-    <div class="lessons-page-container">
-        <!-- Back to Timer Button -->
-        <div class="flex justify-start mb-4">
-            <a href="index.html" class="button-secondary flex items-center justify-center gap-2">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Timer
-            </a>
-        </div>
+    <!-- NEW: Main Layout Container for Sidebar and Main Content (Duplicated from index.html) -->
+    <div class="main-layout">
+        <!-- Sidebar (Duplicated from index.html) -->
+        <aside id="sidebar" class="sidebar">
+            <!-- NEW: Sidebar Header with Title and Toggle Button -->
+            <div class="sidebar-header">
+                <h2 class="text-2xl font-bold text-gradient mb-6 text-center">Navigation</h2>
+                <button id="sidebarToggleBtn" class="sidebar-toggle-btn" aria-label="Toggle sidebar"><i class="fas fa-chevron-left"></i></button>
+            </div>
 
-        <h2 id="lessonModalTitle" class="text-2xl font-bold text-gradient mb-4">Cubing Lessons</h2>
+            <nav class="space-y-4">
+                <!-- Back to Timer Button (now a link) -->
+                <a href="index.html" id="backToTimerBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-arrow-left"></i> <span>Back to Timer</span>
+                </a>
+                <!-- Settings Button (Placeholder, settings modal is on index.html) -->
+                 <button id="settingsBtn" class="button-secondary w-full flex items-center justify-center gap-2" disabled title="Settings are only available on the main timer page">
+                    <i class="fas fa-cog"></i> <span>Settings</span>
+                </button>
+            </nav>
 
-        <!-- Lesson Topic Selection / Input -->
-        <div id="lessonTopicSelection" class="mb-4">
-            <p class="mb-2 text-gray-300">What cubing topic would you like to learn about, Sir Sevindu?</p>
-            <input type="text" id="lessonTopicInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., F2L, OLL, Beginner Method, Pyraminx basics">
-            <button id="generateLessonBtn" class="button-primary mt-3 w-full">Generate Lesson</button>
-            <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
-        </div>
+             <!-- Placeholder sections for history/stats to maintain layout consistency -->
+            <div class="mt-8">
+                <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Solve History</h2>
+                 <div class="text-center text-gray-400 mb-4 text-sm">History is on the main page.</div>
+            </div>
 
-        <!-- Lesson Content Display -->
-        <div id="lessonContentDisplay" style="display: none;">
-            <h3 id="lessonTitleDisplay" class="text-xl font-semibold text-gradient mb-2"></h3>
-            <p id="lessonDescriptionDisplay" class="text-gray-300 mb-4"></p>
+            <div class="stats-grid mt-8">
+                 <div class="stat-card"><div class="label text-gray-400">Best Time</div><div class="value">--:--.--</div></div>
+                 <div class="stat-card"><div class="label text-gray-400">Ao5</div><div class="value">--:--.--</div></div>
+                 <div class="stat-card"><div class="label text-gray-400">Ao12</div><div class="value">--:--.--</div></div>
+                 <div class="stat-card"><div class="label text-gray-400">Solves</div><div class="value">--</div></div>
+            </div>
+        </aside>
 
-            <div id="lessonStepsContainer" class="space-y-4">
-                <!-- Lesson steps will be dynamically loaded here -->
-                <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
-                    <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
-                    <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
-                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center" style="display: none;">
-                        <!-- twisty-player will be inserted here dynamically -->
+        <!-- Main Content Area for Lessons -->
+        <div class="content-area lessons-page-container">
+            <h2 id="lessonModalTitle" class="text-2xl font-bold text-gradient mb-4">Cubing Lessons</h2>
+
+            <!-- Lesson Topic Selection / Input -->
+            <div id="lessonTopicSelection" class="mb-4">
+                <p class="mb-2 text-gray-300">What cubing topic would you like to learn about, Sir Sevindu?</p>
+                <input type="text" id="lessonTopicInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., F2L, OLL, Beginner Method, Pyraminx basics">
+                <button id="generateLessonBtn" class="button-primary mt-3 w-full">Generate Lesson</button>
+                <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
+            </div>
+
+            <!-- Lesson Content Display -->
+            <div id="lessonContentDisplay" style="display: none;">
+                <h3 id="lessonTitleDisplay" class="text-xl font-semibold text-gradient mb-2"></h3>
+                <p id="lessonDescriptionDisplay" class="text-gray-300 mb-4"></p>
+
+                <div id="lessonStepsContainer" class="space-y-4">
+                    <!-- Lesson steps will be dynamically loaded here -->
+                    <!-- Example structure (will be replaced by JS) -->
+                    <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
+                        <h4 class="text-lg font-semibold text-white mb-2">Example Step Title</h4>
+                        <p class="text-gray-300 mb-2">Example step description.</p>
+                        <div class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center" style="display: none;">
+                            <!-- twisty-player will be inserted here dynamically -->
+                        </div>
+                        <p class="text-sm text-gray-400 italic mt-2">Example explanation.</p>
                     </div>
-                    <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
+                </div>
+
+                <div class="lesson-navigation mt-6 flex justify-between items-center">
+                    <button id="prevLessonStepBtn" class="button-secondary" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+                    <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
+                    <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
                 </div>
             </div>
 
-            <div class="lesson-navigation mt-6 flex justify-between items-center">
-                <button id="prevLessonStepBtn" class="button-secondary" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
-                <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
-                <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
-            </div>
+            <div id="lessonLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
         </div>
-
-        <div id="lessonLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
     </div>
 
     <!-- Link to external JavaScript file for lessons -->
