@@ -439,3 +439,4 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeLessonsPage();
 });
 
+
