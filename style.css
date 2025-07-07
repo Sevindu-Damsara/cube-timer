@@ -87,25 +87,67 @@ body.theme-vibrant {
 
 /* NEW: Sidebar Styling */
 .sidebar {
-    width: 280px; /* Fixed width for sidebar on desktop */
+    width: 80px; /* Retracted width */
     background-color: var(--bg-color-secondary);
-    padding: 2.5rem;
+    padding: 1.5rem 0.5rem; /* Adjusted padding for retracted state */
     border-right: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    overflow-y: auto; /* Enable scrolling for sidebar content if needed */
-    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    align-items: center; /* Center items when retracted */
+    gap: 1.5rem;
+    overflow-y: auto;
+    flex-shrink: 0;
+    transition: width 0.3s ease-in-out; /* Smooth transition for width */
 }
 
-.sidebar .button-secondary {
+.sidebar:hover {
+    width: 200px; /* Expanded width on hover */
+    align-items: flex-start; /* Align items to start when expanded */
+    padding: 1.5rem; /* Restore full padding */
+}
+
+.sidebar .nav-item {
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Align text to left */
+    width: 100%;
     padding: 0.75rem 1rem;
-    font-size: 1rem;
-    text-decoration: none; /* For the link button */
+    border-radius: 0.75rem;
+    color: var(--text-color-primary);
+    text-decoration: none;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.sidebar .nav-item:hover {
+    background-color: var(--button-secondary-hover-bg);
+}
+
+.sidebar .nav-item.active {
+    background-color: var(--accent-color-blue);
+    color: white;
+}
+
+.sidebar .nav-icon {
+    font-size: 1.5rem;
+    margin-right: 0; /* No margin when retracted */
+    transition: margin-right 0.3s ease-in-out;
+}
+
+.sidebar:hover .nav-icon {
+    margin-right: 1rem; /* Add margin when expanded */
+}
+
+.sidebar .nav-text {
+    display: none; /* Hidden by default */
+    font-weight: 600;
+    white-space: nowrap; /* Prevent text wrapping */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.sidebar:hover .nav-text {
+    display: block; /* Show on hover */
+    opacity: 1;
 }
 
 /* NEW: Content Area Styling */
@@ -756,6 +798,45 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-weight: 600;
 }
 
+/* NEW: History Page Styling */
+.history-page-container {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 900px; /* Wider for history */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin: 20px auto;
+    color: var(--text-color-primary);
+}
+
+/* History page specific solve item adjustments */
+.history-page-container .solve-history-item {
+    flex-direction: row; /* Ensure row layout for desktop history page */
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap; /* Allow wrapping if content is too long */
+    gap: 0.75rem;
+}
+
+.history-page-container .solve-history-item .time {
+    flex-shrink: 0; /* Prevent time from shrinking */
+}
+
+.history-page-container .solve-history-item .scramble-text {
+    flex-grow: 1; /* Allow scramble text to take available space */
+    text-align: left;
+    margin-left: 1rem; /* Space between time and scramble */
+    margin-right: 1rem;
+}
+
+.history-page-container .solve-history-item .penalty-buttons {
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+    justify-content: flex-end; /* Align buttons to the right */
+}
+
+
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
 /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
 @media (max-width: 767px) {
@@ -771,15 +852,43 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
     .sidebar {
         width: 100%; /* Full width on mobile */
-        padding: 1.5rem;
+        padding: 1rem 0.5rem; /* Adjusted padding for mobile */
         border-right: none;
         border-bottom: 1px solid var(--border-color); /* Separator */
         box-shadow: none; /* Remove sidebar shadow on mobile */
-        gap: 1.5rem;
+        gap: 1rem;
+        flex-direction: row; /* Horizontal layout for mobile nav */
+        justify-content: space-around; /* Distribute items evenly */
+        align-items: center;
     }
 
-    .sidebar .button-secondary {
-        justify-content: center; /* Center buttons in sidebar on mobile */
+    .sidebar:hover {
+        width: 100%; /* No width change on hover for mobile */
+        padding: 1rem 0.5rem;
+        align-items: center;
+    }
+
+    .sidebar .nav-item {
+        flex-direction: column; /* Stack icon and text vertically */
+        padding: 0.5rem;
+        font-size: 0.8rem; /* Smaller font for mobile nav text */
+    }
+
+    .sidebar .nav-icon {
+        margin-right: 0 !important; /* No margin on mobile */
+        margin-bottom: 0.25rem; /* Space between icon and text */
+        font-size: 1.2rem; /* Smaller icon size for mobile */
+    }
+
+    .sidebar .nav-text {
+        display: block; /* Always show text on mobile */
+        opacity: 1;
+        font-size: 0.7rem; /* Even smaller for text */
+    }
+
+    .sidebar:hover .nav-text {
+        display: block; /* Still show on hover, but no change */
+        opacity: 1;
     }
 
     .content-area {
@@ -999,6 +1108,27 @@ body.theme-vibrant #aiInsightModal .modal-content {
         padding: 1.5rem;
         width: 95%;
         margin: 16px auto;
+    }
+
+    /* History Page container on mobile */
+    .history-page-container {
+        padding: 1.5rem;
+        width: 95%;
+        margin: 16px auto;
+    }
+
+    .history-page-container .solve-history-item {
+        flex-direction: column; /* Stack vertically on mobile */
+        align-items: flex-start;
+    }
+
+    .history-page-container .solve-history-item .scramble-text {
+        margin-left: 0; /* Remove left margin on mobile */
+        margin-right: 0;
+    }
+
+    .history-page-container .solve-history-item .penalty-buttons {
+        justify-content: flex-start; /* Align buttons to left on mobile */
     }
 }
 
