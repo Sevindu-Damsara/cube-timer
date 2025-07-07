@@ -21,47 +21,25 @@
     <!-- Main Layout Container for Sidebar and Main Content -->
     <div class="main-layout">
         <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar">
-            <h2 class="text-2xl font-bold text-gradient mb-6 text-center">Navigation</h2>
+        <aside id="sidebar" class="sidebar retracted">
             <nav class="space-y-4">
-                <!-- Lessons Button (now a link to a separate page) -->
-                <a href="lessons.html" id="openLessonsBtn" class="button-secondary w-full flex items-center justify-center gap-2">
-                    <i class="fas fa-book-open mr-2"></i> Lessons
+                <a href="index.html" class="nav-item active">
+                    <i class="fas fa-stopwatch nav-icon"></i>
+                    <span class="nav-text">Timer</span>
                 </a>
-                <!-- Settings Button -->
-                <button id="settingsBtn" class="button-secondary w-full flex items-center justify-center gap-2">
-                    <i class="fas fa-cog mr-2"></i> Settings
+                <a href="lessons.html" class="nav-item">
+                    <i class="fas fa-book-open nav-icon"></i>
+                    <span class="nav-text">Lessons</span>
+                </a>
+                <a href="history.html" class="nav-item">
+                    <i class="fas fa-history nav-icon"></i>
+                    <span class="nav-text">History</span>
+                </a>
+                <button id="settingsBtn" class="nav-item">
+                    <i class="fas fa-cog nav-icon"></i>
+                    <span class="nav-text">Settings</span>
                 </button>
             </nav>
-
-            <!-- Solve History Section (moved to sidebar) -->
-            <div class="mt-8">
-                <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Solve History</h2>
-                <div id="noSolvesMessage" class="text-center text-gray-400 mb-4" style="display: none;">No solves recorded yet. Start cubing!</div>
-                <div id="solveHistoryList" class="space-y-3">
-                    <!-- Solve items will be dynamically added here -->
-                </div>
-            </div>
-
-            <!-- Statistics Grid (moved to sidebar) -->
-            <div class="stats-grid mt-8">
-                <div class="stat-card">
-                    <div class="label text-gray-400">Best Time</div>
-                    <div id="bestTime" class="value">--:--.--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="label text-gray-400">Ao5</div>
-                    <div id="ao5" class="value">--:--.--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="label text-gray-400">Ao12</div>
-                    <div id="ao12" class="value">--:--.--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="label text-gray-400">Solves</div>
-                    <div id="solveCount" class="value">0</div>
-                </div>
-            </div>
         </aside>
 
         <!-- Main Content Area -->
@@ -109,6 +87,26 @@
                     <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
                     <button id="resetBtn" class="button-secondary">Reset</button>
                     <button id="scrambleBtn" class="button-secondary">New Scramble</button>
+                </div>
+
+                <!-- Statistics Grid (moved to main content) -->
+                <div class="stats-grid mt-8">
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Best Time</div>
+                        <div id="bestTime" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Ao5</div>
+                        <div id="ao5" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Ao12</div>
+                        <div id="ao12" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Solves</div>
+                        <div id="solveCount" class="value">0</div>
+                    </div>
                 </div>
             </div>
         </div>
