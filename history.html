@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solve History - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound effects (if history page needs it for any reason) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Cubing.js for 3D scramble visualization -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="theme-dark"> <!-- Theme class will be applied by history.js -->
+    <div class="history-page-container">
+        <!-- Back to Timer Button -->
+        <div class="flex justify-start mb-4">
+            <a href="index.html" class="button-secondary flex items-center justify-center gap-2">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Timer
+            </a>
+        </div>
+
+        <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Solve History</h2>
+
+        <div id="noSolvesMessage" class="text-center text-gray-400 mb-4" style="display: none;">No solves recorded yet. Start cubing!</div>
+        <div id="solveHistoryList" class="space-y-3">
+            <!-- Solve items will be dynamically added here -->
+        </div>
+
+        <div id="historyLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
+    </div>
+
+    <!-- AI Insight Modal (duplicated for self-containment) -->
+    <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
+                <div class="spinner mx-auto my-4" style="display: none;"></div>
+                <p id="insightMessage" class="text-center">Generating insight...</p>
+                <div id="scrambleAnalysisDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble Analysis:</h3>
+                    <p id="scrambleAnalysisText" class="text-white text-sm"></p>
+                </div>
+                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
+                    <p id="personalizedTipText" class="text-white text-sm"></p>
+                </div>
+                <div id="targetedPracticeFocusDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Targeted Practice Focus:</h3>
+                    <p id="targetedPracticeFocusText" class="text-white text-sm"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript file for history -->
+    <script type="module" src="history.js"></script>
+</body>
+
+</html>
