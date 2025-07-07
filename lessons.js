@@ -41,6 +41,7 @@ let lessonTopicInput;
 let generateLessonBtn;
 let lessonGenerationError;
 let lessonLoadingSpinner;
+let lessonInputSection; // NEW: Added for showing/hiding
 let lessonDisplayArea;
 let lessonTitleDisplay;
 let lessonStepTitleDisplay;
@@ -175,11 +176,11 @@ function speakAsJarvis(text) {
     console.log(`[DEBUG] lessons.js: Jarvis would speak: "${text}"`);
     // This is a placeholder. In a full application, this would integrate with a global speech synthesis utility.
     // For now, it just logs to console.
-    // To enable actual speech, you would need to implement Web Speech API here or import a global utility.
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
     utterance.voice = voices.find(voice => voice.name === 'Google UK English Male' && voice.lang === 'en-GB') ||
+                      voices.find(voice => voice.name.includes('Google US English') && voice.lang === 'en-US' && voice.gender === 'male') ||
                       voices.find(voice => voice.lang === 'en-US') ||
                       voices[0];
     utterance.pitch = 1;
@@ -257,6 +258,7 @@ async function requestLessonFromAI(topic, cubeType, userLevel) {
 
     // Reset display and show loading spinner
     if (lessonDisplayArea) lessonDisplayArea.style.display = 'none';
+    if (lessonInputSection) lessonInputSection.style.display = 'none'; // NEW: Hide input section immediately
     if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
     if (lessonGenerationError) lessonGenerationError.style.display = 'none';
     if (lessonCompletionMessage) lessonCompletionMessage.style.display = 'none'; // Hide completion message
@@ -276,6 +278,7 @@ async function requestLessonFromAI(topic, cubeType, userLevel) {
             lessonGenerationError.style.display = 'block';
         }
         if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+        if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input on error
         console.error("[ERROR] Gemini Insight Cloud Function URL is not set or is default placeholder.");
         return;
     }
@@ -304,6 +307,7 @@ async function requestLessonFromAI(topic, cubeType, userLevel) {
             if (lessonTitleDisplay) lessonTitleDisplay.textContent = currentLesson.lessonTitle;
             displayLessonStep(currentLessonStepIndex);
             if (lessonDisplayArea) lessonDisplayArea.style.display = 'block';
+            if (lessonInputSection) lessonInputSection.style.display = 'none'; // NEW: Hide input section on success
             speakAsJarvis(`Sir Sevindu, your lesson on "${currentLesson.lessonTitle}" is ready.`);
         } else {
             if (lessonGenerationError) {
@@ -313,6 +317,8 @@ async function requestLessonFromAI(topic, cubeType, userLevel) {
             currentLesson = null; // Clear any incomplete lesson
             currentLessonId = null;
             completedSteps = {};
+            if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input on AI response error
+            if (lessonDisplayArea) lessonDisplayArea.style.display = 'none'; // Hide lesson display on AI response error
         }
 
     } catch (e) {
@@ -321,6 +327,8 @@ async function requestLessonFromAI(topic, cubeType, userLevel) {
             lessonGenerationError.style.display = 'block';
         }
         console.error("[ERROR] Error calling Cloud Function for lesson generation:", e);
+        if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input on fetch error
+        if (lessonDisplayArea) lessonDisplayArea.style.display = 'none'; // Hide lesson display on fetch error
     } finally {
         if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
     }
@@ -348,9 +356,11 @@ function displayLessonStep(index) {
         if (lessonVisualContainer) lessonVisualContainer.style.display = 'flex'; // Show container
         if (twistyPlayerLessonViewer) {
             twistyPlayerLessonViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
+            // Prioritize scramble if both are present for initial view
             twistyPlayerLessonViewer.alg = step.scramble || step.algorithm || '';
             // Set the 3D viewer background directly using the hex color for the chosen theme
             twistyPlayerLessonViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
+            twistyPlayerLessonViewer.jumpToStart(); // Reset view for new step
             console.log(`[DEBUG] Twisty-player updated: Puzzle=${twistyPlayerLessonViewer.puzzle}, Alg=${twistyPlayerLessonViewer.alg}`);
         }
         // Show twisty-player controls
@@ -399,7 +409,9 @@ function displayLessonStep(index) {
 
     // Show/hide "Complete Lesson" button
     if (completeLessonBtn) {
-        if (index === currentLesson.steps.length - 1 && Object.keys(completedSteps).length === currentLesson.steps.length) {
+        // Only show if it's the last step AND all steps are completed
+        const allStepsCompleted = Object.keys(completedSteps).length === currentLesson.steps.length;
+        if (index === currentLesson.steps.length - 1 && allStepsCompleted) {
             completeLessonBtn.style.display = 'block';
         } else {
             completeLessonBtn.style.display = 'none';
@@ -445,6 +457,7 @@ async function completeLesson() {
             completedSteps[i] = true;
         }
         await saveLessonProgress(currentLessonId, completedSteps); // Save final state
+        updateLessonProgressBar(); // Ensure progress bar updates to 100%
         if (lessonCompletionMessage) {
             lessonCompletionMessage.textContent = `Congratulations, Sir Sevindu! You have successfully completed the lesson: "${currentLesson.lessonTitle}"!`;
             lessonCompletionMessage.style.display = 'block';
@@ -477,8 +490,10 @@ function getTwistyPlayerPuzzleType(cubeType) {
  * Navigates to the previous lesson step.
  */
 function prevLessonStep() {
+    console.log(`[DEBUG] prevLessonStep called. currentLessonStepIndex: ${currentLessonStepIndex}`);
     if (currentLesson && currentLessonStepIndex > 0) {
         currentLessonStepIndex--;
+        console.log(`[DEBUG] New currentLessonStepIndex: ${currentLessonStepIndex}`);
         displayLessonStep(currentLessonStepIndex);
     }
 }
@@ -487,8 +502,10 @@ function prevLessonStep() {
  * Navigates to the next lesson step.
  */
 function nextLessonStep() {
+    console.log(`[DEBUG] nextLessonStep called. currentLessonStepIndex: ${currentLessonStepIndex}`);
     if (currentLesson && currentLessonStepIndex < currentLesson.steps.length - 1) {
         currentLessonStepIndex++;
+        console.log(`[DEBUG] New currentLessonStepIndex: ${currentLessonStepIndex}`);
         displayLessonStep(currentLessonStepIndex);
     }
 }
@@ -580,6 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
     generateLessonBtn = document.getElementById('generateLessonBtn');
     lessonGenerationError = document.getElementById('lessonGenerationError');
     lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
+    lessonInputSection = document.getElementById('lessonInputSection'); // Assign the input section
     lessonDisplayArea = document.getElementById('lessonDisplayArea');
     lessonTitleDisplay = document.getElementById('lessonTitleDisplay');
     lessonStepTitleDisplay = document.getElementById('lessonStepTitleDisplay');
