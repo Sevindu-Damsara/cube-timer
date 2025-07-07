@@ -14,7 +14,7 @@ console.log("[DEBUG] Firebase imports completed.");
 // Go to Firebase Console -> Firestore Database -> Rules tab, and REPLACE the content with this:
 /*
 rules_version = '2';
-service cloud.firestore {\n  match /databases/{database}/documents {\n    // Rule for private user data: Allows read/write only if the user is authenticated\n    // and the 'userId' in the path matches their authenticated UID.\n    // This now only applies to explicitly signed-in users.\n    match /artifacts/{appId}/users/{userId}/{document=**} {\n      allow read, write: if request.auth != null && request.auth.uid == userId;\n    }\n  }\n}
+service cloud.firestore {\n  match /databases/{database}/documents {\n    // Rule for private user data: Allows read/write only if the user is authenticated\n    // and the 'userId' in the path matches their authenticated UID.\\n    // This now only applies to explicitly signed-in users.\\n    match /artifacts/{appId}/users/{userId}/{document=**} {\n      allow read, write: if request.auth != null && request.auth.uid == userId;\n    }\n  }\n}
 */
 // =====================================================================================================
 
@@ -166,21 +166,22 @@ const initializeUserDataAndSettings = async () => {
     if (isUserAuthenticated && db && userId) {
         console.log("[DEBUG] Authenticated user. Proceeding with Firestore data initialization.");
         // Use a simple attribute flag on an element to prevent duplicate initialization
-        if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized-firestore')) {
+        // solveHistoryList is now on history.html, so we check for bestTimeDisplay instead
+        if (bestTimeDisplay && !bestTimeDisplay.hasAttribute('data-initialized-firestore')) {
             await loadUserSettings(); // This loads settings and calls applySettingsToUI
             setupRealtimeSolvesListener(); // This sets up onSnapshot listener
-            solveHistoryList.setAttribute('data-initialized-firestore', 'true'); // Mark as initialized
+            bestTimeDisplay.setAttribute('data-initialized-firestore', 'true'); // Mark as initialized
         } else {
             console.log("[DEBUG] Firestore user data/settings already initialized.");
         }
     } else { // Guest user (not authenticated via Email/Google)
         console.log("[DEBUG] Guest user. Proceeding with Local Storage data initialization.");
         // Use a simple attribute flag on an element to prevent duplicate initialization
-        if (solveHistoryList && !solveHistoryList.hasAttribute('data-initialized-local')) {
+        if (bestTimeDisplay && !bestTimeDisplay.hasAttribute('data-initialized-local')) {
             loadLocalUserSettings(); // Load settings from local storage
             loadLocalSolves();       // Load solves from local storage
-            renderSolveHistory();    // Render local solves
-            solveHistoryList.setAttribute('data-initialized-local', 'true'); // Mark as initialized
+            updateStatistics();    // Update local stats
+            bestTimeDisplay.setAttribute('data-initialized-local', 'true'); // Mark as initialized
         } else {
             console.log("[DEBUG] Local user data/settings already initialized.");
         }
@@ -526,12 +527,12 @@ let startStopBtn;
 let resetBtn;
 let scrambleBtn;
 let settingsBtn;
-let solveHistoryList;
+// solveHistoryList is now on history.html
 let bestTimeDisplay;
 let ao5Display;
 let ao12Display;
 let solveCountDisplay;
-let noSolvesMessage;
+// noSolvesMessage is now on history.html
 let inspectionToggle;
 let soundEffectsToggle;
 let cubeTypeSelect;
@@ -574,9 +575,6 @@ let chatHistoryDisplay;
 let chatInput;
 let chatSendBtn;
 let openChatBtn;
-
-// NEW: Lessons Button - Moved to sidebar, now a link
-let openLessonsBtn;
 
 // NEW: Lesson state variables (no longer in this script)
 // let currentLesson = null;
@@ -1099,7 +1097,7 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
             // Check if settings modal is open before attempting to close
             const settingsModal = document.getElementById('settingsModal');
             if (settingsModal && settingsModal.classList.contains('open')) {
-                closeSettingsModalBtn.click();
+                document.getElementById('closeSettingsModal').click(); // Use the actual close button
             } else {
                 // Removed redundant verbal feedback, rely on visual
                 // speakAsJarvis("The settings panel is not currently open, Sir Sevindu.");
@@ -1183,6 +1181,10 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
             } else {
                 speakAsJarvis("Pardon me, Sir Sevindu. To generate a lesson, please specify a topic.");
             }
+            break;
+        case 'show_history':
+            speakAsJarvis("Opening solve history, Sir Sevindu.");
+            window.location.href = 'history.html'; // Navigate to the new history page
             break;
         case 'unknown':
         default:
@@ -1524,67 +1526,6 @@ function calculateAverage(solveList, n) {
 }
 
 /**
- * Renders the solve history list and updates statistics.
- */
-function renderSolveHistory() {
-    console.log("[DEBUG] Entering renderSolveHistory.");
-    // Ensure solveHistoryList is defined before accessing its properties
-    if (!solveHistoryList) {
-        console.warn("[WARN] renderSolveHistory called before solveHistoryList is initialized. Skipping render.");
-        return; // Exit if DOM element is not ready
-    }
-
-    solveHistoryList.innerHTML = '';
-    if (solves.length === 0) {
-        if (noSolvesMessage) noSolvesMessage.style.display = 'block';
-        if (bestTimeDisplay) bestTimeDisplay.textContent = '--:--.--';
-        if (ao5Display) ao5Display.textContent = '--:--.--';
-        if (ao12Display) ao12Display.textContent = '--:--.--';
-        if (solveCountDisplay) solveCountDisplay.textContent = '0';
-        console.log("[DEBUG] renderSolveHistory: No solves, displaying empty stats.");
-        return;
-    } else {
-        if (noSolvesMessage) noSolvesMessage.style.display = 'none';
-    }
-
-    // Sort solves by timestamp (descending) for display
-    const sortedSolves = [...solves].sort((a, b) => b.timestamp - a.timestamp);
-    console.log(`[DEBUG] renderSolveHistory: Rendering ${sortedSolves.length} sorted solves.`);
-
-    sortedSolves.forEach(solve => {
-        const solveItem = document.createElement('div');
-        solveItem.className = 'solve-history-item';
-        solveItem.setAttribute('data-id', solve.id);
-
-        let displayTime = solve.time;
-        let penaltyText = '';
-        if (solve.penalty === '+2') {
-            displayTime += 2000;
-            penaltyText = ' (+2)';
-        } else if (solve.penalty === 'DNF') {
-            displayTime = 'DNF';
-            penaltyText = ' (DNF)';
-        }
-
-        solveItem.innerHTML = `
-            <div class="time">${displayTime === 'DNF' ? 'DNF' : formatTime(displayTime)}<span class="text-sm text-gray-400 ml-2">${penaltyText}</span></div>
-            <div class="penalty-buttons">
-                <button class="insight-button button-secondary" onclick="getSolveInsight('${solve.id}')">Get Insight ✨</button>
-                <button class="plus2 button-secondary" onclick="applyPenalty('${solve.id}', '+2')">+2</button>
-                <button class="button-secondary" onclick="applyPenalty('${solve.id}', 'DNF')">DNF</button>
-                <button class="clear-penalty button-secondary" onclick="applyPenalty('${solve.id}', null)">Clear</button>
-                <button class="delete button-secondary" onclick="deleteSolve('${solve.id}')">Delete</button>
-            </div>
-        `;
-        solveHistoryList.appendChild(solveItem);
-        // console.log(`[DEBUG] renderSolveHistory: Appended solve item for ID: ${solve.id}`);
-    });
-
-    updateStatistics();
-    console.log("[DEBUG] Exiting renderSolveHistory. Statistics updated.");
-}
-
-/**
  * Updates the best time, Ao5, Ao12, and solve count displays.
  */
 function updateStatistics() {
@@ -1640,14 +1581,14 @@ async function addSolve(time) {
             // Fallback to local array if Firestore fails, but won't persist across sessions
             solves.push(newSolve); // Use the locally generated ID
             saveLocalSolves(); // Save locally for current session
-            renderSolveHistory();
+            updateStatistics(); // Update stats on main page
             console.log("[DEBUG] addSolve: Firestore failed, added to local array (non-persistent).");
         }
     } else { // Guest user
         console.log("[DEBUG] addSolve: Guest user. Adding to local array and saving to local storage.");
         solves.push(newSolve);
         saveLocalSolves(); // Save to local storage for guest
-        renderSolveHistory();
+        updateStatistics(); // Update stats on main page
     }
     console.log("[DEBUG] Exiting addSolve.");
 
@@ -1665,74 +1606,18 @@ async function addSolve(time) {
 
 /**
  * Applies or clears a penalty for a given solve.
- * Uses Firestore for authenticated users, Local Storage for guests.
+ * This function is now only called on the history.html page.
  * @param {string} id - The ID of the solve to update.
  * @param {string|null} penaltyType - '+2', 'DNF', or null to clear.
  */
-window.applyPenalty = async function (id, penaltyType) {
-    console.log(`[DEBUG] Entering applyPenalty for ID: ${id}, Penalty: ${penaltyType}`);
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
-        try {
-            console.log(`[DEBUG] applyPenalty: Attempting to update doc in Firestore: ${solveRef.path}`);
-            await updateDoc(solveRef, { penalty: penaltyType });
-            console.log(`[DEBUG] Penalty ${penaltyType} applied to solve ${id} in Firestore.`);
-        } catch (e) {
-            console.error("[ERROR] Error updating penalty in Firestore: ", e);
-            // Fallback to local update if Firestore fails
-            const solveIndex = solves.findIndex(s => s.id === id);
-            if (solveIndex !== -1) {
-                solves[solveIndex].penalty = penaltyType;
-                saveLocalSolves(); // Save locally for current session
-                renderSolveHistory(); // Re-render local changes
-                console.log("[DEBUG] applyPenalty: Firestore failed, applied locally (non-persistent).");
-            } else {
-                console.log("[DEBUG] applyPenalty: Solve not found in local array.");
-            }
-        }
-    } else { // Guest user
-        console.log("[DEBUG] applyPenalty: Guest user. Applying penalty to local array and saving to local storage.");
-        const solveIndex = solves.findIndex(s => s.id === id);
-        if (solveIndex !== -1) {
-            solves[solveIndex].penalty = penaltyType;
-            saveLocalSolves(); // Save locally for guest
-            renderSolveHistory(); // Re-render local changes
-        } else {
-            console.log("[DEBUG] applyPenalty: Solve not found in local array.");
-        }
-    }
-    console.log("[DEBUG] Exiting applyPenalty.");
-};
+// Removed window.applyPenalty from script.js as it's now on history.js
 
 /**
  * Deletes a solve from the history.
- * Uses Firestore for authenticated users, Local Storage for guests.
+ * This function is now only called on the history.html page.
  * @param {string} id - The ID of the solve to delete.
  */
-window.deleteSolve = async function (id) {
-    console.log(`[DEBUG] Entering deleteSolve for ID: ${id}`);
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        const solveRef = doc(db, `artifacts/${appId}/users/${userId}/solves`, id);
-        try {
-            console.log(`[DEBUG] deleteSolve: Attempting to delete doc from Firestore: ${solveRef.path}`);
-            await deleteDoc(solveRef);
-            console.log(`[DEBUG] Solve ${id} deleted from Firestore.`);
-        } catch (e) {
-            console.error("[ERROR] Error deleting solve from Firestore: ", e);
-            // Fallback to local delete if Firestore fails
-            solves = solves.filter(s => s.id !== id);
-            saveLocalSolves(); // Save locally for current session
-            renderSolveHistory(); // Re-render local changes
-            console.log("[DEBUG] deleteSolve: Firestore failed, deleted locally (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] deleteSolve: Guest user. Deleting from local array and saving to local storage.");
-        solves = solves.filter(s => s.id !== id);
-        saveLocalSolves(); // Save locally for guest
-        renderSolveHistory();
-    }
-    console.log("[DEBUG] Exiting deleteSolve.");
-};
+// Removed window.deleteSolve from script.js as it's now on history.js
 
 /**
  * Sets up the real-time listener for user's solves from Firestore.
@@ -1741,8 +1626,8 @@ window.deleteSolve = async function (id) {
 function setupRealtimeSolvesListener() {
     console.log("[DEBUG] Entering setupRealtimeSolvesListener.");
     // Ensure DOM elements are initialized before proceeding
-    if (!solveHistoryList) {
-        console.warn("[WARN] setupRealtimeSolvesListener called before solveHistoryList is initialized. Skipping setup.");
+    if (!bestTimeDisplay) { // Check for a main page element
+        console.warn("[WARN] setupRealtimeSolvesListener called before main page elements are initialized. Skipping setup.");
         return;
     }
 
@@ -1755,7 +1640,7 @@ function setupRealtimeSolvesListener() {
 
         // Clear previous local data if any from guest mode
         solves = [];
-        renderSolveHistory(); // Render empty list while Firestore data loads
+        updateStatistics(); // Update stats to empty while Firestore data loads
 
         onSnapshot(q, (snapshot) => {
             console.log("[DEBUG] onSnapshot callback triggered. Processing snapshot changes.");
@@ -1764,7 +1649,7 @@ function setupRealtimeSolvesListener() {
                 solves.push({ id: doc.id, ...doc.data() });
             });
             console.log(`[DEBUG] Solves updated from Firestore. Total solves: ${solves.length}.`);
-            renderSolveHistory();
+            updateStatistics();
         }, (error) => {
             console.error("[ERROR] Error listening to solves: ", error);
             // Handle error, maybe display a message to the user
@@ -1774,7 +1659,7 @@ function setupRealtimeSolvesListener() {
                 isUserAuthenticated = false; // Treat as signed out if permissions fail
                 // Re-init with local storage for solves to ensure functionality
                 loadLocalSolves();
-                renderSolveHistory();
+                updateStatistics();
             }
         });
     } else {
@@ -2240,13 +2125,12 @@ function setupEventListeners() {
     startStopBtn = document.getElementById('startStopBtn');
     resetBtn = document.getElementById('resetBtn');
     scrambleBtn = document.getElementById('scrambleBtn');
-    // settingsBtn = document.getElementById('settingsBtn'); // Now in sidebar
-    solveHistoryList = document.getElementById('solveHistoryList');
+    // solveHistoryList is now on history.html
     bestTimeDisplay = document.getElementById('bestTime');
     ao5Display = document.getElementById('ao5');
     ao12Display = document.getElementById('ao12');
     solveCountDisplay = document.getElementById('solveCount');
-    noSolvesMessage = document.getElementById('noSolvesMessage');
+    // noSolvesMessage is now on history.html
     inspectionToggle = document.getElementById('inspectionToggle');
     soundEffectsToggle = document.getElementById('soundEffectsToggle');
     cubeTypeSelect = document.getElementById('cubeTypeSelect');
@@ -2287,9 +2171,6 @@ function setupEventListeners() {
     chatInput = document.getElementById('chatInput');
     chatSendBtn = document.getElementById('chatSendBtn');
     openChatBtn = document.getElementById('openChatBtn');
-
-    // NEW: Lessons Button - Now a link, so no direct JS event listener here for navigation
-    // openLessonsBtn = document.getElementById('openLessonsBtn'); // No longer a button, but an anchor tag
 
     // Settings button (now in sidebar)
     settingsBtn = document.getElementById('settingsBtn');
@@ -2466,10 +2347,6 @@ function setupEventListeners() {
             handleChatCommand();
         }
     });
-
-    // openLessonsBtn is now an anchor tag, its navigation is handled by the browser.
-    // No direct JS event listener needed here for navigation.
-
 
     document.addEventListener('keydown', (e) => {
         // FIX: Prevent spacebar from triggering timer when typing in chat input
