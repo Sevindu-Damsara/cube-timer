@@ -99,6 +99,8 @@ body.theme-vibrant {
     overflow-y: auto;
     flex-shrink: 0;
     transition: width 0.3s ease-in-out; /* Smooth transition for width */
+    border-radius: 0 1rem 1rem 0; /* Rounded corners on the right side */
+    min-height: 100vh; /* Ensure it matches the height of the main layout */
 }
 
 .sidebar:hover {
@@ -836,6 +838,68 @@ body.theme-vibrant #aiInsightModal .modal-content {
     justify-content: flex-end; /* Align buttons to the right */
 }
 
+/* NEW: Settings Page Styling */
+.settings-page-container {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 600px; /* Appropriate width for settings */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin: 20px auto;
+    color: var(--text-color-primary);
+}
+
+.settings-page-container .setting-section {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem; /* Space between sections */
+}
+
+.settings-page-container .setting-section:last-child {
+    margin-bottom: 0; /* No margin after the last section */
+}
+
+/* Toggle switch styling (copied from previous modal styling) */
+.toggle-switch {
+    /* Hide default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 40px;
+    height: 20px;
+    background-color: #475569; /* Off state background */
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.2s;
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background-color: #e2e8f0; /* Handle color */
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.toggle-switch:checked {
+    background-color: #3b82f6; /* On state background */
+}
+
+.toggle-switch:checked::before {
+    transform: translateX(20px);
+}
+
 
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
 /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
@@ -860,6 +924,9 @@ body.theme-vibrant #aiInsightModal .modal-content {
         flex-direction: row; /* Horizontal layout for mobile nav */
         justify-content: space-around; /* Distribute items evenly */
         align-items: center;
+        border-radius: 0; /* No rounded corners on mobile for full width */
+        min-height: auto; /* Allow height to adjust to content */
+        height: auto;
     }
 
     .sidebar:hover {
@@ -1001,6 +1068,13 @@ body.theme-vibrant #aiInsightModal .modal-content {
         /* No bottom margin, flex gap handles it */
     }
 
+    .solve-history-item .scramble-text {
+        flex-grow: 1; /* Allow scramble text to take available space */
+        text-align: left;
+        margin-left: 1rem; /* Space between time and scramble */
+        margin-right: 1rem;
+    }
+
     .solve-history-item .penalty-buttons {
         flex-wrap: wrap;
         /* Allow buttons to wrap */
@@ -1129,6 +1203,21 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
     .history-page-container .solve-history-item .penalty-buttons {
         justify-content: flex-start; /* Align buttons to left on mobile */
+    }
+
+    /* Settings Page container on mobile */
+    .settings-page-container {
+        padding: 1.5rem;
+        width: 95%;
+        margin: 16px auto;
+    }
+
+    .settings-page-container .setting-section {
+        padding: 1rem;
+    }
+    .settings-page-container .setting-section h3 {
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
     }
 }
 
