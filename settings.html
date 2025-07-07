@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="theme-dark"> <!-- Theme class will be applied by settings.js -->
+    <div class="settings-page-container">
+        <!-- Back to Timer Button -->
+        <div class="flex justify-start mb-4">
+            <a href="index.html" class="button-secondary flex items-center justify-center gap-2">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Timer
+            </a>
+        </div>
+
+        <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Settings</h2>
+
+        <div class="space-y-6 text-gray-300">
+            <!-- Username Setting -->
+            <div class="setting-section">
+                <h3 class="text-xl font-semibold text-gradient mb-3">User Profile</h3>
+                <label for="settingsUsernameInput" class="block text-sm font-medium mb-1">Username:</label>
+                <input type="text" id="settingsUsernameInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter your username">
+                <button id="saveUsernameBtn" class="button-primary mt-3">Save Username</button>
+                <p id="usernameUpdateMessage" class="text-sm mt-2" style="display: none;"></p>
+            </div>
+
+            <!-- Timer Settings -->
+            <div class="setting-section">
+                <h3 class="text-xl font-semibold text-gradient mb-3">Timer</h3>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="inspectionToggle" class="toggle-switch">
+                    <span>Enable Inspection (15s)</span>
+                </label>
+            </div>
+
+            <!-- Sound Settings -->
+            <div class="setting-section">
+                <h3 class="text-xl font-semibold text-gradient mb-3">Sound</h3>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="soundEffectsToggle" class="toggle-switch">
+                    <span>Enable Sound Effects</span>
+                </label>
+            </div>
+
+            <!-- Cube Type Selection -->
+            <div class="setting-section">
+                <h3 class="text-xl font-semibold text-gradient mb-3">Cube Type</h3>
+                <select id="cubeTypeSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="3x3">3x3</option>
+                    <option value="2x2">2x2</option>
+                    <option value="4x4">4x4</option>
+                    <option value="pyraminx">Pyraminx</option>
+                    <!-- Add more cube types as needed -->
+                </select>
+            </div>
+
+            <!-- Theme Selection -->
+            <div class="setting-section">
+                <h3 class="text-xl font-semibold text-gradient mb-3">Theme</h3>
+                <select id="themeSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="vibrant">Vibrant</option>
+                </select>
+            </div>
+
+            <!-- 3D Cube View Toggle -->
+            <div class="setting-section">
+                <h3 class="text-xl font-semibold text-gradient mb-3">Scramble View</h3>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="cubeViewToggle" class="toggle-switch">
+                    <span>Show 3D Cube Scramble</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript file for settings -->
+    <script type="module" src="settings.js"></script>
+</body>
+
+</html>
