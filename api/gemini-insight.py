@@ -1,23 +1,26 @@
 # api/gemini-insight.py inside your Vercel project's 'api' directory
-# This file specifies Python dependencies for your Vercel Cloud Function.
-# This function generates AI insight using Gemini API.
+# This function specifies Python dependencies for your Vercel Cloud Function.
+# This function generates AI insight and now AI lessons using Gemini API.
 
 import os
 import requests
 import json
+import uuid # NEW: Import uuid for generating unique lesson IDs
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
-# Removed kociemba and pycuber as optimal solution generation is being removed for all cube types.
-# import kociemba
-# import pycuber as pc
 
 # Initialize the Flask app for Vercel.
 app = Flask(__name__)
 CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
 
+# Retrieve Gemini API key from environment variables for security.
+# In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
-    """HTTP endpoint that generates AI insight using Gemini API.
+    """HTTP endpoint that generates AI insight or AI lessons using Gemini API.
     Handles both preflight (OPTIONS) and actual (POST) requests.
     """
     print("DEBUG: gemini_insight_handler received a request.")
@@ -35,13 +38,17 @@ def gemini_insight_handler():
         # Validate the incoming JSON payload.
         if not request_json:
             print("ERROR: No JSON body received.")
-            return jsonify({"error": "No JSON body received."}), 400
+            return jsonify({"error": "Invalid request: JSON body is required."}), 400
 
-        # Determine the type of request
+        # Validate API Key
+        if not GEMINI_API_KEY:
+            print("ERROR: GEMINI_API_KEY environment variable not set.")
+            return jsonify({"error": "Server configuration error: Gemini API key is missing."}), 500
+
         request_type = request_json.get('type')
 
         if request_type == 'get_insight':
-            # Extract data for insight generation
+            # Existing logic for generating solve insights
             scramble = request_json.get('scramble')
             cube_type = request_json.get('cubeType')
             solve_time_ms = request_json.get('solveTimeMs')
@@ -50,284 +57,231 @@ def gemini_insight_handler():
 
             if not all([scramble, cube_type, solve_time_ms is not None, user_level]):
                 print("ERROR: Missing required fields for get_insight.")
-                return jsonify({"error": "Missing scramble, cubeType, solveTimeMs, or userLevel for insight generation."}), 400
+                return jsonify({"error": "Missing 'scramble', 'cubeType', 'solveTimeMs', or 'userLevel' for insight generation."}), 400
 
-            # Construct the prompt for Gemini to generate insights
-            # The prompt is now structured to request the new "targetedPracticeFocus"
-            # and explicitly excludes optimal solution for all cube types.
-            prompt = f"""
-            You are an expert Rubik's Cube coach and AI assistant. Provide a concise analysis for a {cube_type} solve.
+            # Convert solve time to seconds and format for prompt
+            solve_time_seconds = solve_time_ms / 1000.0
+            formatted_solve_time = f"{int(solve_time_seconds // 60):02d}:{int(solve_time_seconds % 60):02d}.{int((solve_time_seconds * 1000) % 1000):03d}"
+            if penalty:
+                formatted_solve_time += f" ({penalty})"
 
-            Here are the details of the solve:
-            - Cube Type: {cube_type}
-            - Scramble: {scramble}
-            - Solve Time: {solve_time_ms} milliseconds
-            - Penalty: {penalty if penalty else 'None'}
-            - User Level: {user_level}
+            prompt = (
+                f"You are an expert Rubik's Cube coach and AI assistant. Provide a concise, actionable, and encouraging insight "
+                f"for a {cube_type} cube solve. The scramble was: '{scramble}'. "
+                f"The user's solve time was {formatted_solve_time}. The user's estimated skill level is '{user_level}'.\n\n"
+                "Provide the response in a JSON object with the following keys:\n"
+                "- 'insight': A general, encouraging comment on the solve.\n"
+                "- 'scrambleAnalysis': A brief analysis of the provided scramble, highlighting any interesting features or challenges (e.g., 'easy cross', 'tricky F2L pair').\n"
+                "- 'personalizedTip': A specific, actionable tip tailored to the user's skill level and solve time to help them improve.\n"
+                "- 'targetedPracticeFocus': Suggest a specific area or algorithm set for the user to practice based on their level and the solve context.\n"
+                "Example JSON format: {\"insight\": \"Great job!\", \"scrambleAnalysis\": \"Easy cross.\", \"personalizedTip\": \"Focus on F2L recognition.\", \"targetedPracticeFocus\": \"F2L cases\"}"
+            )
 
-            Based on this information, provide the following:
-            1.  **Insight:** A brief, encouraging, and general comment on the solve.
-            2.  **Scramble Analysis:** A very brief analysis of the scramble for a {cube_type} cube. Do not attempt to solve it or provide specific solution steps. Comment on any noticeable features or general challenges.
-            3.  **Personalized Tip:** A specific, actionable tip tailored to the user's '{user_level}' level for a {cube_type} cube, focusing on general areas of improvement (e.g., lookahead, finger tricks, specific F2L cases, center building, edge pairing).
-            4.  **Targeted Practice Focus:** Suggest a specific technique, common algorithm (mention by name, e.g., "OLL Case X"), or a type of drill that the user should focus on next to improve, relevant to the {cube_type} cube. Do not provide optimal solutions.
+            # Define the response schema for insight generation
+            response_schema = {
+                "type": "OBJECT",
+                "properties": {
+                    "insight": {"type": "STRING"},
+                    "scrambleAnalysis": {"type": "STRING"},
+                    "personalizedTip": {"type": "STRING"},
+                    "targetedPracticeFocus": {"type": "STRING"}
+                },
+                "required": ["insight", "scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
+            }
 
-            Format your response as a JSON object with the following keys:
-            {{
-                "insight": "...",
-                "scrambleAnalysis": "...",
-                "personalizedTip": "...",
-                "targetedPracticeFocus": "..."
-            }}
-            """
-
-            # Call Gemini API
-            gemini_api_key = os.environ.get("GEMINI_API_KEY")
-            if not gemini_api_key:
-                print("ERROR: GEMINI_API_KEY environment variable not set.")
-                return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
-
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-            headers = {'Content-Type': 'application/json'}
             payload = {
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                 "generationConfig": {
-                    "responseMimeType": "application/json"
+                    "responseMimeType": "application/json",
+                    "responseSchema": response_schema
                 }
             }
 
-            print("DEBUG: Sending request to Gemini API.")
-            gemini_response = requests.post(api_url, headers=headers, data=json.dumps(payload))
-            gemini_response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+            print(f"DEBUG: Calling Gemini API for insight: {model_url}")
+            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
+            gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
 
             gemini_result = gemini_response.json()
-            print(f"DEBUG: Received response from Gemini: {gemini_result}")
+            print(f"DEBUG: Raw Gemini insight response: {json.dumps(gemini_result, indent=2)}")
 
-            # Extract the text content from the Gemini response
-            if gemini_result and gemini_result.get('candidates'):
+            # Extract the JSON string from the response and parse it
+            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
+               gemini_result['candidates'][0]['content'].get('parts') and \
+               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
                 response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                # Attempt to parse the JSON string from Gemini
-                try:
-                    insight_data = json.loads(response_text)
-                    # Ensure all expected keys are present, provide defaults if not
-                    response_payload = {
-                        "insight": insight_data.get("insight", "Could not generate general insight."),
-                        "scrambleAnalysis": insight_data.get("scrambleAnalysis", "Could not generate scramble analysis."),
-                        "personalizedTip": insight_data.get("personalizedTip", "Could not generate personalized tip."),
-                        "targetedPracticeFocus": insight_data.get("targetedPracticeFocus", "Could not generate targeted practice focus.")
-                    }
-                    return jsonify(response_payload)
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: Failed to decode JSON from Gemini response: {e}. Raw response: {response_text}")
-                    return jsonify({"error": f"Failed to parse AI insight: Invalid JSON format from AI. Details: {e}"}), 500
+                # The model is configured to return JSON, so we parse it directly
+                insight_data = json.loads(response_text)
+                return jsonify(insight_data)
             else:
-                print("ERROR: No candidates found in Gemini response.")
-                return jsonify({"error": "No AI insight generated."}), 500
+                print("ERROR: Unexpected Gemini insight response structure.")
+                return jsonify({"error": "Failed to parse AI insight response. Unexpected structure."}), 500
 
-        elif request_type == 'get_algorithm':
-            query = request_json.get('query')
-            if not query:
-                print("ERROR: Missing 'query' for get_algorithm.")
-                return jsonify({"error": "Missing 'query' for algorithm generation."}), 400
-
-            prompt = f"""
-            You are an expert Rubik's Cube AI assistant. Provide a concise algorithm or explanation for the following query.
-            Query: "{query}"
-
-            If the query is for a specific algorithm (e.g., "T-Perm", "OLL Case 21"), provide the standard algorithm.
-            If the query is for a concept (e.g., "What is F2L?", "How to solve 4x4 centers"), provide a brief explanation.
-            Do not provide optimal solutions for full cube solves.
-
-            Format your response as a JSON object with either an "algorithm" or "explanation" key:
-            {{ "algorithm": "..." }} OR {{ "explanation": "..." }}
-            """
-
-            # Call Gemini API
-            gemini_api_key = os.environ.get("GEMINI_API_KEY")
-            if not gemini_api_key:
-                print("ERROR: GEMINI_API_KEY environment variable not set.")
-                return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
-
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-            headers = {'Content-Type': 'application/json'}
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json"
-                }
-            }
-
-            print("DEBUG: Sending request to Gemini API for algorithm/explanation.")
-            gemini_response = requests.post(api_url, headers=headers, data=json.dumps(payload))
-            gemini_response.raise_for_status()
-
-            gemini_result = gemini_response.json()
-            print(f"DEBUG: Received response from Gemini: {gemini_result}")
-
-            if gemini_result and gemini_result.get('candidates'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                try:
-                    algorithm_data = json.loads(response_text)
-                    if "algorithm" in algorithm_data:
-                        return jsonify({"algorithm": algorithm_data["algorithm"]})
-                    elif "explanation" in algorithm_data:
-                        return jsonify({"explanation": algorithm_data["explanation"]})
-                    else:
-                        print("ERROR: Gemini response for algorithm/explanation missing expected keys.")
-                        return jsonify({"error": "AI did not provide a valid algorithm or explanation."}), 500
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: Failed to decode JSON from Gemini response for algorithm/explanation: {e}. Raw response: {response_text}")
-                    return jsonify({"error": f"Failed to parse AI response: Invalid JSON format from AI. Details: {e}"}), 500
-            else:
-                print("ERROR: No candidates found in Gemini response for algorithm/explanation.")
-                return jsonify({"error": "No AI response generated for algorithm/explanation."}), 500
-
-        # NEW: Handler for general questions about cubing or the web application
-        elif request_type == 'get_answer':
-            query = request_json.get('query')
-            if not query:
-                print("ERROR: Missing 'query' for get_answer.")
-                return jsonify({"error": "Missing 'query' for answer generation."}), 400
-
-            prompt = f"""
-            You are Jarvis, an AI assistant for a Rubik's Cube timer application.
-            Your task is to answer user questions concisely and accurately.
-
-            The user's query is: "{query}".
-
-            Respond to the query. If the question is about Rubik's Cubes (history, concepts, algorithms, techniques, etc.) or about the features and usage of *this* Rubik's Cube timer web application, provide a direct answer.
-            If the question is beyond your scope (e.g., unrelated general knowledge), state that you cannot answer.
-
-            Do not provide optimal solutions for full cube solves.
-
-            Format your response as a JSON object with an "answer" key:
-            {{ "answer": "..." }}
-            """
-
-            # Call Gemini API
-            gemini_api_key = os.environ.get("GEMINI_API_KEY")
-            if not gemini_api_key:
-                print("ERROR: GEMINI_API_KEY environment variable not set.")
-                return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
-
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-            headers = {'Content-Type': 'application/json'}
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json"
-                }
-            }
-
-            print("DEBUG: Sending request to Gemini API for answer.")
-            gemini_response = requests.post(api_url, headers=headers, data=json.dumps(payload))
-            gemini_response.raise_for_status()
-
-            gemini_result = gemini_response.json()
-            print(f"DEBUG: Received response from Gemini: {gemini_result}")
-
-            if gemini_result and gemini_result.get('candidates'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                try:
-                    answer_data = json.loads(response_text)
-                    if "answer" in answer_data:
-                        return jsonify({"answer": answer_data["answer"]})
-                    else:
-                        print("ERROR: Gemini response for get_answer missing 'answer' key.")
-                        return jsonify({"error": "AI did not provide a valid answer."}), 500
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: Failed to decode JSON from Gemini response for get_answer: {e}. Raw response: {response_text}")
-                    return jsonify({"error": f"Failed to parse AI response: Invalid JSON format from AI. Details: {e}"}), 500
-            else:
-                print("ERROR: No candidates found in Gemini response for get_answer.")
-                return jsonify({"error": "No AI response generated for get_answer."}), 500
-
-        # NEW: Handler for lesson generation
         elif request_type == 'generate_lesson':
+            # NEW: Logic for generating structured lessons
             topic = request_json.get('topic')
             cube_type = request_json.get('cubeType')
             user_level = request_json.get('userLevel')
 
             if not all([topic, cube_type, user_level]):
                 print("ERROR: Missing required fields for generate_lesson.")
-                return jsonify({"error": "Missing topic, cubeType, or userLevel for lesson generation."}), 400
+                return jsonify({"error": "Missing 'topic', 'cubeType', or 'userLevel' for lesson generation."}), 400
 
-            prompt = f"""
-            You are Jarvis, an AI assistant and expert Rubik's Cube instructor.
-            Your task is to generate a structured lesson on the topic of "{topic}" for a {cube_type} cube, tailored for a {user_level} user.
-            The lesson should be concise, clear, and include multiple steps.
-            For steps that involve an algorithm or a specific sequence of moves, provide the `visualAlgorithm` as a standard cubing notation string (e.g., "R U R' U'").
-            For conceptual steps, set `visualAlgorithm` to `null`.
-            Provide a brief `explanation` for each step.
-            Ensure the lesson is educational and actionable.
+            lesson_id = str(uuid.uuid4()) # Generate a unique ID for the lesson
 
-            Do not provide optimal solutions for full cube solves. Focus on teaching specific techniques or concepts.
+            # Define the response schema for lesson generation
+            lesson_response_schema = {
+                "type": "OBJECT",
+                "properties": {
+                    "lessonId": {"type": "STRING"},
+                    "lessonTitle": {"type": "STRING"},
+                    "steps": {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "title": {"type": "STRING"},
+                                "description": {"type": "STRING"},
+                                "scramble": {"type": "STRING", "nullable": True},
+                                "algorithm": {"type": "STRING", "nullable": True},
+                                "explanation": {"type": "STRING"}
+                            },
+                            "required": ["title", "description", "explanation"]
+                        }
+                    }
+                },
+                "required": ["lessonId", "lessonTitle", "steps"]
+            }
 
-            Format your response as a JSON object with the following structure:
-            {{
-              "lessonTitle": "...",
-              "lessonDescription": "...",
-              "cubeType": "{cube_type}",
-              "targetUserLevel": "{user_level}",
-              "steps": [
-                {{
-                  "stepTitle": "...",
-                  "stepDescription": "...",
-                  "visualAlgorithm": "R U R' U'", // or null
-                  "explanation": "..."
-                }},
-                {{
-                  "stepTitle": "...",
-                  "stepDescription": "...",
-                  "visualAlgorithm": null,
-                  "explanation": "..."
-                }}
-                // ... more steps
-              ]
-            }}
-            """
+            lesson_prompt = (
+                f"You are an expert Rubik's Cube instructor. Generate a structured, multi-step lesson "
+                f"on the topic of '{topic}' for a '{cube_type}' cube, specifically tailored for a '{user_level}' cubist. "
+                f"The lesson should be practical and actionable. Include 3 to 7 steps.\n\n"
+                f"For each step, provide:\n"
+                f"- 'title': A concise title for the step.\n"
+                f"- 'description': A brief description of what the user will learn or do in this step.\n"
+                f"- 'scramble': (Optional) A valid scramble string for a {cube_type} cube, if the step involves practice. "
+                f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
+                f"- 'algorithm': (Optional) A valid algorithm string, if the step involves learning or demonstrating a specific sequence of moves.\n"
+                f"- 'explanation': A detailed explanation of the concept or technique for the step.\n\n"
+                f"The response MUST be a JSON object with a 'lessonId' (a unique UUID), 'lessonTitle', and a 'steps' array. "
+                f"Adhere strictly to the JSON schema provided in the generationConfig."
+            )
 
-            # Call Gemini API
-            gemini_api_key = os.environ.get("GEMINI_API_KEY")
-            if not gemini_api_key:
-                print("ERROR: GEMINI_API_KEY environment variable not set.")
-                return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
-
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-            headers = {'Content-Type': 'application/json'}
             payload = {
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "contents": [{"role": "user", "parts": [{"text": lesson_prompt}]}],
                 "generationConfig": {
-                    "responseMimeType": "application/json"
+                    "responseMimeType": "application/json",
+                    "responseSchema": lesson_response_schema
                 }
             }
 
-            print("DEBUG: Sending request to Gemini API for lesson generation.")
-            gemini_response = requests.post(api_url, headers=headers, data=json.dumps(payload))
+            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+            print(f"DEBUG: Calling Gemini API for lesson generation: {model_url}")
+            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
+            gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+
+            gemini_result = gemini_response.json()
+            print(f"DEBUG: Raw Gemini lesson response: {json.dumps(gemini_result, indent=2)}")
+
+            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
+               gemini_result['candidates'][0]['content'].get('parts') and \
+               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
+                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                lesson_data = json.loads(response_text)
+                # Add the generated lessonId to the response
+                lesson_data['lessonId'] = lesson_id
+                return jsonify(lesson_data)
+            else:
+                print("ERROR: Unexpected Gemini lesson response structure.")
+                return jsonify({"error": "Failed to parse AI lesson response. Unexpected structure."}), 500
+
+        elif request_type == 'get_algorithm':
+            # Existing logic for getting algorithms/explanations
+            query = request_json.get('query')
+            if not query:
+                return jsonify({"error": "Missing 'query' for algorithm/explanation."}), 400
+
+            prompt = (
+                f"Provide a concise algorithm or explanation for the Rubik's Cube concept: '{query}'. "
+                f"If it's an algorithm, provide the moves. If it's a concept, explain it clearly. "
+                f"Format your response as a JSON object with either an 'algorithm' key or an 'explanation' key. "
+                f"Example: {{ \"algorithm\": \"R U R' U' R' F R2 U' R' U' R U R' F'\" }} "
+                f"Or: {{ \"explanation\": \"F2L stands for First Two Layers...\" }}"
+            )
+            response_schema = {
+                "type": "OBJECT",
+                "properties": {
+                    "algorithm": {"type": "STRING", "nullable": True},
+                    "explanation": {"type": "STRING", "nullable": True}
+                },
+                "minProperties": 1,
+                "maxProperties": 1
+            }
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "responseSchema": response_schema
+                }
+            }
+            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
             gemini_response.raise_for_status()
 
             gemini_result = gemini_response.json()
-            print(f"DEBUG: Received response from Gemini: {gemini_result}")
-
-            if gemini_result and gemini_result.get('candidates'):
+            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
+               gemini_result['candidates'][0]['content'].get('parts') and \
+               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
                 response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                try:
-                    lesson_data = json.loads(response_text)
-                    # Basic validation of lesson structure
-                    if "lessonTitle" in lesson_data and "steps" in lesson_data and isinstance(lesson_data["steps"], list):
-                        return jsonify(lesson_data)
-                    else:
-                        print("ERROR: Gemini response for generate_lesson missing expected keys or malformed.")
-                        return jsonify({"error": "AI did not provide a valid lesson structure."}), 500
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: Failed to decode JSON from Gemini response for generate_lesson: {e}. Raw response: {response_text}")
-                    return jsonify({"error": f"Failed to parse AI response: Invalid JSON format from AI. Details: {e}"}), 500
+                algorithm_data = json.loads(response_text)
+                return jsonify(algorithm_data)
             else:
-                print("ERROR: No candidates found in Gemini response for generate_lesson.")
-                return jsonify({"error": "No AI response generated for lesson."}), 500
+                return jsonify({"error": "Failed to parse AI algorithm/explanation response."}), 500
+
+        elif request_type == 'get_answer':
+            # Existing logic for general questions
+            query = request_json.get('query')
+            if not query:
+                return jsonify({"error": "Missing 'query' for general answer."}), 400
+
+            prompt = (
+                f"Answer the following question about Rubik's Cubes or cubing in general: '{query}'. "
+                f"Provide a concise and informative answer. "
+                f"Format your response as a JSON object with an 'answer' key. "
+                f"Example: {{ \"answer\": \"The Rubik's Cube was invented by Ernő Rubik...\" }}"
+            )
+            response_schema = {
+                "type": "OBJECT",
+                "properties": {
+                    "answer": {"type": "STRING"}
+                },
+                "required": ["answer"]
+            }
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "responseSchema": response_schema
+                }
+            }
+            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
+            gemini_response.raise_for_status()
+
+            gemini_result = gemini_response.json()
+            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
+               gemini_result['candidates'][0]['content'].get('parts') and \
+               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
+                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                answer_data = json.loads(response_text)
+                return jsonify(answer_data)
+            else:
+                return jsonify({"error": "Failed to parse AI general answer response."}), 500
 
         else:
             print(f"ERROR: Unknown request type: {request_type}")
-            return jsonify({"error": f"Unknown request type: {request_type}"}), 400
+            return jsonify({"error": "Invalid request type specified."}), 400
 
     except requests.exceptions.ConnectionError as conn_err:
         print(f"ERROR: Connection error during Gemini API call: {conn_err}")
@@ -351,5 +305,3 @@ def gemini_insight_handler():
 # Flask==3.*
 # requests==2.*
 # flask-cors==4.*
-# kociemba
-# pycuber
