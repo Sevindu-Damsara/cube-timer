@@ -526,21 +526,22 @@ let scramble3DViewer;    // New (now twisty-player)
 let startStopBtn;
 let resetBtn;
 let scrambleBtn;
-let settingsBtn;
+// settingsBtn is now an <a> tag, not a button that opens a modal
 // solveHistoryList is now on history.html
 let bestTimeDisplay;
 let ao5Display;
 let ao12Display;
 let solveCountDisplay;
 // noSolvesMessage is now on history.html
-let inspectionToggle;
-let soundEffectsToggle;
-let cubeTypeSelect;
-let themeSelect;
-let cubeViewToggle; // New
-let settingsUsernameInput;
-let saveUsernameBtn;
-let usernameUpdateMessage;
+// Settings elements are now on settings.html
+// let inspectionToggle;
+// let soundEffectsToggle;
+// let cubeTypeSelect;
+// let themeSelect;
+// let cubeViewToggle;
+// let settingsUsernameInput;
+// let saveUsernameBtn;
+// let usernameUpdateMessage;
 let aiInsightModal;
 let closeAiInsightModalBtn;
 let aiInsightContentDisplay;
@@ -1090,18 +1091,10 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
             break;
         case 'open_settings':
             speakAsJarvis("Opening settings, Sir Sevindu.");
-            if (settingsBtn) settingsBtn.click();
+            window.location.href = 'settings.html'; // Navigate to the new settings page
             break;
-        case 'close_settings':
-            speakAsJarvis("Closing settings, Sir Sevindu.");
-            // Check if settings modal is open before attempting to close
-            const settingsModal = document.getElementById('settingsModal');
-            if (settingsModal && settingsModal.classList.contains('open')) {
-                document.getElementById('closeSettingsModal').click(); // Use the actual close button
-            } else {
-                // Removed redundant verbal feedback, rely on visual
-                // speakAsJarvis("The settings panel is not currently open, Sir Sevindu.");
-            }
+        case 'close_settings': // This command would now be handled on the settings page itself
+            speakAsJarvis("Pardon me, Sir Sevindu. The settings panel is now a separate page. Please navigate there to manage settings.");
             break;
         case 'analyze_solve': // Renamed from get_insight
             if (solves.length > 0) {
@@ -1111,48 +1104,17 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
                 speakAsJarvis("There are no solves recorded to analyze, Sir Sevindu.");
             }
             break;
-        // NEW: Voice commands for settings
+        // Settings related commands will now be handled on the settings page,
+        // but for voice commands initiated from the main page, we can still process them
+        // and save them, but they won't update the UI on the current page immediately.
+        // It's better to navigate to settings page for these.
         case 'toggle_inspection':
-            enableInspection = !enableInspection;
-            speakAsJarvis(`Inspection mode is now ${enableInspection ? 'enabled' : 'disabled'}, Sir Sevindu.`);
-            saveUserSettings();
-            applySettingsToUI(); // Re-apply to update UI
-            break;
         case 'toggle_sound_effects':
-            enableSoundEffects = !enableSoundEffects;
-            speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}, Sir Sevindu.`);
-            saveUserSettings();
-            // applySettingsToUI is not strictly needed for this, but consistent
-            break;
         case 'set_cube_type':
-            const validCubeTypes = ['3x3', '2x2', '4x4', 'pyraminx'];
-            if (value && validCubeTypes.includes(value.toLowerCase())) {
-                cubeType = value.toLowerCase();
-                speakAsJarvis(`Cube type set to ${value}, Sir Sevindu.`);
-                saveUserSettings();
-                applySettingsToUI(); // Re-apply to update scramble, etc.
-                resetTimer(); // Reset timer and generate new scramble for new cube type
-            } else {
-                speakAsJarvis(`Pardon me, Sir Sevindu. I cannot set the cube type to '${value}'. Please choose from 3x3, 2x2, 4x4, or Pyraminx.`);
-            }
-            break;
         case 'set_theme':
-            const validThemes = ['dark', 'light', 'vibrant'];
-            if (value && validThemes.includes(value.toLowerCase())) {
-                currentTheme = value.toLowerCase();
-                document.body.className = `theme-${currentTheme}`; // Directly apply class
-                speakAsJarvis(`Theme set to ${value}, Sir Sevindu.`);
-                saveUserSettings();
-                applySettingsToUI(); // Re-apply to update 3D cube background if visible
-            } else {
-                speakAsJarvis(`Pardon me, Sir Sevindu. I cannot set the theme to '${value}'. Please choose from Dark, Light, or Vibrant.`);
-            }
-            break;
         case 'toggle_3d_cube_view':
-            show3DCubeView = !show3DCubeView;
-            speakAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}, Sir Sevindu.`);
-            saveUserSettings();
-            applySettingsToUI(); // Re-apply to toggle visibility
+            speakAsJarvis(`Sir Sevindu, to modify settings, please navigate to the settings page. I am redirecting you now.`);
+            window.location.href = 'settings.html';
             break;
         case 'get_best_time':
             speakAsJarvis(`Your best recorded time is ${bestTimeDisplay.textContent}, Sir Sevindu.`);
@@ -1241,7 +1203,8 @@ const goSound = new Tone.PolySynth(Tone.Synth, {
 }).toDestination();
 console.log("[DEBUG] Tone.js goSound initialized.");
 
-// Settings variables
+// Settings variables (these are now primarily managed by settings.js for settings page,
+// but script.js needs to know their current state for timer functionality and UI display)
 let enableInspection = true;
 let enableSoundEffects = true;
 let cubeType = '3x3';
@@ -1288,65 +1251,32 @@ function saveLocalSolves() {
 
 /**
  * Loads user settings from local storage.
+ * This function is for script.js to get settings affecting its UI/logic.
  */
 function loadLocalUserSettings() {
-    console.log("[DEBUG] Loading user settings from local storage.");
+    console.log("[DEBUG] script.js: Loading user settings from local storage.");
     try {
         const storedSettings = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}settings`);
         if (storedSettings) {
             const settings = JSON.parse(storedSettings);
             enableInspection = settings.enableInspection !== undefined ? settings.enableInspection : true;
-            enableSoundEffects = settings.soundEffects !== undefined ? settings.soundEffects : true;
+            enableSoundEffects = settings.enableSoundEffects !== undefined ? settings.enableSoundEffects : true;
             cubeType = settings.cubeType || '3x3';
             currentTheme = settings.theme || 'dark';
             show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false;
-            console.log("[DEBUG] User settings loaded from local storage:", settings);
+            console.log("[DEBUG] script.js: User settings loaded from local storage:", settings);
         } else {
-            console.log("[DEBUG] No user settings found in local storage, using defaults.");
-            saveLocalUserSettings(); // Save defaults for next time
+            console.log("[DEBUG] script.js: No user settings found in local storage, using defaults.");
+            // No need to save defaults here, settings.js will handle that if user visits settings page
         }
     } catch (e) {
-        console.error("[ERROR] Error loading settings from local storage:", e);
+        console.error("[ERROR] script.js: Error loading settings from local storage:", e);
     }
-    applySettingsToUI();
+    applySettingsToUI(); // Apply to main page UI
 }
 
-/**
- * Saves current user settings to local storage.
- */
-function saveLocalUserSettings() {
-    console.log("[DEBUG] Saving user settings to local storage.");
-    try {
-        const settingsToSave = {
-            enableInspection: enableInspection,
-            enableSoundEffects: enableSoundEffects,
-            cubeType: cubeType,
-            theme: currentTheme,
-            show3DCubeView: show3DCubeView,
-            lastUpdated: Date.now()
-        };
-        localStorage.setItem(`${LOCAL_STORAGE_PREFIX}settings`, JSON.stringify(settingsToSave));
-        console.log("[DEBUG] User settings saved to local storage.");
-    } catch (e) {
-        console.error("[ERROR] Error saving settings to local storage:", e);
-    }
-}
-
-/**
- * Loads username from local storage.
- */
-function loadLocalUsername() {
-    console.log("[DEBUG] Loading username from local storage.");
-    return localStorage.getItem(`${LOCAL_STORAGE_PREFIX}username`) || 'Guest';
-}
-
-/**
- * Saves username to local storage.
- */
-function saveLocalUsername(username) {
-    console.log("[DEBUG] Saving username to local storage.");
-    localStorage.setItem(`${LOCAL_STORAGE_PREFIX}username`, username);
-}
+// Removed saveLocalUserSettings and loadLocalUsername/saveLocalUsername from script.js
+// as they are primarily for the settings page and moved to settings.js
 
 // --- Utility Functions ---
 
@@ -1605,21 +1535,6 @@ async function addSolve(time) {
 }
 
 /**
- * Applies or clears a penalty for a given solve.
- * This function is now only called on the history.html page.
- * @param {string} id - The ID of the solve to update.
- * @param {string|null} penaltyType - '+2', 'DNF', or null to clear.
- */
-// Removed window.applyPenalty from script.js as it's now on history.js
-
-/**
- * Deletes a solve from the history.
- * This function is now only called on the history.html page.
- * @param {string} id - The ID of the solve to delete.
- */
-// Removed window.deleteSolve from script.js as it's now on history.js
-
-/**
  * Sets up the real-time listener for user's solves from Firestore.
  * This function is only called for authenticated users.
  */
@@ -1671,88 +1586,55 @@ function setupRealtimeSolvesListener() {
 
 /**
  * Loads user settings. Uses Firestore for authenticated users, Local Storage for guests.
+ * This function is for script.js to get settings affecting its UI/logic.
  */
 async function loadUserSettings() {
-    console.log("[DEBUG] Entering loadUserSettings.");
-    // Ensure DOM elements are initialized before proceeding
-    if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-        console.warn("[WARN] loadUserSettings called before settings UI elements are initialized. Skipping load.");
-        return;
-    }
+    console.log("[DEBUG] script.js: Entering loadUserSettings.");
+    // No longer checks for settings UI elements here as they are on settings.html
+    // It only loads the values into global variables that affect the main timer page.
 
     if (isUserAuthenticated && db && userId) { // Authenticated user
-        console.log("[DEBUG] loadUserSettings: Authenticated and Firestore ready. Attempting to load settings.");
+        console.log("[DEBUG] script.js: Authenticated and Firestore ready. Attempting to load settings.");
         const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
         try {
             const docSnap = await getDoc(userSettingsRef);
             if (docSnap.exists()) {
                 const settings = docSnap.data();
                 enableInspection = settings.enableInspection !== undefined ? settings.enableInspection : true;
-                enableSoundEffects = settings.soundEffects !== undefined ? settings.soundEffects : true;
+                enableSoundEffects = settings.enableSoundEffects !== undefined ? settings.enableSoundEffects : true;
                 cubeType = settings.cubeType || '3x3';
                 currentTheme = settings.theme || 'dark';
                 show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // Load new setting
-                console.log("[DEBUG] User settings loaded from Firestore:", settings);
+                console.log("[DEBUG] script.js: User settings loaded from Firestore:", settings);
             } else {
-                console.log("[DEBUG] No user settings found in Firestore, using defaults and saving.");
-                saveUserSettings(); // Save default settings to Firestore
+                console.log("[DEBUG] script.js: No user settings found in Firestore, using defaults.");
+                // No need to save defaults here, settings.js will handle that if user visits settings page
             }
         }
         catch (e) {
-            console.error("[ERROR] Error loading user settings from Firestore: ", e);
+            console.error("[ERROR] script.js: Error loading user settings from Firestore: ", e);
             if (e.code === 'permission-denied') {
-                console.warn("[WARN] Firestore permission denied for settings. Falling back to local storage for settings.");
+                console.warn("[WARN] script.js: Firestore permission denied for settings. Falling back to local storage for settings.");
                 // Fallback to local if permissions fail
                 loadLocalUserSettings();
             }
         }
     } else { // Guest user
-        console.log("[DEBUG] loadUserSettings: Guest user. Loading settings from local storage.");
+        console.log("[DEBUG] script.js: Guest user. Loading settings from local storage.");
         loadLocalUserSettings(); // Load from local storage
     }
-    applySettingsToUI();
-    console.log("[DEBUG] Exiting loadUserSettings.");
+    applySettingsToUI(); // Apply to main page UI
+    console.log("[DEBUG] script.js: Exiting loadUserSettings.");
 }
 
-/**
- * Saves current user settings. Uses Firestore for authenticated users, Local Storage for guests.
- */
-async function saveUserSettings() {
-    console.log("[DEBUG] Entering saveUserSettings.");
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        console.log("[DEBUG] saveUserSettings: Authenticated and Firestore ready. Attempting to save settings.");
-        const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
-        const settingsToSave = {
-            enableInspection: enableInspection,
-            enableSoundEffects: enableSoundEffects,
-            cubeType: cubeType,
-            theme: currentTheme,
-            show3DCubeView: show3DCubeView, // Save new setting
-            lastUpdated: Date.now()
-        };
-        try {
-            console.log("[DEBUG] Attempting to set doc in Firestore:", settingsToSave);
-            await setDoc(userSettingsRef, settingsToSave, { merge: true });
-            console.log("[DEBUG] User settings saved to Firestore.");
-        } catch (e) {
-            console.error("[ERROR] Error saving user settings to Firestore: ", e);
-            // Fallback to local save if Firestore fails
-            saveLocalUserSettings();
-            console.warn("[WARN] Firestore failed to save settings, saved to local storage (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] saveUserSettings: Guest user. Saving settings to local storage.");
-        saveLocalUserSettings(); // Save to local storage
-    }
-    console.log("[DEBUG] Exiting saveUserSettings.");
-}
+// Removed saveUserSettings from script.js as it's now primarily in settings.js
 
 /**
  * Retrieves the hexadecimal color code for the primary background based on the current theme.
  * @param {string} theme - The name of the current theme ('dark', 'light', 'vibrant').
  * @returns {string} The hexadecimal color code.
  */
-function getThemeBackgroundColorHex(theme) {
+window.getThemeBackgroundColorHex = function(theme) { // Made global for lessons.js and history.js
     switch (theme) {
         case 'dark':
             return '#0f172a';
@@ -1763,24 +1645,15 @@ function getThemeBackgroundColorHex(theme) {
         default:
             return '#0f172a'; // Default to dark theme's primary background
     }
-}
+};
 
 /**
- * Applies loaded/default settings to the UI elements.
+ * Applies loaded/default settings to the UI elements present on the main timer page.
  */
 function applySettingsToUI() {
-    console.log("[DEBUG] Entering applySettingsToUI.");
-    // Ensure UI elements are initialized before trying to apply settings to them
-    if (!inspectionToggle || !soundEffectsToggle || !cubeTypeSelect || !themeSelect || !cubeViewToggle) {
-        console.warn("[WARN] applySettingsToUI called before settings UI elements are initialized. Skipping apply.");
-        return;
-    }
-
-    if (inspectionToggle) inspectionToggle.checked = enableInspection;
-    if (soundEffectsToggle) soundEffectsToggle.checked = enableSoundEffects;
-    if (cubeTypeSelect) cubeTypeSelect.value = cubeType;
-    if (themeSelect) themeSelect.value = currentTheme;
-    if (cubeViewToggle) cubeViewToggle.checked = show3DCubeView; // Apply new setting to UI
+    console.log("[DEBUG] script.js: Entering applySettingsToUI.");
+    // Only apply settings relevant to the main index.html page
+    // Settings toggles/selects are now on settings.html
 
     document.body.className = `theme-${currentTheme}`; // Apply theme class
 
@@ -1790,7 +1663,7 @@ function applySettingsToUI() {
         if (cube3DContainer) cube3DContainer.style.display = 'flex'; // Use flex for centering
         if (scramble3DViewer) {
             // Set the 3D viewer background directly using the hex color for the chosen theme
-            scramble3DViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
+            scramble3DViewer.setAttribute('background', window.getThemeBackgroundColorHex(currentTheme));
         }
     } else {
         if (scrambleTextDisplay) scrambleTextDisplay.style.display = 'block';
@@ -1799,81 +1672,11 @@ function applySettingsToUI() {
 
     // Ensure scramble is generated/updated for the correct display
     scramble = generateScramble();
-    console.log("[DEBUG] UI settings applied and scramble regenerated.");
-    console.log("[DEBUG] Exiting applySettingsToUI.");
+    console.log("[DEBUG] script.js: UI settings applied and scramble regenerated.");
+    console.log("[DEBUG] script.js: Exiting applySettingsToUI.");
 }
 
-/**
- * Updates the username in Firestore for authenticated users, or local storage for guests.
- */
-async function updateUsername() {
-    console.log("[DEBUG] Entering updateUsername.");
-    const newUsername = settingsUsernameInput.value.trim();
-    if (!newUsername) {
-        if (usernameUpdateMessage) {
-            usernameUpdateMessage.textContent = "Username cannot be empty.";
-            usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-            usernameUpdateMessage.style.display = 'block';
-        }
-        console.warn("[WARN] New username is empty.");
-        return;
-    }
-
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-        try {
-            console.log(`[DEBUG] Attempting to update username in Firestore to: ${newUsername}`);
-            await updateDoc(userProfileRef, { username: newUsername });
-            if (usernameUpdateMessage) {
-                usernameUpdateMessage.textContent = "Username updated successfully!";
-                usernameUpdateMessage.style.color = "#22c55e"; // Green for success
-                usernameUpdateMessage.style.display = 'block';
-            }
-            console.log("[DEBUG] Username updated successfully in Firestore.");
-
-            // Update the displayed username immediately
-            // MODIFIED: Direct assignment of username. "Current User:" is in HTML
-            const usernameDisplayElement = document.getElementById('usernameDisplay'); // Ensure this is defined
-            if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
-            console.log("[DEBUG] Displayed username refreshed after update.");
-
-            setTimeout(() => {
-                if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-                console.log("[DEBUG] Username update message hidden.");
-            }, 3000); // Hide message after 3 seconds
-
-        } catch (e) {
-            console.error("[ERROR] Error updating username in Firestore: ", e);
-            if (usernameUpdateMessage) {
-                usernameUpdateMessage.textContent = `Failed to update username: ${e.message}`;
-                usernameUpdateMessage.style.color = "#ef4444"; // Red for error
-                usernameUpdateMessage.style.display = 'block';
-            }
-            // Fallback to local save if Firestore fails
-            saveLocalUsername(newUsername);
-            // MODIFIED: Direct assignment for fallback
-            const usernameDisplayElement = document.getElementById('usernameDisplay');
-            if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
-            console.warn("[WARN] Firestore failed to update username, saved to local storage (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] updateUsername: Guest user. Updating username in local storage.");
-        saveLocalUsername(newUsername);
-        if (usernameUpdateMessage) {
-            usernameUpdateMessage.textContent = "Username updated locally (not saved online).";
-            usernameUpdateMessage.style.color = "#fbbf24"; // Amber for warning
-            usernameUpdateMessage.style.display = 'block';
-        }
-        // MODIFIED: Direct assignment for guest username
-        const usernameDisplayElement = document.getElementById('usernameDisplay');
-        if (usernameDisplayElement) usernameDisplayElement.textContent = newUsername;
-        setTimeout(() => {
-            if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-            console.log("[DEBUG] Username update message hidden.");
-        }, 3000);
-    }
-    console.log("[DEBUG] Exiting updateUsername.");
-}
+// Removed updateUsername from script.js as it's now in settings.js
 
 // --- Timer Logic ---
 
@@ -2095,20 +1898,6 @@ function closeChatModal() {
     }
 }
 
-// --- Utility function for theme background color (needed by lessons.js) ---
-// This function needs to be globally accessible or passed to lessons.js
-window.getThemeBackgroundColorHex = function(theme) {
-    switch (theme) {
-        case 'dark':
-            return '#0f172a';
-        case 'light':
-            return '#f0f2f5';
-        case 'vibrant':
-            return '#2d0b57';
-        default:
-            return '#0f172a'; // Default to dark theme's primary background
-    }
-};
 
 // --- Event Listeners ---
 
@@ -2131,14 +1920,15 @@ function setupEventListeners() {
     ao12Display = document.getElementById('ao12');
     solveCountDisplay = document.getElementById('solveCount');
     // noSolvesMessage is now on history.html
-    inspectionToggle = document.getElementById('inspectionToggle');
-    soundEffectsToggle = document.getElementById('soundEffectsToggle');
-    cubeTypeSelect = document.getElementById('cubeTypeSelect');
-    themeSelect = document.getElementById('themeSelect');
-    cubeViewToggle = document.getElementById('cubeViewToggle');
-    settingsUsernameInput = document.getElementById('settingsUsernameInput');
-    saveUsernameBtn = document.getElementById('saveUsernameBtn');
-    usernameUpdateMessage = document.getElementById('usernameUpdateMessage');
+    // Settings elements are now on settings.html, removed from here
+    // inspectionToggle = document.getElementById('inspectionToggle');
+    // soundEffectsToggle = document.getElementById('soundEffectsToggle');
+    // cubeTypeSelect = document.getElementById('cubeTypeSelect');
+    // themeSelect = document.getElementById('themeSelect');
+    // cubeViewToggle = document.getElementById('cubeViewToggle');
+    // settingsUsernameInput = document.getElementById('settingsUsernameInput');
+    // saveUsernameBtn = document.getElementById('saveUsernameBtn');
+    // usernameUpdateMessage = document.getElementById('usernameUpdateMessage');
     aiInsightModal = document.getElementById('aiInsightModal');
     closeAiInsightModalBtn = document.getElementById('closeAiInsightModal');
     aiInsightContentDisplay = document.getElementById('aiInsightContent');
@@ -2172,8 +1962,8 @@ function setupEventListeners() {
     chatSendBtn = document.getElementById('chatSendBtn');
     openChatBtn = document.getElementById('openChatBtn');
 
-    // Settings button (now in sidebar)
-    settingsBtn = document.getElementById('settingsBtn');
+    // Settings button (now an <a> tag, no direct click listener here for opening modal)
+    // settingsBtn = document.getElementById('settingsBtn'); // Still need to get reference if we were to interact with it, but it's a link now.
 
 
     // Authentication related elements
@@ -2197,41 +1987,9 @@ function setupEventListeners() {
         scramble = generateScramble();
         resetTimer();
     }); else console.error("[ERROR] scrambleBtn not found!");
-    // Settings button listener (now in sidebar)
-    if (settingsBtn) settingsBtn.addEventListener('click', () => {
-        const settingsModal = document.getElementById('settingsModal');
-        if (settingsModal) {
-            settingsModal.classList.add('open');
-            settingsModal.focus();
-        }
-        // Pre-fill username input based on current user type
-        if (isUserAuthenticated && auth && auth.currentUser && db && userId) {
-            const userProfileRef = doc(db, `artifacts/${appId}/users/${userId}/profile/data`);
-            getDoc(userProfileRef).then(docSnap => {
-                if (docSnap.exists() && docSnap.data().username && settingsUsernameInput) {
-                    settingsUsernameInput.value = docSnap.data().username;
-                } else if (settingsUsernameInput) {
-                    settingsUsernameInput.value = ''; // Clear if no username found
-                }
-            }).catch(e => {
-                console.error("Error loading username for settings:", e);
-                if (settingsUsernameInput) settingsUsernameInput.value = '';
-            });
-        } else if (settingsUsernameInput) {
-            settingsUsernameInput.value = loadLocalUsername(); // Load from local storage for guests
-        }
 
-        if (usernameUpdateMessage) usernameUpdateMessage.style.display = 'none';
-        applySettingsToUI(); // Apply settings to ensure all toggles/selects reflect current values
-    }); else console.error("[ERROR] settingsBtn not found!");
-
-    const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
-    if (closeSettingsModalBtn) closeSettingsModalBtn.addEventListener('click', () => {
-        const settingsModal = document.getElementById('settingsModal');
-        if (settingsModal) settingsModal.classList.remove('open');
-        console.log("[DEBUG] Settings modal closed by button.");
-        saveUserSettings(); // Save settings when modal is closed
-    }); else console.error("[ERROR] closeSettingsModal not found!");
+    // Removed settingsBtn click listener as it's now a direct link to settings.html
+    // if (settingsBtn) settingsBtn.addEventListener('click', () => { ... });
 
     const closeAuthModalBtn = document.getElementById('closeAuthModal');
     if (closeAuthModalBtn) closeAuthModalBtn.addEventListener('click', () => {
@@ -2247,38 +2005,14 @@ function setupEventListeners() {
     }); else console.error("[ERROR] closeAiInsightModalBtn not found!");
 
 
-    if (inspectionToggle) inspectionToggle.addEventListener('change', (e) => {
-        enableInspection = e.target.checked;
-        saveUserSettings();
-    }); else console.error("[ERROR] inspectionToggle not found!");
+    // Removed settings toggles/selects event listeners as they are now on settings.html
+    // if (inspectionToggle) inspectionToggle.addEventListener('change', (e) => { ... });
+    // if (soundEffectsToggle) soundEffectsToggle.addEventListener('change', (e) => { ... });
+    // if (cubeTypeSelect) cubeTypeSelect.addEventListener('change', (e) => { ... });
+    // if (themeSelect) themeSelect.addEventListener('change', (e) => { ... });
+    // if (cubeViewToggle) cubeViewToggle.addEventListener('change', (e) => { ... });
+    // if (saveUsernameBtn) saveUsernameBtn.addEventListener('click', updateUsername);
 
-    if (soundEffectsToggle) soundEffectsToggle.addEventListener('change', (e) => {
-        enableSoundEffects = e.target.checked;
-        saveUserSettings();
-    }); else console.error("[ERROR] soundEffectsToggle not found!");
-
-    if (cubeTypeSelect) cubeTypeSelect.addEventListener('change', (e) => {
-        cubeType = e.target.value;
-        saveUserSettings();
-        scramble = generateScramble();
-        resetTimer();
-        // Ensure the select value matches the updated cubeType (sync UI)
-        cubeTypeSelect.value = cubeType;
-    }); else console.error("[ERROR] cubeTypeSelect not found!");
-
-    if (themeSelect) themeSelect.addEventListener('change', (e) => {
-        currentTheme = e.target.value;
-        document.body.className = `theme-${currentTheme}`;
-        saveUserSettings();
-    }); else console.error("[ERROR] themeSelect not found!");
-
-    if (cubeViewToggle) cubeViewToggle.addEventListener('change', (e) => {
-        show3DCubeView = e.target.checked;
-        applySettingsToUI();
-        saveUserSettings();
-    }); else console.error("[ERROR] cubeViewToggle not found!");
-
-    if (saveUsernameBtn) saveUsernameBtn.addEventListener('click', updateUsername); else console.error("[ERROR] saveUsernameBtn not found!");
 
     // New: Event listeners for custom preview toolbar
     if (playPreviewBtn) playPreviewBtn.addEventListener('click', () => {
@@ -2358,14 +2092,20 @@ function setupEventListeners() {
         // if (e.target === lessonTopicInput && e.code === 'Space') {
         //     return;
         // }
+        // Prevent spacebar from triggering timer when typing in settings inputs
+        if (e.target && e.target.closest('.settings-page-container') && e.code === 'Space') {
+             return;
+        }
+
 
         if (e.code === 'Escape') {
-            const settingsModal = document.getElementById('settingsModal');
-            if (settingsModal && settingsModal.classList.contains('open')) {
-                settingsModal.classList.remove('open');
-                saveUserSettings();
-                console.log("[DEBUG] Settings modal closed by Escape key.");
-            }
+            // Settings modal is gone, so this block is removed
+            // const settingsModal = document.getElementById('settingsModal');
+            // if (settingsModal && settingsModal.classList.contains('open')) {
+            //     settingsModal.classList.remove('open');
+            //     saveUserSettings();
+            //     console.log("[DEBUG] Settings modal closed by Escape key.");
+            // }
             const authModal = document.getElementById('authModal');
             if (authModal && authModal.classList.contains('open')) {
                 authModal.classList.remove('open');
@@ -2410,6 +2150,10 @@ function setupEventListeners() {
         // if (e.target === lessonTopicInput && e.code === 'Space') {
         //     return;
         // }
+        // Prevent spacebar from triggering timer when typing in settings inputs
+        if (e.target && e.target.closest('.settings-page-container') && e.code === 'Space') {
+            return;
+        }
 
         if (e.code === 'Space') {
             e.preventDefault();
