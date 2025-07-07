@@ -1122,9 +1122,8 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 
     .solve-history-item .penalty-buttons button {
-        padding: 0.3rem 0.6rem;
-        /* Smaller penalty buttons */
-        font-size: 0.75rem;
+        font-size: 0.7rem;
+        /* Smallest penalty button font */
     }
 
     .solve-history-item .penalty-buttons button.insight-button,
