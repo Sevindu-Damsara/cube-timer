@@ -779,6 +779,24 @@ body.theme-vibrant #aiInsightModal .modal-content {
     color: var(--text-color-primary);
 }
 
+.lesson-input-section { /* New style for the input area */
+    background-color: var(--card-bg); /* Use card background for consistency */
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.lesson-display-area { /* Container for the lesson steps once generated */
+    background-color: var(--bg-color-secondary);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+
 .lesson-step-card {
     background-color: #2d3748; /* Darker card background */
     padding: 1rem;
@@ -792,6 +810,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border-radius: 0.5rem;
     overflow: hidden;
     border: 1px solid #334155;
+    position: relative; /* Needed for absolute positioning of controls */
 }
 
 .lesson-navigation button {
@@ -799,6 +818,20 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border-radius: 0.75rem;
     font-weight: 600;
 }
+
+/* NEW: Style for completed button */
+.button-completed {
+    background-color: #10b981; /* Emerald green */
+    color: white;
+    cursor: not-allowed;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
+.button-completed:hover {
+    transform: none;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
 
 /* NEW: History Page Styling */
 .history-page-container {
@@ -1243,8 +1276,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
         /* Even smaller stat value font */
     }
 
-    .button-primary,
-    .button-secondary {
+    .button-primary,\n    .button-secondary {
         font-size: 0.9rem;
         /* Slightly smaller button font */
         padding: 0.6rem 1rem;
