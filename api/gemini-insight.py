@@ -53,7 +53,7 @@ def gemini_insight_handler():
             scramble = request_json.get('scramble')
             cube_type = request_json.get('cubeType')
             solve_time_ms = request_json.get('solveTimeMs')
-            penalty = request_json.get('penalty')
+            penalty = request.get('penalty')
             user_level = request_json.get('userLevel')
 
             if not all([scramble, cube_type, solve_time_ms is not None, user_level]):
@@ -129,38 +129,41 @@ def gemini_insight_handler():
                 print("ERROR: Missing required fields for lesson_chat.")
                 return jsonify({"error": "Missing 'chatHistory', 'cubeType', 'userLevel', or 'initialTopic' for lesson conversation."}), 400
 
-            # The prompt for the conversational model
-            # This model needs to decide whether to continue chatting or generate the lesson
-            # Prepend the instructional prompt to the chat history
-            instructional_prompt = {
-                "role": "user",
-                "parts": [{
-                    "text": (
-                        f"You are Jarvis, an expert Rubik's Cube instructor and AI assistant. "
-                        f"You are currently having a conversation with Sir Sevindu to understand his learning needs for a lesson on '{initial_topic}' "
-                        f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
-                        f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
-                        f"Do NOT generate the lesson until you have sufficient detail from Sir Sevindu.\n"
-                        f"If you have enough information, respond with a JSON object of type 'lesson_ready' containing the full lesson data. "
-                        f"Otherwise, respond with a JSON object of type 'chat_response' containing a clarifying question or conversational remark.\n\n"
-                        f"Lesson structure if 'lesson_ready':\n"
-                        f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
-                        f"Chat response structure if 'chat_response':\n"
-                        f"{{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n\n"
-                        f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
-                        f"The lesson should have 3 to 7 steps.\n"
-                        f"Consider the full chat history to avoid asking redundant questions and to build context."
-                    )
-                }]
-            }
+            # The instructional prompt that guides the model's behavior
+            instructional_text = (
+                f"You are Jarvis, an expert Rubik's Cube instructor and AI assistant. "
+                f"You are currently having a conversation with Sir Sevindu to understand his learning needs for a lesson on '{initial_topic}' "
+                f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
+                f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
+                f"Do NOT generate the lesson until you have sufficient detail from Sir Sevindu.\n"
+                f"If you have enough information, respond with a JSON object of type 'lesson_ready' containing the full lesson data. "
+                f"Otherwise, respond with a JSON object of type 'chat_response' containing a clarifying question or conversational remark.\n\n"
+                f"Lesson structure if 'lesson_ready':\n"
+                f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
+                f"Chat response structure if 'chat_response':\n"
+                f"{{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n\n"
+                f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
+                f"The lesson should have 3 to 7 steps.\n"
+                f"Consider the full chat history to avoid asking redundant questions and to build context."
+            )
 
-            # Construct the full contents for the Gemini API call
-            # The chat_history from the frontend is already in the correct format (array of {role, parts} objects)
-            # We prepend our instructional prompt to it.
-            full_contents = [instructional_prompt] + chat_history
+            # Create a deep copy of chat_history to avoid modifying the original
+            # This is crucial because `chat_history` is a mutable object passed by reference.
+            # If we modify it directly, subsequent calls with the same history might be corrupted.
+            contents_for_gemini = json.loads(json.dumps(chat_history))
+
+            # Prepend the instructional text to the first user message in the history
+            if contents_for_gemini and contents_for_gemini[0]['role'] == 'user' and \
+               contents_for_gemini[0]['parts'] and contents_for_gemini[0]['parts'][0].get('text') is not None:
+                
+                contents_for_gemini[0]['parts'][0]['text'] = instructional_text + "\n\n" + contents_for_gemini[0]['parts'][0]['text']
+            else:
+                # This case indicates a problem with the initial chat history structure from the frontend
+                print("ERROR: Initial chat history is malformed or empty, or does not start with a user role.")
+                return jsonify({"error": "Malformed chat history received from frontend."}), 400
 
             payload = {
-                "contents": full_contents, # Use the correctly structured full_contents
+                "contents": contents_for_gemini, # Use the correctly modified chat history
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "responseSchema": {
