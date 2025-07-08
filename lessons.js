@@ -36,12 +36,21 @@ let completedSteps = {}; // NEW: Tracks completed steps for the current lesson {
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
 
+let lessonChatHistory = []; // NEW: Stores the conversation history for lesson generation
+let isChattingForLesson = false; // NEW: Flag to indicate if we are in a conversational phase
+
 // DOM elements
 let lessonTopicInput;
-let generateLessonBtn;
+let startLessonChatBtn; // Renamed from generateLessonBtn
 let lessonGenerationError;
 let lessonLoadingSpinner;
 let lessonInputSection; // NEW: Added for showing/hiding
+let lessonChatContainer; // NEW: Chat interface container
+let lessonChatHistoryDiv; // NEW: Chat history display area
+let lessonChatInput; // NEW: Chat input field
+let lessonChatSendBtn; // NEW: Chat send button
+let lessonChatStatus; // NEW: Chat status indicator (e.g., "Jarvis is thinking...")
+
 let lessonDisplayArea;
 let lessonTitleDisplay;
 let lessonStepTitleDisplay;
@@ -174,8 +183,6 @@ async function getUserLevel(defaultTimeMs, cubeType) {
  */
 function speakAsJarvis(text) {
     console.log(`[DEBUG] lessons.js: Jarvis would speak: "${text}"`);
-    // This is a placeholder. In a full application, this would integrate with a global speech synthesis utility.
-    // For now, it just logs to console.
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
@@ -248,46 +255,50 @@ async function saveLessonProgress(lessonId, progress) {
 }
 
 /**
- * Requests a structured lesson from the AI based on topic, cube type, and user level.
- * @param {string} topic - The user's requested lesson topic.
- * @param {string} cubeType - The current cube type (e.g., '3x3').
- * @param {string} userLevel - The estimated user skill level.
+ * Appends a message to the lesson chat history.
+ * @param {string} sender - 'user' or 'jarvis'.
+ * @param {string} message - The message content.
  */
-async function requestLessonFromAI(topic, cubeType, userLevel) {
-    console.log(`[DEBUG] Requesting lesson from AI: Topic='${topic}', CubeType='${cubeType}', UserLevel='${userLevel}'`);
+function appendLessonChatMessage(sender, message) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message', sender === 'user' ? 'user-message' : 'jarvis-message');
+    let senderName = sender === 'user' ? `<span class="font-bold text-green-400">Sir Sevindu:</span>` : `<span class="font-bold text-indigo-400">Jarvis:</span>`;
+    messageElement.innerHTML = `${senderName} ${message}`;
+    lessonChatHistoryDiv.appendChild(messageElement);
+    lessonChatHistoryDiv.scrollTop = lessonChatHistoryDiv.scrollHeight; // Scroll to bottom
+}
 
-    // Reset display and show loading spinner
-    if (lessonDisplayArea) lessonDisplayArea.style.display = 'none';
-    if (lessonInputSection) lessonInputSection.style.display = 'none'; // NEW: Hide input section immediately
-    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
-    if (lessonGenerationError) lessonGenerationError.style.display = 'none';
-    if (lessonCompletionMessage) lessonCompletionMessage.style.display = 'none'; // Hide completion message
+/**
+ * Sends a message to the AI for conversational lesson generation.
+ * @param {string} userMessage - The user's message.
+ */
+async function sendLessonChatToAI(userMessage) {
+    if (!isChattingForLesson) return;
 
-    const requestData = {
-        type: "generate_lesson", // Indicate the type of request for the AI
-        topic: topic,
-        cubeType: cubeType,
-        userLevel: userLevel
+    appendLessonChatMessage('user', userMessage);
+    lessonChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
+    if (lessonChatStatus) lessonChatStatus.style.display = 'block';
+    if (lessonChatInput) lessonChatInput.disabled = true;
+    if (lessonChatSendBtn) lessonChatSendBtn.disabled = true;
+
+    const userLevel = await getUserLevel(0, currentCubeType); // Get latest user level
+
+    const payload = {
+        type: "lesson_chat", // Indicate this is a conversational lesson request
+        chatHistory: lessonChatHistory,
+        cubeType: currentCubeType,
+        userLevel: userLevel,
+        initialTopic: lessonTopicInput.value.trim() // Send initial topic for context
     };
 
-    const apiUrl = geminiInsightFunctionUrl; // Assuming this endpoint handles lesson generation
-
-    if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
-        if (lessonGenerationError) {
-            lessonGenerationError.textContent = "AI Lesson Cloud Function URL not configured. Please ensure your Vercel function is deployed and the URL is correct.";
-            lessonGenerationError.style.display = 'block';
-        }
-        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
-        if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input on error
-        console.error("[ERROR] Gemini Insight Cloud Function URL is not set or is default placeholder.");
-        return;
-    }
+    const apiUrl = geminiInsightFunctionUrl;
 
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -296,43 +307,64 @@ async function requestLessonFromAI(topic, cubeType, userLevel) {
         }
 
         const result = await response.json();
-        console.log("[DEBUG] AI Lesson Cloud Function raw response:", result);
+        console.log("[DEBUG] AI Lesson Chat response:", result);
 
-        if (result.lessonTitle && result.steps && Array.isArray(result.steps) && result.steps.length > 0) {
-            currentLesson = result;
-            currentLessonId = result.lessonId || crypto.randomUUID(); // Use AI-provided ID or generate one
-            currentLessonStepIndex = 0; // Start at the first step
-            completedSteps = await loadLessonProgress(currentLessonId); // Load user's progress for this lesson
+        if (result.type === 'chat_response') {
+            appendLessonChatMessage('jarvis', result.message);
+            lessonChatHistory.push({ role: "model", parts: [{ text: result.message }] });
+            speakAsJarvis(result.message);
+        } else if (result.type === 'lesson_ready' && result.lessonData) {
+            // AI signals lesson is ready, display it
+            appendLessonChatMessage('jarvis', "Excellent. I have gathered sufficient information. Please allow me a moment to compile your personalized lesson.");
+            speakAsJarvis("Excellent. I have gathered sufficient information. Please allow me a moment to compile your personalized lesson.");
+            
+            // Give a brief moment for Jarvis's last speech to start, then transition
+            setTimeout(() => {
+                displayGeneratedLesson(result.lessonData);
+            }, 1000); // 1 second delay
 
-            if (lessonTitleDisplay) lessonTitleDisplay.textContent = currentLesson.lessonTitle;
-            displayLessonStep(currentLessonStepIndex);
-            if (lessonDisplayArea) lessonDisplayArea.style.display = 'block';
-            if (lessonInputSection) lessonInputSection.style.display = 'none'; // NEW: Hide input section on success
-            speakAsJarvis(`Sir Sevindu, your lesson on "${currentLesson.lessonTitle}" is ready.`);
         } else {
-            if (lessonGenerationError) {
-                lessonGenerationError.textContent = "Failed to generate a structured lesson. Please try a different topic or check the AI response format.";
-                lessonGenerationError.style.display = 'block';
-            }
-            currentLesson = null; // Clear any incomplete lesson
-            currentLessonId = null;
-            completedSteps = {};
-            if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input on AI response error
-            if (lessonDisplayArea) lessonDisplayArea.style.display = 'none'; // Hide lesson display on AI response error
+            appendLessonChatMessage('jarvis', "I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
+            speakAsJarvis("I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
+            console.error("ERROR: Unexpected AI response type or missing lessonData:", result);
         }
 
     } catch (e) {
-        if (lessonGenerationError) {
-            lessonGenerationError.textContent = `Failed to generate lesson: ${e.message}. Please try again.`;
-            lessonGenerationError.style.display = 'block';
-        }
-        console.error("[ERROR] Error calling Cloud Function for lesson generation:", e);
-        if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input on fetch error
-        if (lessonDisplayArea) lessonDisplayArea.style.display = 'none'; // Hide lesson display on fetch error
+        appendLessonChatMessage('jarvis', `My apologies, Sir Sevindu. I am experiencing a temporary communication error: ${e.message}. Please try again shortly.`);
+        speakAsJarvis(`My apologies, Sir Sevindu. I am experiencing a temporary communication error: ${e.message}. Please try again shortly.`);
+        console.error("[ERROR] Error during lesson chat with AI:", e);
     } finally {
-        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+        if (lessonChatStatus) lessonChatStatus.style.display = 'none';
+        if (lessonChatInput) {
+            lessonChatInput.disabled = false;
+            lessonChatInput.value = ''; // Clear input
+            lessonChatInput.focus();
+        }
+        if (lessonChatSendBtn) lessonChatSendBtn.disabled = false;
     }
 }
+
+
+/**
+ * Displays a complete lesson generated by the AI.
+ * This function is called after the conversational phase.
+ * @param {object} lessonData - The complete lesson data received from the AI.
+ */
+async function displayGeneratedLesson(lessonData) {
+    console.log("[DEBUG] Displaying generated lesson:", lessonData);
+    currentLesson = lessonData;
+    currentLessonId = currentLesson.lessonId || crypto.randomUUID(); // Use AI-provided ID or generate one
+    currentLessonStepIndex = 0; // Start at the first step
+    completedSteps = await loadLessonProgress(currentLessonId); // Load user's progress for this lesson
+
+    if (lessonTitleDisplay) lessonTitleDisplay.textContent = currentLesson.lessonTitle;
+    displayLessonStep(currentLessonStepIndex);
+    if (lessonDisplayArea) lessonDisplayArea.style.display = 'block';
+    if (lessonInputSection) lessonInputSection.style.display = 'none'; // Hide input section and chat
+    isChattingForLesson = false; // End chat mode
+    lessonChatHistory = []; // Clear chat history for next lesson
+}
+
 
 /**
  * Displays a specific step of the current lesson.
@@ -428,10 +460,17 @@ function displayLessonStep(index) {
 function updateLessonProgressBar() {
     if (currentLesson && lessonProgressBar) {
         const totalSteps = currentLesson.steps.length;
-        const completedCount = Object.keys(completedSteps).length;
-        const progressPercentage = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
+        // Count only steps that are actually in the current lesson
+        let actualCompletedCount = 0;
+        for (let i = 0; i < totalSteps; i++) {
+            if (completedSteps[i]) {
+                actualCompletedCount++;
+            }
+        }
+
+        const progressPercentage = totalSteps > 0 ? (actualCompletedCount / totalSteps) * 100 : 0;
         lessonProgressBar.style.width = `${progressPercentage}%`;
-        console.log(`[DEBUG] Lesson progress: ${completedCount}/${totalSteps} steps completed (${progressPercentage.toFixed(2)}%)`);
+        console.log(`[DEBUG] Lesson progress: ${actualCompletedCount}/${totalSteps} steps completed (${progressPercentage.toFixed(2)}%)`);
     }
 }
 
@@ -556,8 +595,8 @@ async function initializeLessonsPage() {
                 if (lessonTopicFromSession) {
                     lessonTopicInput.value = lessonTopicFromSession;
                     sessionStorage.removeItem('lessonTopicForAI'); // Clear it after use
-                    const userLevel = await getUserLevel(0, currentCubeType); // Pass current cube type for context
-                    requestLessonFromAI(lessonTopicFromSession, currentCubeType, userLevel);
+                    // Automatically start chat if topic is pre-filled
+                    startLessonChat();
                 }
             });
         } catch (e) {
@@ -571,8 +610,7 @@ async function initializeLessonsPage() {
             if (lessonTopicFromSession) {
                 lessonTopicInput.value = lessonTopicFromSession;
                 sessionStorage.removeItem('lessonTopicForAI');
-                const userLevel = await getUserLevel(0, currentCubeType);
-                requestLessonFromAI(lessonTopicFromSession, currentCubeType, userLevel);
+                startLessonChat(); // Automatically start chat if topic is pre-filled
             }
         }
     } else {
@@ -582,8 +620,7 @@ async function initializeLessonsPage() {
         if (lessonTopicFromSession) {
             lessonTopicInput.value = lessonTopicFromSession;
             sessionStorage.removeItem('lessonTopicForAI');
-            const userLevel = await getUserLevel(0, currentCubeType);
-            requestLessonFromAI(lessonTopicFromSession, currentCubeType, userLevel);
+            startLessonChat(); // Automatically start chat if topic is pre-filled
         }
     }
 }
@@ -594,10 +631,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign DOM elements
     lessonTopicInput = document.getElementById('lessonTopicInput');
-    generateLessonBtn = document.getElementById('generateLessonBtn');
+    startLessonChatBtn = document.getElementById('startLessonChatBtn'); // Renamed
     lessonGenerationError = document.getElementById('lessonGenerationError');
     lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
     lessonInputSection = document.getElementById('lessonInputSection'); // Assign the input section
+    lessonChatContainer = document.getElementById('lessonChatContainer'); // Assign chat container
+    lessonChatHistoryDiv = document.getElementById('lessonChatHistory'); // Assign chat history div
+    lessonChatInput = document.getElementById('lessonChatInput'); // Assign chat input
+    lessonChatSendBtn = document.getElementById('lessonChatSendBtn'); // Assign chat send button
+    lessonChatStatus = document.getElementById('lessonChatStatus'); // Assign chat status
+
     lessonDisplayArea = document.getElementById('lessonDisplayArea');
     lessonTitleDisplay = document.getElementById('lessonTitleDisplay');
     lessonStepTitleDisplay = document.getElementById('lessonStepTitleDisplay');
@@ -623,15 +666,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Add event listeners
-    if (generateLessonBtn) generateLessonBtn.addEventListener('click', async () => {
-        const topic = lessonTopicInput.value.trim();
-        if (topic) {
-            const userLevel = await getUserLevel(0, currentCubeType); // Pass current cube type for context
-            requestLessonFromAI(topic, currentCubeType, userLevel);
-        } else {
-            if (lessonGenerationError) {
-                lessonGenerationError.textContent = "Please enter a lesson topic.";
-                lessonGenerationError.style.display = 'block';
+    if (startLessonChatBtn) startLessonChatBtn.addEventListener('click', startLessonChat);
+
+    if (lessonChatSendBtn) lessonChatSendBtn.addEventListener('click', () => {
+        const message = lessonChatInput.value.trim();
+        if (message) {
+            sendLessonChatToAI(message);
+        }
+    });
+
+    if (lessonChatInput) lessonChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { // Allow Shift+Enter for new line
+            e.preventDefault(); // Prevent default Enter behavior (e.g., new line in textarea)
+            const message = lessonChatInput.value.trim();
+            if (message) {
+                sendLessonChatToAI(message);
             }
         }
     });
