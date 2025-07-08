@@ -324,6 +324,7 @@ async function sendLessonChatToAI(userMessage) {
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
         if (result.type === 'chat_response') {
+            // FIX: Extract the message from the result object
             appendLessonChatMessage('jarvis', result.message); // Display Jarvis's message on frontend
             backendChatHistory.push({ role: "model", parts: [{ text: result.message }] }); // Add to backend chat history
             speakAsJarvis(result.message);
