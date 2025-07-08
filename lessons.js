@@ -36,7 +36,8 @@ let completedSteps = {}; // NEW: Tracks completed steps for the current lesson {
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
 
-let lessonChatHistory = []; // NEW: Stores the conversation history for lesson generation
+let lessonChatHistory = []; // Stores the conversation history for lesson generation (for frontend display)
+let backendChatHistory = []; // NEW: Stores the conversation history for backend (strict user/model alternation)
 let isChattingForLesson = false; // NEW: Flag to indicate if we are in a conversational phase
 
 // DOM elements (declared here, assigned in DOMContentLoaded)
@@ -255,7 +256,7 @@ async function saveLessonProgress(lessonId, progress) {
 }
 
 /**
- * Appends a message to the lesson chat history.
+ * Appends a message to the lesson chat history (frontend display).
  * @param {string} sender - 'user' or 'jarvis'.
  * @param {string} message - The message content.
  */
@@ -273,10 +274,15 @@ function appendLessonChatMessage(sender, message) {
  * @param {string} userMessage - The user's message.
  */
 async function sendLessonChatToAI(userMessage) {
-    if (!isChattingForLesson) return;
+    if (!isChattingForLesson) {
+        console.warn("[WARN] sendLessonChatToAI called when not in chat mode for lesson. Ignoring.");
+        return;
+    }
 
-    appendLessonChatMessage('user', userMessage);
-    lessonChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+    appendLessonChatMessage('user', userMessage); // Display user message on frontend
+
+    // Add user message to backend chat history
+    backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
 
     if (lessonChatStatus) lessonChatStatus.style.display = 'block';
     if (lessonChatInput) lessonChatInput.disabled = true;
@@ -286,7 +292,7 @@ async function sendLessonChatToAI(userMessage) {
 
     const payload = {
         type: "lesson_chat", // Indicate this is a conversational lesson request
-        chatHistory: lessonChatHistory,
+        chatHistory: backendChatHistory, // Send the backend-specific chat history
         cubeType: currentCubeType,
         userLevel: userLevel,
         initialTopic: lessonTopicInput.value.trim() // Send initial topic for context
@@ -310,8 +316,8 @@ async function sendLessonChatToAI(userMessage) {
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
         if (result.type === 'chat_response') {
-            appendLessonChatMessage('jarvis', result.message);
-            lessonChatHistory.push({ role: "model", parts: [{ text: result.message }] });
+            appendLessonChatMessage('jarvis', result.message); // Display Jarvis's message on frontend
+            backendChatHistory.push({ role: "model", parts: [{ text: result.message }] }); // Add to backend chat history
             speakAsJarvis(result.message);
         } else if (result.type === 'lesson_ready' && result.lessonData) {
             // AI signals lesson is ready, display it
@@ -362,7 +368,8 @@ async function displayGeneratedLesson(lessonData) {
     if (lessonDisplayArea) lessonDisplayArea.style.display = 'block';
     if (lessonInputSection) lessonInputSection.style.display = 'none'; // Hide input section and chat
     isChattingForLesson = false; // End chat mode
-    lessonChatHistory = []; // Clear chat history for next lesson
+    lessonChatHistory = []; // Clear frontend chat history
+    backendChatHistory = []; // Clear backend chat history
 }
 
 
@@ -618,7 +625,7 @@ async function initializeLessonsPage() {
  * Initiates the conversational lesson generation process.
  */
 async function startLessonChat() {
-    console.log("[DEBUG] startLessonChat function called."); // ADDED DEBUG LOG
+    console.log("[DEBUG] startLessonChat function called.");
     const topic = lessonTopicInput.value.trim();
     if (!topic) {
         if (lessonGenerationError) {
@@ -635,12 +642,12 @@ async function startLessonChat() {
     if (lessonGenerationError) lessonGenerationError.style.display = 'none';
 
     isChattingForLesson = true;
-    lessonChatHistory = []; // Clear previous chat history
+    lessonChatHistory = []; // Clear frontend chat history
+    backendChatHistory = []; // Clear backend chat history
 
-    // Initial message from Jarvis to start the conversation
+    // Initial message from Jarvis to start the conversation (frontend display only)
     const initialJarvisMessage = `Excellent, Sir Sevindu. You wish to learn about '${topic}'. To tailor this lesson perfectly, could you please elaborate on your current understanding of this topic, or what specific aspects you wish to master?`;
     appendLessonChatMessage('jarvis', initialJarvisMessage);
-    lessonChatHistory.push({ role: "model", parts: [{ text: initialJarvisMessage }] });
     speakAsJarvis(initialJarvisMessage);
 
     if (lessonChatInput) lessonChatInput.focus();
@@ -654,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Assign DOM elements
     lessonTopicInput = document.getElementById('lessonTopicInput');
     startLessonChatBtn = document.getElementById('startLessonChatBtn'); // Renamed
-    console.log("[DEBUG] startLessonChatBtn element:", startLessonChatBtn); // ADDED DEBUG LOG
+    console.log("[DEBUG] startLessonChatBtn element:", startLessonChatBtn);
     lessonGenerationError = document.getElementById('lessonGenerationError');
     lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
     lessonInputSection = document.getElementById('lessonInputSection'); // Assign the input section
@@ -691,9 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners
     if (startLessonChatBtn) {
         startLessonChatBtn.addEventListener('click', startLessonChat);
-        console.log("[DEBUG] Click listener added to startLessonChatBtn."); // ADDED DEBUG LOG
+        console.log("[DEBUG] Click listener added to startLessonChatBtn.");
     } else {
-        console.error("[ERROR] startLessonChatBtn element not found!"); // ADDED ERROR LOG
+        console.error("[ERROR] startLessonChatBtn element not found!");
     }
 
     if (lessonChatSendBtn) lessonChatSendBtn.addEventListener('click', () => {
