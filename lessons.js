@@ -281,8 +281,13 @@ async function sendLessonChatToAI(userMessage) {
 
     appendLessonChatMessage('user', userMessage); // Display user message on frontend
 
+    console.log("[DEBUG] lessons.js: backendChatHistory BEFORE pushing user message:", JSON.stringify(backendChatHistory, null, 2));
+
     // Add user message to backend chat history
     backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
+    console.log("[DEBUG] lessons.js: backendChatHistory AFTER pushing user message:", JSON.stringify(backendChatHistory, null, 2));
+
 
     if (lessonChatStatus) lessonChatStatus.style.display = 'block';
     if (lessonChatInput) lessonChatInput.disabled = true;
@@ -297,6 +302,9 @@ async function sendLessonChatToAI(userMessage) {
         userLevel: userLevel,
         initialTopic: lessonTopicInput.value.trim() // Send initial topic for context
     };
+
+    console.log("[DEBUG] lessons.js: FULL PAYLOAD being sent to backend:", JSON.stringify(payload, null, 2));
+
 
     const apiUrl = geminiInsightFunctionUrl;
 
