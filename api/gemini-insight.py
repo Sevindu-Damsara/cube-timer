@@ -137,6 +137,8 @@ def gemini_insight_handler():
                 f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
                 f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
                 f"Do NOT generate the lesson yet. ONLY ask clarifying questions or make conversational remarks. "
+                f"When you have gathered sufficient information and are ready to propose the final lesson plan, "
+                f"end your message with the exact phrase: '[LESSON_PLAN_PROPOSAL_READY]'. This will signal to Sir Sevindu that he can confirm to generate the lesson. "
                 f"Respond with a JSON object of type 'chat_response' containing your message.\n"
                 f"Chat response structure: {{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n"
                 f"Consider the full chat history to avoid asking redundant questions and to build context."
@@ -405,3 +407,4 @@ def gemini_insight_handler():
 # Flask==3.*
 # requests==2.*
 # flask-cors==4.*
+
