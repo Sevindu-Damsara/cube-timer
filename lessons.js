@@ -1,6 +1,6 @@
 // Firebase imports - These are provided globally by the Canvas environment
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 console.log("[DEBUG] Firebase imports for lessons.js completed.");
 
@@ -39,33 +39,33 @@ let currentTheme = 'dark'; // Default, will be loaded from settings
 let lessonChatHistory = []; // NEW: Stores the conversation history for lesson generation
 let isChattingForLesson = false; // NEW: Flag to indicate if we are in a conversational phase
 
-// DOM elements
+// DOM elements (declared here, assigned in DOMContentLoaded)
 let lessonTopicInput;
-let startLessonChatBtn; // Renamed from generateLessonBtn
+let startLessonChatBtn;
 let lessonGenerationError;
 let lessonLoadingSpinner;
-let lessonInputSection; // NEW: Added for showing/hiding
-let lessonChatContainer; // NEW: Chat interface container
-let lessonChatHistoryDiv; // NEW: Chat history display area
-let lessonChatInput; // NEW: Chat input field
-let lessonChatSendBtn; // NEW: Chat send button
-let lessonChatStatus; // NEW: Chat status indicator (e.g., "Jarvis is thinking...")
+let lessonInputSection;
+let lessonChatContainer;
+let lessonChatHistoryDiv;
+let lessonChatInput;
+let lessonChatSendBtn;
+let lessonChatStatus;
 
 let lessonDisplayArea;
 let lessonTitleDisplay;
 let lessonStepTitleDisplay;
 let lessonStepDescriptionDisplay;
 let lessonVisualContainer;
-let twistyPlayerLessonViewer; // Reference to the twisty-player instance
+let twistyPlayerLessonViewer;
 let lessonExplanationDisplay;
 let prevLessonStepBtn;
 let nextLessonStepBtn;
 let lessonStepCounter;
-let backToTimerBtn; // Reference to the back button
-let lessonProgressBar; // NEW: Progress bar element
-let markStepCompleteBtn; // NEW: Mark as Complete button
-let completeLessonBtn; // NEW: Complete Lesson button
-let lessonCompletionMessage; // NEW: Lesson completion message
+let backToTimerBtn;
+let lessonProgressBar;
+let markStepCompleteBtn;
+let completeLessonBtn;
+let lessonCompletionMessage;
 
 // Twisty-player controls
 let lessonPlayBtn;
@@ -613,6 +613,39 @@ async function initializeLessonsPage() {
         startLessonChat();
     }
 }
+
+/**
+ * Initiates the conversational lesson generation process.
+ */
+async function startLessonChat() {
+    console.log("[DEBUG] startLessonChat function called."); // ADDED DEBUG LOG
+    const topic = lessonTopicInput.value.trim();
+    if (!topic) {
+        if (lessonGenerationError) {
+            lessonGenerationError.textContent = "Please enter a lesson topic to start the conversation.";
+            lessonGenerationError.style.display = 'block';
+        }
+        return;
+    }
+
+    // Hide initial input, show chat
+    if (startLessonChatBtn) startLessonChatBtn.style.display = 'none';
+    if (lessonTopicInput) lessonTopicInput.disabled = true;
+    if (lessonChatContainer) lessonChatContainer.style.display = 'block';
+    if (lessonGenerationError) lessonGenerationError.style.display = 'none';
+
+    isChattingForLesson = true;
+    lessonChatHistory = []; // Clear previous chat history
+
+    // Initial message from Jarvis to start the conversation
+    const initialJarvisMessage = `Excellent, Sir Sevindu. You wish to learn about '${topic}'. To tailor this lesson perfectly, could you please elaborate on your current understanding of this topic, or what specific aspects you wish to master?`;
+    appendLessonChatMessage('jarvis', initialJarvisMessage);
+    lessonChatHistory.push({ role: "model", parts: [{ text: initialJarvisMessage }] });
+    speakAsJarvis(initialJarvisMessage);
+
+    if (lessonChatInput) lessonChatInput.focus();
+}
+
 
 // --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
