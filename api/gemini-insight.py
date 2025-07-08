@@ -153,10 +153,10 @@ def gemini_insight_handler():
             # --- DEBUGGING: Inspecting contents_for_gemini before modification ---
             print(f"DEBUG: Backend - contents_for_gemini BEFORE modification: {json.dumps(contents_for_gemini, indent=2)}")
             if contents_for_gemini:
-                print(f"DEBUG: Backend - contents_for_gemini[0]: {json.dumps(contents_for_gemini[0], indent=2)}")
-                print(f"DEBUG: Backend - contents_for_gemini[0]['role']: {contents_for_gemini[0].get('role')}")
+                print(f"DEBUG: Backend - contents_for_gemini[0]['role'] check: {contents_for_gemini[0].get('role') == 'user'}")
+                print(f"DEBUG: Backend - contents_for_gemini[0]['parts'] check: {bool(contents_for_gemini[0].get('parts'))}")
                 if contents_for_gemini[0].get('parts'):
-                    print(f"DEBUG: Backend - contents_for_gemini[0]['parts']: {json.dumps(contents_for_gemini[0]['parts'], indent=2)}")
+                    print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] is not None check: {contents_for_gemini[0]['parts'][0].get('text') is not None}")
                     if contents_for_gemini[0]['parts'][0].get('text') is not None:
                         print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] (first 50 chars): {contents_for_gemini[0]['parts'][0]['text'][:50]}...")
                     else:
