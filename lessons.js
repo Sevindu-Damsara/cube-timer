@@ -562,66 +562,55 @@ async function initializeLessonsPage() {
             auth = getAuth(app);
             console.log("[DEBUG] lessons.js: Firebase initialized.");
 
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    isUserAuthenticated = !user.isAnonymous; // True if signed in via email/google
-                    isAuthReady = true;
-                    console.log(`[DEBUG] lessons.js: User authenticated: ${userId}. Authenticated status: ${isUserAuthenticated}`);
-                } else {
-                    // Sign in anonymously if no user, to get a UID for consistent pathing
-                    try {
-                        if (__initial_auth_token) {
-                            const userCredential = await signInWithCustomToken(auth, __initial_auth_token);
-                            userId = userCredential.user.uid;
-                            isUserAuthenticated = false; // Still considered guest for persistence purposes
-                            console.log(`[DEBUG] lessons.js: Signed in with custom token. User ID: ${userId}`);
-                        } else {
-                            const userCredential = await signInAnonymously(auth);
-                            userId = userCredential.user.uid;
-                            isUserAuthenticated = false; // Anonymous user is a guest
-                            console.log(`[DEBUG] lessons.js: Signed in anonymously. User ID: ${userId}`);
-                        }
-                    } catch (e) {
-                        console.error("[ERROR] lessons.js: Anonymous sign-in failed:", e);
-                        userId = `guest-${crypto.randomUUID()}`; // Fallback to local UUID
-                        isUserAuthenticated = false;
-                    }
-                    isAuthReady = true;
+            // Attempt to sign in with custom token if available (from main page)
+            if (__initial_auth_token) {
+                try {
+                    const userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                    userId = userCredential.user.uid;
+                    isUserAuthenticated = true; // User is truly authenticated
+                    console.log(`[DEBUG] lessons.js: Signed in with custom token. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
+                } catch (e) {
+                    console.error("[ERROR] lessons.js: Custom token sign-in failed:", e);
+                    // Fallback to guest mode if custom token fails
+                    userId = `guest-${crypto.randomUUID()}`;
+                    isUserAuthenticated = false;
+                    console.log(`[DEBUG] lessons.js: Falling back to guest mode due to custom token failure. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
                 }
-                await loadLocalUserSettings(); // Load settings (theme, cube type)
-                // Check if a lesson topic was passed from the main page (e.g., via voice command)
-                const lessonTopicFromSession = sessionStorage.getItem('lessonTopicForAI');
-                if (lessonTopicFromSession) {
-                    lessonTopicInput.value = lessonTopicFromSession;
-                    sessionStorage.removeItem('lessonTopicForAI'); // Clear it after use
-                    // Automatically start chat if topic is pre-filled
-                    startLessonChat();
-                }
-            });
+            } else {
+                // No custom token, user is a guest, generate a local UUID for userId
+                userId = `guest-${crypto.randomUUID()}`;
+                isUserAuthenticated = false;
+                console.log(`[DEBUG] lessons.js: No custom token found. Operating in guest mode. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
+            }
+            isAuthReady = true; // Auth state determined (either authenticated or guest)
+
         } catch (e) {
             console.error("[ERROR] lessons.js: Firebase initialization failed:", e);
-            isAuthReady = true; // Mark auth ready even if it failed, to proceed with local storage
+            // If Firebase initialization itself fails, still proceed as guest
             userId = `guest-${crypto.randomUUID()}`;
             isUserAuthenticated = false;
-            await loadLocalUserSettings();
-            // Check for session topic even in offline mode
-            const lessonTopicFromSession = sessionStorage.getItem('lessonTopicForAI');
-            if (lessonTopicFromSession) {
-                lessonTopicInput.value = lessonTopicFromSession;
-                sessionStorage.removeItem('lessonTopicForAI');
-                startLessonChat(); // Automatically start chat if topic is pre-filled
-            }
+            isAuthReady = true;
+            console.log(`[DEBUG] lessons.js: Firebase initialization failed. Operating in guest mode. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
         }
     } else {
-        isAuthReady = true;
-        await loadLocalUserSettings();
-        const lessonTopicFromSession = sessionStorage.getItem('lessonTopicForAI');
-        if (lessonTopicFromSession) {
-            lessonTopicInput.value = lessonTopicFromSession;
-            sessionStorage.removeItem('lessonTopicForAI');
-            startLessonChat(); // Automatically start chat if topic is pre-filled
+        // If app is already initialized (e.g., hot reload), ensure userId and isUserAuthenticated are set
+        console.log("[DEBUG] lessons.js: Firebase app already initialized. Re-using existing state.");
+        if (!userId) { // If userId somehow isn't set, try to get it from current auth or fallback
+            userId = auth.currentUser?.uid || `guest-${crypto.randomUUID()}`;
+            isUserAuthenticated = !!auth.currentUser && !auth.currentUser.isAnonymous;
+            console.log(`[DEBUG] lessons.js: Re-using existing auth state. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
         }
+        isAuthReady = true;
+    }
+
+    await loadLocalUserSettings(); // Load settings (theme, cube type)
+    // Check if a lesson topic was passed from the main page (e.g., via voice command)
+    const lessonTopicFromSession = sessionStorage.getItem('lessonTopicForAI');
+    if (lessonTopicFromSession) {
+        lessonTopicInput.value = lessonTopicFromSession;
+        sessionStorage.removeItem('lessonTopicForAI'); // Clear it after use
+        // Automatically start chat if topic is pre-filled
+        startLessonChat();
     }
 }
 
