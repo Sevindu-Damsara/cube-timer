@@ -480,13 +480,14 @@ function displayLessonStep(index) {
     if (step.scramble || step.algorithm) {
         if (lessonVisualContainer) lessonVisualContainer.style.display = 'flex'; // Show container
         if (twistyPlayerLessonViewer) {
-            twistyPlayerLessonViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
+            // FIX: Use setAttribute for puzzle property
+            twistyPlayerLessonViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(currentCubeType));
             // Prioritize scramble if both are present for initial view
             twistyPlayerLessonViewer.alg = step.scramble || step.algorithm || '';
             // Set the 3D viewer background directly using the hex color for the chosen theme
             twistyPlayerLessonViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
             twistyPlayerLessonViewer.jumpToStart(); // Reset view for new step
-            console.log(`[DEBUG] Twisty-player updated: Puzzle=${twistyPlayerLessonViewer.puzzle}, Alg=${twistyPlayerLessonViewer.alg}`);
+            console.log(`[DEBUG] Twisty-player updated: Puzzle=${twistyPlayerLessonViewer.getAttribute('puzzle')}, Alg=${twistyPlayerLessonViewer.alg}`);
         }
         // Show twisty-player controls
         if (lessonPlayBtn) lessonPlayBtn.style.display = 'inline-block';
