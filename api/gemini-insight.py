@@ -6,6 +6,7 @@ import os
 import requests
 import json
 import uuid # NEW: Import uuid for generating unique lesson IDs
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
 
@@ -109,7 +110,7 @@ def gemini_insight_handler():
             if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
                gemini_result['candidates'][0]['content'].get('parts') and \
                gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
                 # The model is configured to return JSON, so we parse it directly
                 insight_data = json.loads(response_text)
                 return jsonify(insight_data)
@@ -117,84 +118,120 @@ def gemini_insight_handler():
                 print("ERROR: Unexpected Gemini insight response structure.")
                 return jsonify({"error": "Failed to parse AI insight response. Unexpected structure."}), 500
 
-        elif request_type == 'generate_lesson':
-            # NEW: Logic for generating structured lessons
-            topic = request_json.get('topic')
+        elif request_type == 'lesson_chat':
+            # NEW: Logic for conversational lesson generation
+            chat_history = request_json.get('chatHistory', [])
             cube_type = request_json.get('cubeType')
             user_level = request_json.get('userLevel')
+            initial_topic = request_json.get('initialTopic')
 
-            if not all([topic, cube_type, user_level]):
-                print("ERROR: Missing required fields for generate_lesson.")
-                return jsonify({"error": "Missing 'topic', 'cubeType', or 'userLevel' for lesson generation."}), 400
+            if not all([chat_history, cube_type, user_level, initial_topic]):
+                print("ERROR: Missing required fields for lesson_chat.")
+                return jsonify({"error": "Missing 'chatHistory', 'cubeType', 'userLevel', or 'initialTopic' for lesson conversation."}), 400
 
-            lesson_id = str(uuid.uuid4()) # Generate a unique ID for the lesson
-
-            # Define the response schema for lesson generation
-            lesson_response_schema = {
-                "type": "OBJECT",
-                "properties": {
-                    "lessonId": {"type": "STRING"},
-                    "lessonTitle": {"type": "STRING"},
-                    "steps": {
-                        "type": "ARRAY",
-                        "items": {
-                            "type": "OBJECT",
-                            "properties": {
-                                "title": {"type": "STRING"},
-                                "description": {"type": "STRING"},
-                                "scramble": {"type": "STRING", "nullable": True},
-                                "algorithm": {"type": "STRING", "nullable": True},
-                                "explanation": {"type": "STRING"}
-                            },
-                            "required": ["title", "description", "explanation"]
-                        }
-                    }
-                },
-                "required": ["lessonId", "lessonTitle", "steps"]
-            }
-
-            lesson_prompt = (
-                f"You are an expert Rubik's Cube instructor. Generate a structured, multi-step lesson "
-                f"on the topic of '{topic}' for a '{cube_type}' cube, specifically tailored for a '{user_level}' cubist. "
-                f"The lesson should be practical and actionable. Include 3 to 7 steps.\n\n"
-                f"For each step, provide:\n"
-                f"- 'title': A concise title for the step.\n"
-                f"- 'description': A brief description of what the user will learn or do in this step.\n"
-                f"- 'scramble': (Optional) A valid scramble string for a {cube_type} cube, if the step involves practice. "
+            # The prompt for the conversational model
+            # This model needs to decide whether to continue chatting or generate the lesson
+            conversation_prompt = (
+                f"You are Jarvis, an expert Rubik's Cube instructor and AI assistant. "
+                f"You are currently having a conversation with Sir Sevindu to understand his learning needs for a lesson on '{initial_topic}' "
+                f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
+                f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
+                f"Do NOT generate the lesson until you have sufficient detail from Sir Sevindu.\n"
+                f"If you have enough information, respond with a JSON object of type 'lesson_ready' containing the full lesson data. "
+                f"Otherwise, respond with a JSON object of type 'chat_response' containing a clarifying question or conversational remark.\n\n"
+                f"Lesson structure if 'lesson_ready':\n"
+                f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
+                f"Chat response structure if 'chat_response':\n"
+                f"{{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n\n"
                 f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
-                f"- 'algorithm': (Optional) A valid algorithm string, if the step involves learning or demonstrating a specific sequence of moves.\n"
-                f"- 'explanation': A detailed explanation of the concept or technique for the step.\n\n"
-                f"The response MUST be a JSON object with a 'lessonId' (a unique UUID), 'lessonTitle', and a 'steps' array. "
-                f"Adhere strictly to the JSON schema provided in the generationConfig."
+                f"The lesson should have 3 to 7 steps.\n"
+                f"Consider the full chat history to avoid asking redundant questions and to build context.\n"
+                f"Current conversation history:\n"
             )
 
+            # Append the conversation history to the prompt
+            full_prompt_parts = [{"text": conversation_prompt}]
+            for msg in chat_history:
+                full_prompt_parts.append({"text": f"{msg['role']}: {msg['parts'][0]['text']}"})
+
             payload = {
-                "contents": [{"role": "user", "parts": [{"text": lesson_prompt}]}],
+                "contents": [{"role": "user", "parts": full_prompt_parts}],
                 "generationConfig": {
                     "responseMimeType": "application/json",
-                    "responseSchema": lesson_response_schema
+                    "responseSchema": {
+                        "type": "OBJECT",
+                        "oneOf": [ # Use oneOf to allow for two distinct response structures
+                            {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "type": {"type": "STRING", "enum": ["chat_response"]},
+                                    "message": {"type": "STRING"}
+                                },
+                                "required": ["type", "message"]
+                            },
+                            {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "type": {"type": "STRING", "enum": ["lesson_ready"]},
+                                    "lessonData": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "lessonId": {"type": "STRING"},
+                                            "lessonTitle": {"type": "STRING"},
+                                            "steps": {
+                                                "type": "ARRAY",
+                                                "items": {
+                                                    "type": "OBJECT",
+                                                    "properties": {
+                                                        "title": {"type": "STRING"},
+                                                        "description": {"type": "STRING"},
+                                                        "scramble": {"type": "STRING", "nullable": True},
+                                                        "algorithm": {"type": "STRING", "nullable": True},
+                                                        "explanation": {"type": "STRING"}
+                                                    },
+                                                    "required": ["title", "description", "explanation"]
+                                                },
+                                                "minItems": 3, # Ensure at least 3 steps
+                                                "maxItems": 7  # Ensure at most 7 steps
+                                            }
+                                        },
+                                        "required": ["lessonId", "lessonTitle", "steps"]
+                                    }
+                                },
+                                "required": ["type", "lessonData"]
+                            }
+                        ]
+                    }
                 }
             }
 
             model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            print(f"DEBUG: Calling Gemini API for lesson generation: {model_url}")
+            print(f"DEBUG: Calling Gemini API for lesson chat: {model_url}")
             gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-            gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+            gemini_response.raise_for_status()
 
             gemini_result = gemini_response.json()
-            print(f"DEBUG: Raw Gemini lesson response: {json.dumps(gemini_result, indent=2)}")
+            print(f"DEBUG: Raw Gemini lesson chat response: {json.dumps(gemini_result, indent=2)}")
 
             if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
                gemini_result['candidates'][0]['content'].get('parts') and \
                gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
-                lesson_data = json.loads(response_text)
-                # Add the generated lessonId to the response
-                lesson_data['lessonId'] = lesson_id
-                return jsonify(lesson_data)
+                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
+                parsed_response = json.loads(response_text)
+
+                if parsed_response.get('type') == 'lesson_ready':
+                    # Ensure lessonId is present, generate if missing (should be from AI now)
+                    if 'lessonId' not in parsed_response['lessonData']:
+                        parsed_response['lessonData']['lessonId'] = str(uuid.uuid4())
+                    return jsonify(parsed_response)
+                elif parsed_response.get('type') == 'chat_response':
+                    return jsonify(parsed_response)
+                else:
+                    print("ERROR: Unexpected AI response type in lesson chat.")
+                    return jsonify({"error": "AI returned an unexpected response type during lesson conversation."}), 500
             else:
-                print("ERROR: Unexpected Gemini lesson response structure.")
-                return jsonify({"error": "Failed to parse AI lesson response. Unexpected structure."}), 500
+                print("ERROR: Unexpected Gemini lesson chat response structure.")
+                return jsonify({"error": "Failed to parse AI lesson chat response. Unexpected structure."}), 500
 
         elif request_type == 'get_algorithm':
             # Existing logic for getting algorithms/explanations
@@ -233,7 +270,7 @@ def gemini_insight_handler():
             if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
                gemini_result['candidates'][0]['content'].get('parts') and \
                gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
                 algorithm_data = json.loads(response_text)
                 return jsonify(algorithm_data)
             else:
@@ -273,7 +310,7 @@ def gemini_insight_handler():
             if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
                gemini_result['candidates'][0]['content'].get('parts') and \
                gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0]['text']
+                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
                 answer_data = json.loads(response_text)
                 return jsonify(answer_data)
             else:
@@ -305,3 +342,4 @@ def gemini_insight_handler():
 # Flask==3.*
 # requests==2.*
 # flask-cors==4.*
+
