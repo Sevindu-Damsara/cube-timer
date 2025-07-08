@@ -150,84 +150,24 @@ def gemini_insight_handler():
             # Create a deep copy of chat_history to avoid modifying the original
             contents_for_gemini = json.loads(json.dumps(chat_history))
 
-            # --- DEBUGGING: Inspecting contents_for_gemini before modification ---
-            print(f"DEBUG: Backend - contents_for_gemini BEFORE modification: {json.dumps(contents_for_gemini, indent=2)}")
-            if contents_for_gemini:
-                print(f"DEBUG: Backend - contents_for_gemini[0]['role'] check: {contents_for_gemini[0].get('role') == 'user'}")
-                print(f"DEBUG: Backend - contents_for_gemini[0]['parts'] check: {bool(contents_for_gemini[0].get('parts'))}")
-                if contents_for_gemini[0].get('parts'):
-                    print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] is not None check: {contents_for_gemini[0]['parts'][0].get('text') is not None}")
-                    if contents_for_gemini[0]['parts'][0].get('text') is not None:
-                        print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] (first 50 chars): {contents_for_gemini[0]['parts'][0]['text'][:50]}...")
-                    else:
-                        print("DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] is None.")
-                else:
-                    print("DEBUG: Backend - contents_for_gemini[0]['parts'] is None or empty.")
-            else:
-                print("DEBUG: Backend - contents_for_gemini is empty.")
-            # --- END DEBUGGING ---
-
             # Prepend the instructional text to the first user message in the history
-            # This ensures the conversation history always starts with a 'user' role
-            # and the instruction is part of that first user turn.
             if contents_for_gemini and contents_for_gemini[0].get('role') == 'user' and \
                contents_for_gemini[0].get('parts') and contents_for_gemini[0]['parts'][0].get('text') is not None:
                 
                 contents_for_gemini[0]['parts'][0]['text'] = instructional_text + "\n\n" + contents_for_gemini[0]['parts'][0]['text']
-                print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] AFTER modification (first 50 chars): {contents_for_gemini[0]['parts'][0]['text'][:50]}...")
             else:
                 # This case indicates a problem with the initial chat history structure from the frontend
                 print("ERROR: Initial chat history is malformed or empty, or does not start with a user role. Rejecting request.")
                 return jsonify({"error": "Malformed chat history received from frontend."}), 400
 
+            # Removed responseMimeType and responseSchema from generationConfig for lesson_chat
+            # The model is now instructed to output JSON within its text response.
             payload = {
-                "contents": contents_for_gemini, # Use the correctly modified chat history
+                "contents": contents_for_gemini,
                 "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": {
-                        "type": "OBJECT",
-                        "oneOf": [ # Use oneOf to allow for two distinct response structures
-                            {
-                                "type": "OBJECT",
-                                "properties": {
-                                    "type": {"type": "STRING", "enum": ["chat_response"]},
-                                    "message": {"type": "STRING"}
-                                },
-                                "required": ["type", "message"]
-                            },
-                            {
-                                "type": "OBJECT",
-                                "properties": {
-                                    "type": {"type": "STRING", "enum": ["lesson_ready"]},
-                                    "lessonData": {
-                                        "type": "OBJECT",
-                                        "properties": {
-                                            "lessonId": {"type": "STRING"},
-                                            "lessonTitle": {"type": "STRING"},
-                                            "steps": {
-                                                                "type": "ARRAY",
-                                                                "items": {
-                                                                    "type": "OBJECT",
-                                                                    "properties": {
-                                                                        "title": {"type": "STRING"},
-                                                                        "description": {"type": "STRING"},
-                                                                        "scramble": {"type": "STRING", "nullable": True},
-                                                                        "algorithm": {"type": "STRING", "nullable": True},
-                                                                        "explanation": {"type": "STRING"}
-                                                                    },
-                                                                    "required": ["title", "description", "explanation"]
-                                                                },
-                                                                "minItems": 3, # Ensure at least 3 steps
-                                                                "maxItems": 7  # Ensure at most 7 steps
-                                                            }
-                                        },
-                                        "required": ["lessonId", "lessonTitle", "steps"]
-                                    }
-                                },
-                                "required": ["type", "lessonData"]
-                            }
-                        ]
-                    }
+                    # Removed "responseMimeType": "application/json",
+                    # Removed "responseSchema": {...}
+                    # The model will now output JSON as part of its text response, which we will parse.
                 }
             }
 
@@ -243,7 +183,13 @@ def gemini_insight_handler():
                gemini_result['candidates'][0]['content'].get('parts') and \
                gemini_result['candidates'][0]['content']['parts'][0].get('text'):
                 response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
-                parsed_response = json.loads(response_text)
+                
+                try:
+                    parsed_response = json.loads(response_text)
+                except json.JSONDecodeError as e:
+                    print(f"ERROR: Failed to decode JSON from Gemini response: {e}. Raw response text: {response_text}")
+                    # If JSON decoding fails, assume it's a plain text chat response
+                    return jsonify({"type": "chat_response", "message": response_text})
 
                 if parsed_response.get('type') == 'lesson_ready':
                     # Ensure lessonId is present, generate if missing (should be from AI now)
