@@ -53,12 +53,12 @@ def gemini_insight_handler():
             scramble = request_json.get('scramble')
             cube_type = request_json.get('cubeType')
             solve_time_ms = request_json.get('solveTimeMs')
-            penalty = request.get('penalty')
+            penalty = request_json.get('penalty')
             user_level = request_json.get('userLevel')
 
             if not all([scramble, cube_type, solve_time_ms is not None, user_level]):
                 print("ERROR: Missing required fields for get_insight.")
-                return jsonify({"error": "Missing 'scramble', 'cubeType', 'solveTimeMs', or 'userLevel' for insight generation."}), 400
+                return jsonify({"error": "Missing 'scramble', 'cubeType', 'solveTimeMs', or 'user_level' for insight generation."}), 400
 
             # Convert solve time to seconds and format for prompt
             solve_time_seconds = solve_time_ms / 1000.0
@@ -148,18 +148,36 @@ def gemini_insight_handler():
             )
 
             # Create a deep copy of chat_history to avoid modifying the original
-            # This is crucial because `chat_history` is a mutable object passed by reference.
-            # If we modify it directly, subsequent calls with the same history might be corrupted.
             contents_for_gemini = json.loads(json.dumps(chat_history))
 
+            # --- DEBUGGING: Inspecting contents_for_gemini before modification ---
+            print(f"DEBUG: Backend - contents_for_gemini BEFORE modification: {json.dumps(contents_for_gemini, indent=2)}")
+            if contents_for_gemini:
+                print(f"DEBUG: Backend - contents_for_gemini[0]: {json.dumps(contents_for_gemini[0], indent=2)}")
+                print(f"DEBUG: Backend - contents_for_gemini[0]['role']: {contents_for_gemini[0].get('role')}")
+                if contents_for_gemini[0].get('parts'):
+                    print(f"DEBUG: Backend - contents_for_gemini[0]['parts']: {json.dumps(contents_for_gemini[0]['parts'], indent=2)}")
+                    if contents_for_gemini[0]['parts'][0].get('text') is not None:
+                        print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] (first 50 chars): {contents_for_gemini[0]['parts'][0]['text'][:50]}...")
+                    else:
+                        print("DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] is None.")
+                else:
+                    print("DEBUG: Backend - contents_for_gemini[0]['parts'] is None or empty.")
+            else:
+                print("DEBUG: Backend - contents_for_gemini is empty.")
+            # --- END DEBUGGING ---
+
             # Prepend the instructional text to the first user message in the history
-            if contents_for_gemini and contents_for_gemini[0]['role'] == 'user' and \
-               contents_for_gemini[0]['parts'] and contents_for_gemini[0]['parts'][0].get('text') is not None:
+            # This ensures the conversation history always starts with a 'user' role
+            # and the instruction is part of that first user turn.
+            if contents_for_gemini and contents_for_gemini[0].get('role') == 'user' and \
+               contents_for_gemini[0].get('parts') and contents_for_gemini[0]['parts'][0].get('text') is not None:
                 
                 contents_for_gemini[0]['parts'][0]['text'] = instructional_text + "\n\n" + contents_for_gemini[0]['parts'][0]['text']
+                print(f"DEBUG: Backend - contents_for_gemini[0]['parts'][0]['text'] AFTER modification (first 50 chars): {contents_for_gemini[0]['parts'][0]['text'][:50]}...")
             else:
                 # This case indicates a problem with the initial chat history structure from the frontend
-                print("ERROR: Initial chat history is malformed or empty, or does not start with a user role.")
+                print("ERROR: Initial chat history is malformed or empty, or does not start with a user role. Rejecting request.")
                 return jsonify({"error": "Malformed chat history received from frontend."}), 400
 
             payload = {
@@ -187,21 +205,21 @@ def gemini_insight_handler():
                                             "lessonId": {"type": "STRING"},
                                             "lessonTitle": {"type": "STRING"},
                                             "steps": {
-                                                "type": "ARRAY",
-                                                "items": {
-                                                    "type": "OBJECT",
-                                                    "properties": {
-                                                        "title": {"type": "STRING"},
-                                                        "description": {"type": "STRING"},
-                                                        "scramble": {"type": "STRING", "nullable": True},
-                                                        "algorithm": {"type": "STRING", "nullable": True},
-                                                        "explanation": {"type": "STRING"}
-                                                    },
-                                                    "required": ["title", "description", "explanation"]
-                                                },
-                                                "minItems": 3, # Ensure at least 3 steps
-                                                "maxItems": 7  # Ensure at most 7 steps
-                                            }
+                                                                "type": "ARRAY",
+                                                                "items": {
+                                                                    "type": "OBJECT",
+                                                                    "properties": {
+                                                                        "title": {"type": "STRING"},
+                                                                        "description": {"type": "STRING"},
+                                                                        "scramble": {"type": "STRING", "nullable": True},
+                                                                        "algorithm": {"type": "STRING", "nullable": True},
+                                                                        "explanation": {"type": "STRING"}
+                                                                    },
+                                                                    "required": ["title", "description", "explanation"]
+                                                                },
+                                                                "minItems": 3, # Ensure at least 3 steps
+                                                                "maxItems": 7  # Ensure at most 7 steps
+                                                            }
                                         },
                                         "required": ["lessonId", "lessonTitle", "steps"]
                                     }
