@@ -325,7 +325,7 @@ async function sendLessonChatToAI(userMessage) {
 
         } else {
             appendLessonChatMessage('jarvis', "I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
-            speakAsJarvis("I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
+            speakAsJarvis("I apologize, Sir Sevindu. I encountered an unexpected response from the system. Please try again shortly.");
             console.error("ERROR: Unexpected AI response type or missing lessonData:", result);
         }
 
@@ -621,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Assign DOM elements
     lessonTopicInput = document.getElementById('lessonTopicInput');
     startLessonChatBtn = document.getElementById('startLessonChatBtn'); // Renamed
+    console.log("[DEBUG] startLessonChatBtn element:", startLessonChatBtn); // ADDED DEBUG LOG
     lessonGenerationError = document.getElementById('lessonGenerationError');
     lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
     lessonInputSection = document.getElementById('lessonInputSection'); // Assign the input section
@@ -655,7 +656,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Add event listeners
-    if (startLessonChatBtn) startLessonChatBtn.addEventListener('click', startLessonChat);
+    if (startLessonChatBtn) {
+        startLessonChatBtn.addEventListener('click', startLessonChat);
+        console.log("[DEBUG] Click listener added to startLessonChatBtn."); // ADDED DEBUG LOG
+    } else {
+        console.error("[ERROR] startLessonChatBtn element not found!"); // ADDED ERROR LOG
+    }
 
     if (lessonChatSendBtn) lessonChatSendBtn.addEventListener('click', () => {
         const message = lessonChatInput.value.trim();
