@@ -28,12 +28,24 @@
 
         <h2 id="lessonsPageTitle" class="text-2xl font-bold text-gradient mb-4 text-center">AI Cubing Lessons ✨</h2>
 
-        <!-- Lesson Input Section -->
+        <!-- Lesson Input Section & Conversational Chat -->
         <div id="lessonInputSection" class="lesson-input-section bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg mb-6">
             <label for="lessonTopicInput" class="block text-lg font-semibold text-white mb-2">What would you like to learn today, Sir Sevindu?</label>
             <input type="text" id="lessonTopicInput" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., 'Beginner F2L', 'OLL algorithms', 'Pyraminx tips'">
-            <button id="generateLessonBtn" class="button-primary mt-4 w-full">Generate Lesson</button>
+            <button id="startLessonChatBtn" class="button-primary mt-4 w-full">Start Lesson Conversation</button>
             <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
+
+            <!-- NEW: Conversational Chat Interface (Initially Hidden) -->
+            <div id="lessonChatContainer" class="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600" style="display: none;">
+                <div id="lessonChatHistory" class="custom-scrollbar h-64 overflow-y-auto mb-4 p-2 rounded-md bg-gray-800 border border-gray-700">
+                    <!-- Chat messages will be appended here -->
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="lessonChatInput" class="flex-grow p-3 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Type your response here...">
+                    <button id="lessonChatSendBtn" class="button-primary px-4 py-2"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <p id="lessonChatStatus" class="text-sm text-gray-400 mt-2" style="display: none;">Jarvis is thinking...</p>
+            </div>
         </div>
 
         <!-- Lesson Display Area -->
