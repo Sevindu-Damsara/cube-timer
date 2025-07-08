@@ -39,6 +39,7 @@ let currentTheme = 'dark'; // Default, will be loaded from settings
 let lessonChatHistory = []; // Stores the conversation history for frontend display
 let backendChatHistory = []; // Stores the conversation history for backend (strict user/model alternation)
 let isChattingForLesson = false; // Flag to indicate if we are in a conversational phase
+let isAwaitingLessonGenerationConfirmation = false; // NEW: Flag to indicate if Jarvis is awaiting confirmation
 
 // DOM elements (declared here, assigned in DOMContentLoaded)
 let lessonTopicInput;
@@ -280,15 +281,38 @@ async function sendLessonChatToAI(userMessage) {
         return;
     }
 
-    appendLessonChatMessage('user', userMessage); // Display user message on frontend
+    // --- NEW LOGIC: Handle user's confirmation for lesson generation ---
+    if (isAwaitingLessonGenerationConfirmation) {
+        appendLessonChatMessage('user', userMessage); // Display user message (the 'yes' or 'no')
+        backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] }); // Add to backend chat history
 
-    // Add user message to backend chat history
-    backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+        if (userMessage.toLowerCase().includes('yes') || userMessage.toLowerCase().includes('confirm') || userMessage.toLowerCase().includes('proceed')) {
+            isAwaitingLessonGenerationConfirmation = false; // Reset state
+            if (lessonChatStatus) lessonChatStatus.style.display = 'block'; // Show loading for generation
+            if (lessonChatInput) lessonChatInput.disabled = true;
+            if (lessonChatSendBtn) lessonChatSendBtn.disabled = true;
+
+            // Trigger final lesson generation automatically
+            await requestFinalLessonFromAI();
+            // Clear input after processing confirmation
+            if (lessonChatInput) lessonChatInput.value = '';
+            // No need to append Jarvis's response here, as lesson will display
+            return; // Exit function early
+        } else {
+            // User did not confirm, reset state and continue chat for clarification
+            isAwaitingLessonGenerationConfirmation = false;
+            // No need to return, continue to normal AI chat request
+        }
+    } else {
+        // Normal chat flow: append user message to frontend and backend history
+        appendLessonChatMessage('user', userMessage);
+        backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+    }
 
     if (lessonChatStatus) lessonChatStatus.style.display = 'block';
     if (lessonChatInput) lessonChatInput.disabled = true;
     if (lessonChatSendBtn) lessonChatSendBtn.disabled = true;
-    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Hide generate button during chat
+    // generateLessonButton is already hidden in startLessonChat and stays hidden
 
     const userLevel = await getUserLevel(0, currentCubeType); // Get latest user level
 
@@ -350,8 +374,15 @@ async function sendLessonChatToAI(userMessage) {
             appendLessonChatMessage('jarvis', messageToDisplay); // Display Jarvis's message on frontend
             backendChatHistory.push({ role: "model", parts: [{ text: messageToDisplay }] }); // Add to backend chat history
             speakAsJarvis(messageToDisplay);
+
+            // --- NEW LOGIC: Check if Jarvis's response is a plan proposal ---
+            if (messageToDisplay.includes("I will generate a personalized and actionable multi-step lesson based on the information we've discussed.")) {
+                isAwaitingLessonGenerationConfirmation = true;
+                // Inform user that they just need to say 'yes'
+                appendLessonChatMessage('jarvis', "Please respond with 'yes' or 'confirm' to proceed with the lesson generation, Sir Sevindu.");
+                speakAsJarvis("Please respond with 'yes' or 'confirm' to proceed with the lesson generation, Sir Sevindu.");
+            }
         } else {
-            // This case should ideally not be hit if backend strictly returns chat_response
             appendLessonChatMessage('jarvis', "I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
             speakAsJarvis("I apologize, Sir Sevindu. I encountered an unexpected response from the system. Please try again shortly.");
             console.error("ERROR: Unexpected AI response type from lesson_chat endpoint:", result);
@@ -365,13 +396,17 @@ async function sendLessonChatToAI(userMessage) {
         if (lessonChatStatus) lessonChatStatus.style.display = 'none';
         if (lessonChatInput) {
             lessonChatInput.disabled = false;
-            lessonChatInput.value = ''; // Clear input
+            // Clear input only after confirmation handled or if not awaiting confirmation
+            if (!isAwaitingLessonGenerationConfirmation) {
+                lessonChatInput.value = '';
+            }
             lessonChatInput.focus();
         }
         if (lessonChatSendBtn) lessonChatSendBtn.disabled = false;
-        if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show generate button after chat turn
+        // generateLessonButton remains hidden throughout chat
     }
 }
+
 
 /**
  * Sends a request to the AI to generate the final structured lesson.
@@ -381,7 +416,7 @@ async function requestFinalLessonFromAI() {
 
     if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
     if (lessonChatContainer) lessonChatContainer.style.display = 'none'; // Hide chat during generation
-    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Hide button during generation
+    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Ensure hidden during generation
 
     const userLevel = await getUserLevel(0, currentCubeType);
 
@@ -420,7 +455,7 @@ async function requestFinalLessonFromAI() {
                 lessonGenerationError.style.display = 'block';
             }
             if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input section again
-            if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show button again
+            // generateLessonButton is not relevant here if automatically triggered
         }
 
     } catch (e) {
@@ -430,7 +465,7 @@ async function requestFinalLessonFromAI() {
             lessonGenerationError.style.display = 'block';
         }
         if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input section again
-        if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show button again
+        // generateLessonButton is not relevant here if automatically triggered
     } finally {
         if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
     }
@@ -454,6 +489,7 @@ async function displayGeneratedLesson(lessonData) {
     if (lessonDisplayArea) lessonDisplayArea.style.display = 'block';
     if (lessonInputSection) lessonInputSection.style.display = 'none'; // Hide input section and chat
     isChattingForLesson = false; // End chat mode
+    isAwaitingLessonGenerationConfirmation = false; // Ensure reset
     lessonChatHistory = []; // Clear frontend chat history
     backendChatHistory = []; // Clear backend chat history
 }
@@ -480,8 +516,7 @@ function displayLessonStep(index) {
     if (step.scramble || step.algorithm) {
         if (lessonVisualContainer) lessonVisualContainer.style.display = 'flex'; // Show container
         if (twistyPlayerLessonViewer) {
-            // FIX: Use setAttribute for puzzle property
-            twistyPlayerLessonViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(currentCubeType));
+            twistyPlayerLessonViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(currentCubeType)); // Corrected method
             // Prioritize scramble if both are present for initial view
             twistyPlayerLessonViewer.alg = step.scramble || step.algorithm || '';
             // Set the 3D viewer background directly using the hex color for the chosen theme
@@ -727,9 +762,11 @@ async function startLessonChat() {
     if (lessonTopicInput) lessonTopicInput.disabled = true;
     if (lessonChatContainer) lessonChatContainer.style.display = 'block';
     if (lessonGenerationError) lessonGenerationError.style.display = 'none';
-    if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show generate button after initial chat setup
+    // The generateLessonButton should NOT be shown during chat if automatic generation is desired
+    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Keep hidden
 
     isChattingForLesson = true;
+    isAwaitingLessonGenerationConfirmation = false; // Reset state
     lessonChatHistory = []; // Clear frontend chat history
     backendChatHistory = []; // Clear backend chat history
 
@@ -809,13 +846,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // NEW: Add event listener for the Generate Lesson button
+    // Removed the manual click listener for generateLessonButton.
+    // The generation will now be triggered automatically by user's confirmation in chat.
     if (generateLessonButton) {
-        generateLessonButton.addEventListener('click', requestFinalLessonFromAI);
-        console.log("[DEBUG] Click listener added to generateLessonButton.");
-    } else {
-        console.error("[ERROR] generateLessonButton element not found!");
+        // Ensure generateLessonButton is hidden by default in this new workflow
+        generateLessonButton.style.display = 'none';
     }
+
 
     if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', prevLessonStep);
     if (nextLessonStepBtn) nextLessonStepBtn.addEventListener('click', nextLessonStep);
