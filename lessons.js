@@ -317,21 +317,23 @@ async function sendLessonChatToAI(userMessage) {
         const result = await response.json();
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
-        // FIX: Ensure result.message is correctly parsed if it's a string containing JSON
+        // FIX: Strip markdown code block delimiters before parsing JSON
         let messageToDisplay = "My apologies, Sir Sevindu. I received an unexpected response format.";
         if (result && typeof result.message === 'string') {
+            // Remove the ```json and ``` wrapping
+            const cleanMessageString = result.message.replace(/^```json\s*|\s*```$/g, '').trim();
             try {
-                const parsedMessageContent = JSON.parse(result.message);
+                const parsedMessageContent = JSON.parse(cleanMessageString);
                 if (parsedMessageContent.type === 'chat_response' && parsedMessageContent.message) {
                     messageToDisplay = parsedMessageContent.message;
                 } else {
                     console.error("ERROR: Parsed JSON from result.message did not have expected structure:", parsedMessageContent);
                     // Fallback to displaying the raw string if parsing fails or structure is unexpected
-                    messageToDisplay = result.message;
+                    messageToDisplay = result.message; // Display original raw message including markdown
                 }
             } catch (e) {
-                console.error("ERROR: Failed to parse JSON from result.message string:", e, "Raw message:", result.message);
-                // If it's not valid JSON, treat the whole string as the message
+                console.error("ERROR: Failed to parse JSON from clean message string:", e, "Clean message:", cleanMessageString);
+                // If it's not valid JSON even after stripping, treat the original raw string as the message
                 messageToDisplay = result.message;
             }
         } else if (result && result.message) { // If it's already an object with a message field
