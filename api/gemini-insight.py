@@ -131,31 +131,36 @@ def gemini_insight_handler():
 
             # The prompt for the conversational model
             # This model needs to decide whether to continue chatting or generate the lesson
-            conversation_prompt = (
-                f"You are Jarvis, an expert Rubik's Cube instructor and AI assistant. "
-                f"You are currently having a conversation with Sir Sevindu to understand his learning needs for a lesson on '{initial_topic}' "
-                f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
-                f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
-                f"Do NOT generate the lesson until you have sufficient detail from Sir Sevindu.\n"
-                f"If you have enough information, respond with a JSON object of type 'lesson_ready' containing the full lesson data. "
-                f"Otherwise, respond with a JSON object of type 'chat_response' containing a clarifying question or conversational remark.\n\n"
-                f"Lesson structure if 'lesson_ready':\n"
-                f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
-                f"Chat response structure if 'chat_response':\n"
-                f"{{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n\n"
-                f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
-                f"The lesson should have 3 to 7 steps.\n"
-                f"Consider the full chat history to avoid asking redundant questions and to build context.\n"
-                f"Current conversation history:\n"
-            )
+            # Prepend the instructional prompt to the chat history
+            instructional_prompt = {
+                "role": "user",
+                "parts": [{
+                    "text": (
+                        f"You are Jarvis, an expert Rubik's Cube instructor and AI assistant. "
+                        f"You are currently having a conversation with Sir Sevindu to understand his learning needs for a lesson on '{initial_topic}' "
+                        f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
+                        f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
+                        f"Do NOT generate the lesson until you have sufficient detail from Sir Sevindu.\n"
+                        f"If you have enough information, respond with a JSON object of type 'lesson_ready' containing the full lesson data. "
+                        f"Otherwise, respond with a JSON object of type 'chat_response' containing a clarifying question or conversational remark.\n\n"
+                        f"Lesson structure if 'lesson_ready':\n"
+                        f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
+                        f"Chat response structure if 'chat_response':\n"
+                        f"{{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n\n"
+                        f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
+                        f"The lesson should have 3 to 7 steps.\n"
+                        f"Consider the full chat history to avoid asking redundant questions and to build context."
+                    )
+                }]
+            }
 
-            # Append the conversation history to the prompt
-            full_prompt_parts = [{"text": conversation_prompt}]
-            for msg in chat_history:
-                full_prompt_parts.append({"text": f"{msg['role']}: {msg['parts'][0]['text']}"})
+            # Construct the full contents for the Gemini API call
+            # The chat_history from the frontend is already in the correct format (array of {role, parts} objects)
+            # We prepend our instructional prompt to it.
+            full_contents = [instructional_prompt] + chat_history
 
             payload = {
-                "contents": [{"role": "user", "parts": full_prompt_parts}],
+                "contents": full_contents, # Use the correctly structured full_contents
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "responseSchema": {
@@ -342,4 +347,3 @@ def gemini_insight_handler():
 # Flask==3.*
 # requests==2.*
 # flask-cors==4.*
-
