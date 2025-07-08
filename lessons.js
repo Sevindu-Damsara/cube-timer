@@ -36,9 +36,9 @@ let completedSteps = {}; // NEW: Tracks completed steps for the current lesson {
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
 
-let lessonChatHistory = []; // Stores the conversation history for lesson generation (for frontend display)
-let backendChatHistory = []; // NEW: Stores the conversation history for backend (strict user/model alternation)
-let isChattingForLesson = false; // NEW: Flag to indicate if we are in a conversational phase
+let lessonChatHistory = []; // Stores the conversation history for frontend display
+let backendChatHistory = []; // Stores the conversation history for backend (strict user/model alternation)
+let isChattingForLesson = false; // Flag to indicate if we are in a conversational phase
 
 // DOM elements (declared here, assigned in DOMContentLoaded)
 let lessonTopicInput;
@@ -51,6 +51,7 @@ let lessonChatHistoryDiv;
 let lessonChatInput;
 let lessonChatSendBtn;
 let lessonChatStatus;
+let generateLessonButton; // NEW: Button to trigger final lesson generation
 
 let lessonDisplayArea;
 let lessonTitleDisplay;
@@ -281,17 +282,13 @@ async function sendLessonChatToAI(userMessage) {
 
     appendLessonChatMessage('user', userMessage); // Display user message on frontend
 
-    console.log("[DEBUG] lessons.js: backendChatHistory BEFORE pushing user message:", JSON.stringify(backendChatHistory, null, 2));
-
     // Add user message to backend chat history
     backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
-
-    console.log("[DEBUG] lessons.js: backendChatHistory AFTER pushing user message:", JSON.stringify(backendChatHistory, null, 2));
-
 
     if (lessonChatStatus) lessonChatStatus.style.display = 'block';
     if (lessonChatInput) lessonChatInput.disabled = true;
     if (lessonChatSendBtn) lessonChatSendBtn.disabled = true;
+    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Hide generate button during chat
 
     const userLevel = await getUserLevel(0, currentCubeType); // Get latest user level
 
@@ -302,9 +299,6 @@ async function sendLessonChatToAI(userMessage) {
         userLevel: userLevel,
         initialTopic: lessonTopicInput.value.trim() // Send initial topic for context
     };
-
-    console.log("[DEBUG] lessons.js: FULL PAYLOAD being sent to backend:", JSON.stringify(payload, null, 2));
-
 
     const apiUrl = geminiInsightFunctionUrl;
 
@@ -324,24 +318,14 @@ async function sendLessonChatToAI(userMessage) {
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
         if (result.type === 'chat_response') {
-            // FIX: Extract the message from the result object
             appendLessonChatMessage('jarvis', result.message); // Display Jarvis's message on frontend
             backendChatHistory.push({ role: "model", parts: [{ text: result.message }] }); // Add to backend chat history
             speakAsJarvis(result.message);
-        } else if (result.type === 'lesson_ready' && result.lessonData) {
-            // AI signals lesson is ready, display it
-            appendLessonChatMessage('jarvis', "Excellent. I have gathered sufficient information. Please allow me a moment to compile your personalized lesson.");
-            speakAsJarvis("Excellent. I have gathered sufficient information. Please allow me a moment to compile your personalized lesson.");
-            
-            // Give a brief moment for Jarvis's last speech to start, then transition
-            setTimeout(() => {
-                displayGeneratedLesson(result.lessonData);
-            }, 1000); // 1 second delay
-
         } else {
+            // This case should ideally not be hit if backend strictly returns chat_response
             appendLessonChatMessage('jarvis', "I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
             speakAsJarvis("I apologize, Sir Sevindu. I encountered an unexpected response from the system. Please try again shortly.");
-            console.error("ERROR: Unexpected AI response type or missing lessonData:", result);
+            console.error("ERROR: Unexpected AI response type from lesson_chat endpoint:", result);
         }
 
     } catch (e) {
@@ -356,6 +340,70 @@ async function sendLessonChatToAI(userMessage) {
             lessonChatInput.focus();
         }
         if (lessonChatSendBtn) lessonChatSendBtn.disabled = false;
+        if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show generate button after chat turn
+    }
+}
+
+/**
+ * Sends a request to the AI to generate the final structured lesson.
+ */
+async function requestFinalLessonFromAI() {
+    console.log("[DEBUG] requestFinalLessonFromAI function called.");
+
+    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
+    if (lessonChatContainer) lessonChatContainer.style.display = 'none'; // Hide chat during generation
+    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Hide button during generation
+
+    const userLevel = await getUserLevel(0, currentCubeType);
+
+    const payload = {
+        type: "generate_final_lesson", // NEW: Request type for final lesson
+        chatHistory: backendChatHistory, // Send the full conversation history
+        cubeType: currentCubeType,
+        userLevel: userLevel,
+        initialTopic: lessonTopicInput.value.trim()
+    };
+
+    const apiUrl = geminiInsightFunctionUrl;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("[DEBUG] Final Lesson Generation response:", result);
+
+        if (result.type === 'lesson_ready' && result.lessonData) {
+            displayGeneratedLesson(result.lessonData);
+        } else {
+            // Fallback if final lesson generation fails or returns unexpected type
+            console.error("ERROR: Final lesson generation failed or returned unexpected type:", result);
+            if (lessonGenerationError) {
+                lessonGenerationError.textContent = "My apologies, Sir Sevindu. I encountered an error generating the full lesson. Please try refining your topic or try again.";
+                lessonGenerationError.style.display = 'block';
+            }
+            if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input section again
+            if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show button again
+        }
+
+    } catch (e) {
+        console.error("[ERROR] Error during final lesson generation with AI:", e);
+        if (lessonGenerationError) {
+            lessonGenerationError.textContent = `My apologies, Sir Sevindu. I am experiencing a temporary communication error: ${e.message}. Please try again shortly.`;
+            lessonGenerationError.style.display = 'block';
+        }
+        if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input section again
+        if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show button again
+    } finally {
+        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
     }
 }
 
@@ -649,6 +697,7 @@ async function startLessonChat() {
     if (lessonTopicInput) lessonTopicInput.disabled = true;
     if (lessonChatContainer) lessonChatContainer.style.display = 'block';
     if (lessonGenerationError) lessonGenerationError.style.display = 'none';
+    if (generateLessonButton) generateLessonButton.style.display = 'block'; // Show generate button after initial chat setup
 
     isChattingForLesson = true;
     lessonChatHistory = []; // Clear frontend chat history
@@ -679,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lessonChatInput = document.getElementById('lessonChatInput'); // Assign chat input
     lessonChatSendBtn = document.getElementById('lessonChatSendBtn'); // Assign chat send button
     lessonChatStatus = document.getElementById('lessonChatStatus'); // Assign chat status
+    generateLessonButton = document.getElementById('generateLessonButton'); // NEW: Assign generate lesson button
 
     lessonDisplayArea = document.getElementById('lessonDisplayArea');
     lessonTitleDisplay = document.getElementById('lessonTitleDisplay');
@@ -728,6 +778,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // NEW: Add event listener for the Generate Lesson button
+    if (generateLessonButton) {
+        generateLessonButton.addEventListener('click', requestFinalLessonFromAI);
+        console.log("[DEBUG] Click listener added to generateLessonButton.");
+    } else {
+        console.error("[ERROR] generateLessonButton element not found!");
+    }
 
     if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', prevLessonStep);
     if (nextLessonStepBtn) nextLessonStepBtn.addEventListener('click', nextLessonStep);
