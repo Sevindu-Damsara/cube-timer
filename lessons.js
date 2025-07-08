@@ -39,7 +39,7 @@ let currentTheme = 'dark'; // Default, will be loaded from settings
 let lessonChatHistory = []; // Stores the conversation history for frontend display
 let backendChatHistory = []; // Stores the conversation history for backend (strict user/model alternation)
 let isChattingForLesson = false; // Flag to indicate if we are in a conversational phase
-let isAwaitingLessonGenerationConfirmation = false; // NEW: Flag to indicate if Jarvis is awaiting confirmation
+// Removed: let isAwaitingLessonGenerationConfirmation = false; // No longer needed for direct generation
 
 // DOM elements (declared here, assigned in DOMContentLoaded)
 let lessonTopicInput;
@@ -52,7 +52,7 @@ let lessonChatHistoryDiv;
 let lessonChatInput;
 let lessonChatSendBtn;
 let lessonChatStatus;
-let generateLessonButton; // NEW: Button to trigger final lesson generation
+let generateLessonButton; // This button will now remain hidden for automated flow
 
 let lessonDisplayArea;
 let lessonTitleDisplay;
@@ -281,33 +281,9 @@ async function sendLessonChatToAI(userMessage) {
         return;
     }
 
-    // --- NEW LOGIC: Handle user's confirmation for lesson generation ---
-    if (isAwaitingLessonGenerationConfirmation) {
-        appendLessonChatMessage('user', userMessage); // Display user message (the 'yes' or 'no')
-        backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] }); // Add to backend chat history
-
-        if (userMessage.toLowerCase().includes('yes') || userMessage.toLowerCase().includes('confirm') || userMessage.toLowerCase().includes('proceed')) {
-            isAwaitingLessonGenerationConfirmation = false; // Reset state
-            if (lessonChatStatus) lessonChatStatus.style.display = 'block'; // Show loading for generation
-            if (lessonChatInput) lessonChatInput.disabled = true;
-            if (lessonChatSendBtn) lessonChatSendBtn.disabled = true;
-
-            // Trigger final lesson generation automatically
-            await requestFinalLessonFromAI();
-            // Clear input after processing confirmation
-            if (lessonChatInput) lessonChatInput.value = '';
-            // No need to append Jarvis's response here, as lesson will display
-            return; // Exit function early
-        } else {
-            // User did not confirm, reset state and continue chat for clarification
-            isAwaitingLessonGenerationConfirmation = false;
-            // No need to return, continue to normal AI chat request
-        }
-    } else {
-        // Normal chat flow: append user message to frontend and backend history
-        appendLessonChatMessage('user', userMessage);
-        backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
-    }
+    // Always append user message to frontend and backend history
+    appendLessonChatMessage('user', userMessage);
+    backendChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
 
     if (lessonChatStatus) lessonChatStatus.style.display = 'block';
     if (lessonChatInput) lessonChatInput.disabled = true;
@@ -341,6 +317,19 @@ async function sendLessonChatToAI(userMessage) {
         const result = await response.json();
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
+        // --- NEW LOGIC: Directly handle lesson_ready response type ---
+        if (result.type === 'lesson_ready' && result.lessonData) {
+            console.log("[DEBUG] Received lesson_ready type. Displaying lesson.");
+            displayGeneratedLesson(result.lessonData);
+            // Clear input and re-enable, then exit as lesson is displayed
+            if (lessonChatInput) lessonChatInput.value = '';
+            if (lessonChatStatus) lessonChatStatus.style.display = 'none';
+            if (lessonChatInput) lessonChatInput.disabled = false;
+            if (lessonChatSendBtn) lessonChatSendBtn.disabled = false;
+            return;
+        }
+
+        // --- Existing logic for chat_response (if not lesson_ready) ---
         let messageToDisplay = "My apologies, Sir Sevindu. I received an unexpected response format.";
         if (result && typeof result.message === 'string') {
             const messageString = result.message;
@@ -374,14 +363,8 @@ async function sendLessonChatToAI(userMessage) {
             appendLessonChatMessage('jarvis', messageToDisplay); // Display Jarvis's message on frontend
             backendChatHistory.push({ role: "model", parts: [{ text: messageToDisplay }] }); // Add to backend chat history
             speakAsJarvis(messageToDisplay);
-
-            // --- NEW LOGIC: Check if Jarvis's response is a plan proposal ---
-            if (messageToDisplay.includes("I will generate a personalized and actionable multi-step lesson based on the information we've discussed.")) {
-                isAwaitingLessonGenerationConfirmation = true;
-                // Inform user that they just need to say 'yes'
-                appendLessonChatMessage('jarvis', "Please respond with 'yes' or 'confirm' to proceed with the lesson generation, Sir Sevindu.");
-                speakAsJarvis("Please respond with 'yes' or 'confirm' to proceed with the lesson generation, Sir Sevindu.");
-            }
+            // No longer checking for specific phrase to set isAwaitingLessonGenerationConfirmation
+            // The AI should now send lesson_ready directly when appropriate.
         } else {
             appendLessonChatMessage('jarvis', "I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
             speakAsJarvis("I apologize, Sir Sevindu. I encountered an unexpected response from the system. Please try again shortly.");
@@ -396,10 +379,7 @@ async function sendLessonChatToAI(userMessage) {
         if (lessonChatStatus) lessonChatStatus.style.display = 'none';
         if (lessonChatInput) {
             lessonChatInput.disabled = false;
-            // Clear input only after confirmation handled or if not awaiting confirmation
-            if (!isAwaitingLessonGenerationConfirmation) {
-                lessonChatInput.value = '';
-            }
+            lessonChatInput.value = ''; // Clear input
             lessonChatInput.focus();
         }
         if (lessonChatSendBtn) lessonChatSendBtn.disabled = false;
@@ -410,65 +390,23 @@ async function sendLessonChatToAI(userMessage) {
 
 /**
  * Sends a request to the AI to generate the final structured lesson.
+ * This function is now primarily called internally by sendLessonChatToAI
+ * when a 'lesson_ready' response is detected.
  */
 async function requestFinalLessonFromAI() {
-    console.log("[DEBUG] requestFinalLessonFromAI function called.");
-
-    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'block';
-    if (lessonChatContainer) lessonChatContainer.style.display = 'none'; // Hide chat during generation
-    if (generateLessonButton) generateLessonButton.style.display = 'none'; // Ensure hidden during generation
-
-    const userLevel = await getUserLevel(0, currentCubeType);
-
-    const payload = {
-        type: "generate_final_lesson", // NEW: Request type for final lesson
-        chatHistory: backendChatHistory, // Send the full conversation history
-        cubeType: currentCubeType,
-        userLevel: userLevel,
-        initialTopic: lessonTopicInput.value.trim()
-    };
-
-    const apiUrl = geminiInsightFunctionUrl;
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Cloud Function error: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log("[DEBUG] Final Lesson Generation response:", result);
-
-        if (result.type === 'lesson_ready' && result.lessonData) {
-            displayGeneratedLesson(result.lessonData);
-        } else {
-            // Fallback if final lesson generation fails or returns unexpected type
-            console.error("ERROR: Final lesson generation failed or returned unexpected type:", result);
-            if (lessonGenerationError) {
-                lessonGenerationError.textContent = "My apologies, Sir Sevindu. I encountered an error generating the full lesson. Please try refining your topic or try again.";
-                lessonGenerationError.style.display = 'block';
-            }
-            if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input section again
-            // generateLessonButton is not relevant here if automatically triggered
-        }
-
-    } catch (e) {
-        console.error("[ERROR] Error during final lesson generation with AI:", e);
-        if (lessonGenerationError) {
-            lessonGenerationError.textContent = `My apologies, Sir Sevindu. I am experiencing a temporary communication error: ${e.message}. Please try again shortly.`;
-            lessonGenerationError.style.display = 'block';
-        }
-        if (lessonInputSection) lessonInputSection.style.display = 'block'; // Show input section again
-        // generateLessonButton is not relevant here if automatically triggered
-    } finally {
-        if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+    // This function is now effectively deprecated by the new lesson_chat behavior
+    // The lesson_chat endpoint directly returns lesson_ready when the plan is ready.
+    console.warn("WARNING: requestFinalLessonFromAI was called. This function is now deprecated. The lesson should be generated directly by 'lesson_chat' endpoint.");
+    // For robustness, if it's somehow still called, we can re-trigger the chat with a message
+    // or simply do nothing, assuming the lesson is already being handled by displayGeneratedLesson.
+    // Given the new flow, this branch should ideally not be reachable for actual generation.
+    if (lessonGenerationError) {
+        lessonGenerationError.textContent = "My apologies, Sir Sevindu. An unexpected internal call occurred. The lesson should have been generated automatically. Please try initiating the lesson conversation again.";
+        lessonGenerationError.style.display = 'block';
     }
+    if (lessonLoadingSpinner) lessonLoadingSpinner.style.display = 'none';
+    if (lessonChatContainer) lessonChatContainer.style.display = 'block';
+    if (lessonInputSection) lessonInputSection.style.display = 'block';
 }
 
 
@@ -489,7 +427,7 @@ async function displayGeneratedLesson(lessonData) {
     if (lessonDisplayArea) lessonDisplayArea.style.display = 'block';
     if (lessonInputSection) lessonInputSection.style.display = 'none'; // Hide input section and chat
     isChattingForLesson = false; // End chat mode
-    isAwaitingLessonGenerationConfirmation = false; // Ensure reset
+    // Removed: isAwaitingLessonGenerationConfirmation = false; // No longer needed
     lessonChatHistory = []; // Clear frontend chat history
     backendChatHistory = []; // Clear backend chat history
 }
@@ -766,7 +704,7 @@ async function startLessonChat() {
     if (generateLessonButton) generateLessonButton.style.display = 'none'; // Keep hidden
 
     isChattingForLesson = true;
-    isAwaitingLessonGenerationConfirmation = false; // Reset state
+    // Removed: isAwaitingLessonGenerationConfirmation = false; // No longer needed
     lessonChatHistory = []; // Clear frontend chat history
     backendChatHistory = []; // Clear backend chat history
 
@@ -846,11 +784,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Removed the manual click listener for generateLessonButton.
-    // The generation will now be triggered automatically by user's confirmation in chat.
+    // The generateLessonButton should NOT be shown during chat if automatic generation is desired
     if (generateLessonButton) {
-        // Ensure generateLessonButton is hidden by default in this new workflow
-        generateLessonButton.style.display = 'none';
+        generateLessonButton.style.display = 'none'; // Keep hidden
     }
 
 
@@ -882,17 +818,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex]) {
-            const step = currentLesson.steps[currentLessonStepIndex];
-            if (step.algorithm) {
-                twistyPlayerLessonViewer.alg = step.algorithm; // Apply the algorithm
-                twistyPlayerLessonViewer.play(); // Play the algorithm animation
-            } else {
-                speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific algorithm to demonstrate the solve.");
-            }
-        }
-    });
-
-
-    // Initialize Firebase and load settings when the DOM is ready
-    initializeLessonsPage();
-});
+            const step = currentLesson.steps[currentC
