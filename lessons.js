@@ -317,15 +317,17 @@ async function sendLessonChatToAI(userMessage) {
         const result = await response.json();
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
-        // FIX: Check if result.message exists and parse it if it's a string
+        // FIX: Ensure result.message is correctly parsed if it's a string containing JSON
         let messageToDisplay = "My apologies, Sir Sevindu. I received an unexpected response format.";
         if (result && typeof result.message === 'string') {
             try {
-                const parsedResult = JSON.parse(result.message);
-                if (parsedResult.type === 'chat_response' && parsedResult.message) {
-                    messageToDisplay = parsedResult.message;
+                const parsedMessageContent = JSON.parse(result.message);
+                if (parsedMessageContent.type === 'chat_response' && parsedMessageContent.message) {
+                    messageToDisplay = parsedMessageContent.message;
                 } else {
-                    console.error("ERROR: Parsed JSON from result.message did not have expected structure:", parsedResult);
+                    console.error("ERROR: Parsed JSON from result.message did not have expected structure:", parsedMessageContent);
+                    // Fallback to displaying the raw string if parsing fails or structure is unexpected
+                    messageToDisplay = result.message;
                 }
             } catch (e) {
                 console.error("ERROR: Failed to parse JSON from result.message string:", e, "Raw message:", result.message);
