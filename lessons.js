@@ -317,10 +317,30 @@ async function sendLessonChatToAI(userMessage) {
         const result = await response.json();
         console.log("[DEBUG] AI Lesson Chat response:", result);
 
+        // FIX: Check if result.message exists and parse it if it's a string
+        let messageToDisplay = "My apologies, Sir Sevindu. I received an unexpected response format.";
+        if (result && typeof result.message === 'string') {
+            try {
+                const parsedResult = JSON.parse(result.message);
+                if (parsedResult.type === 'chat_response' && parsedResult.message) {
+                    messageToDisplay = parsedResult.message;
+                } else {
+                    console.error("ERROR: Parsed JSON from result.message did not have expected structure:", parsedResult);
+                }
+            } catch (e) {
+                console.error("ERROR: Failed to parse JSON from result.message string:", e, "Raw message:", result.message);
+                // If it's not valid JSON, treat the whole string as the message
+                messageToDisplay = result.message;
+            }
+        } else if (result && result.message) { // If it's already an object with a message field
+            messageToDisplay = result.message;
+        }
+
+
         if (result.type === 'chat_response') {
-            appendLessonChatMessage('jarvis', result.message); // Display Jarvis's message on frontend
-            backendChatHistory.push({ role: "model", parts: [{ text: result.message }] }); // Add to backend chat history
-            speakAsJarvis(result.message);
+            appendLessonChatMessage('jarvis', messageToDisplay); // Display Jarvis's message on frontend
+            backendChatHistory.push({ role: "model", parts: [{ text: messageToDisplay }] }); // Add to backend chat history
+            speakAsJarvis(messageToDisplay);
         } else {
             // This case should ideally not be hit if backend strictly returns chat_response
             appendLessonChatMessage('jarvis', "I apologize, Sir Sevindu. I encountered an unexpected response from the system. Could you please rephrase your request?");
