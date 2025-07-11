@@ -482,7 +482,7 @@ async function displayGeneratedLesson(lessonData) {
  * Displays a specific step of the current lesson.
  * @param {number} index - The index of the lesson step to display.
  */
-function displayLessonStep(index) {
+async function displayLessonStep(index) { // Made async to await twisty-player readiness
     if (!currentLesson || !currentLesson.steps || index < 0 || index >= currentLesson.steps.length) {
         console.error("[ERROR] Attempted to display invalid lesson step index or no lesson loaded.");
         return;
@@ -499,10 +499,11 @@ function displayLessonStep(index) {
     if (step.scramble || step.algorithm) {
         if (lessonVisualContainer) lessonVisualContainer.style.display = 'flex'; // Show container
         if (twistyPlayerLessonViewer) {
-            twistyPlayerLessonViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(currentCubeType)); // Corrected method
-            // Prioritize scramble if both are present for initial view
-            twistyPlayerLessonViewer.alg = step.scramble || step.algorithm || '';
-            // Set the 3D viewer background directly using the hex color for the chosen theme
+            // Ensure twisty-player is ready before interacting
+            await twistyPlayerLessonViewer.ready(); // CRITICAL: Wait for the component to be ready
+
+            twistyPlayerLessonViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(currentCubeType));
+            twistyPlayerLessonViewer.alg = step.scramble || step.algorithm || ''; // Set the algorithm/scramble
             twistyPlayerLessonViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
             twistyPlayerLessonViewer.jumpToStart(); // Reset view for new step
             console.log(`[DEBUG] Twisty-player updated: Puzzle=${twistyPlayerLessonViewer.getAttribute('puzzle')}, Alg=${twistyPlayerLessonViewer.alg}`);
@@ -515,7 +516,10 @@ function displayLessonStep(index) {
         if (lessonSolveCubeBtn) lessonSolveCubeBtn.style.display = 'inline-block';
     } else {
         if (lessonVisualContainer) lessonVisualContainer.style.display = 'none'; // Hide container if no visual
-        if (twistyPlayerLessonViewer) twistyPlayerLessonViewer.alg = ''; // Clear previous alg
+        if (twistyPlayerLessonViewer) {
+            await twistyPlayerLessonViewer.ready(); // Still await to ensure it's ready before clearing
+            twistyPlayerLessonViewer.alg = ''; // Clear previous alg
+        }
         // Hide twisty-player controls
         if (lessonPlayBtn) lessonPlayBtn.style.display = 'none';
         if (lessonPauseBtn) lessonPauseBtn.style.display = 'none';
@@ -850,8 +854,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lessonResetViewBtn) lessonResetViewBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer) twistyPlayerLessonViewer.jumpToStart();
     });
-    if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.addEventListener('click', () => {
+    if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.addEventListener('click', async () => { // Made async
         if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex]) {
+            await twistyPlayerLessonViewer.ready(); // Ensure ready
             const step = currentLesson.steps[currentLessonStepIndex];
             if (step.scramble) {
                 twistyPlayerLessonViewer.alg = step.scramble; // Apply the scramble
@@ -861,8 +866,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', () => {
+    if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', async () => { // Made async
         if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex]) {
+            await twistyPlayerLessonViewer.ready(); // Ensure ready
             const step = currentLesson.steps[currentLessonStepIndex];
             if (step.algorithm) {
                 twistyPlayerLessonViewer.alg = step.algorithm; // Apply the algorithm
