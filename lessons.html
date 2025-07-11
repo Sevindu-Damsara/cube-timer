@@ -26,60 +26,60 @@
             </a>
         </div>
 
-        <h2 id="lessonsPageTitle" class="text-2xl font-bold text-gradient mb-4 text-center">AI Cubing Lessons ✨</h2>
+        <h2 id="lessonPageTitle" class="text-3xl font-bold text-gradient mb-6 text-center">AI Cubing Lessons</h2>
 
-        <!-- Lesson Input Section & Conversational Chat -->
-        <div id="lessonInputSection" class="lesson-input-section bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg mb-6">
-            <label for="lessonTopicInput" class="block text-lg font-semibold text-white mb-2">What would you like to learn today, Sir Sevindu?</label>
-            <input type="text" id="lessonTopicInput" class="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., 'Beginner F2L', 'OLL algorithms', 'Pyraminx tips'">
+        <!-- Lesson Input Section -->
+        <div id="lessonInputSection" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8">
+            <h3 class="text-xl font-semibold text-white mb-4">Start a New Lesson</h3>
+            <div class="mb-4">
+                <label for="lessonTopicInput" class="block text-gray-300 text-sm font-bold mb-2">Lesson Topic:</label>
+                <input type="text" id="lessonTopicInput" placeholder="e.g., F2L, OLL, PLL, specific algorithms" class="input-field">
+            </div>
             <button id="startLessonChatBtn" class="button-primary mt-4 w-full">Start Lesson Conversation</button>
             <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
-
-            <!-- NEW: Conversational Chat Interface (Initially Hidden) -->
-            <div id="lessonChatContainer" class="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600" style="display: none;">
-                <div id="lessonChatHistory" class="custom-scrollbar h-64 overflow-y-auto mb-4 p-2 rounded-md bg-gray-800 border border-gray-700">
-                    <!-- Chat messages will be appended here -->
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" id="lessonChatInput" class="flex-grow p-3 rounded-md bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Type your response here...">
-                    <button id="lessonChatSendBtn" class="button-primary px-4 py-2"><i class="fas fa-paper-plane"></i></button>
-                </div>
-                <p id="lessonChatStatus" class="text-sm text-gray-400 mt-2" style="display: none;">Jarvis is thinking...</p>
-            </div>
-            <!-- NEW: Generate Lesson Button (Initially Hidden) -->
-            <button id="generateLessonButton" class="button-primary mt-4 w-full" style="display: none;">
-                <i class="fas fa-book-open mr-2"></i> Generate My Lesson
-            </button>
         </div>
 
-        <!-- Lesson Display Area -->
-        <div id="lessonDisplayArea" class="lesson-display-area" style="display: none;">
-            <h3 id="lessonTitleDisplay" class="text-xl font-bold text-gradient mb-4 text-center"></h3>
-            <!-- Overall Lesson Progress Bar (NEW) -->
-            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-4">
-                <div id="lessonProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: 0%;"></div>
+        <!-- Lesson Chat Container (Initially hidden) -->
+        <div id="lessonChatContainer" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8" style="display: none;">
+            <h3 class="text-xl font-semibold text-white mb-4">Lesson Conversation with Jarvis</h3>
+            <div id="lessonChatHistory" class="chat-history-box bg-gray-900 p-4 rounded-md mb-4 overflow-y-auto h-64">
+                <!-- Chat messages will be appended here -->
             </div>
-            <div id="lessonStepsContainer">
+            <div class="flex gap-2">
+                <input type="text" id="lessonChatInput" placeholder="Type your response..." class="input-field flex-grow">
+                <button id="lessonChatSendBtn" class="button-primary">Send</button>
+            </div>
+            <p id="lessonChatStatus" class="text-gray-400 text-sm mt-2" style="display: none;">Jarvis is thinking...</p>
+        </div>
+
+        <!-- Lesson Display Area (Initially hidden) -->
+        <div id="lessonDisplayArea" class="lesson-display-area bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-4xl mx-auto" style="display: none;">
+            <h3 id="lessonTitleDisplay" class="text-2xl font-bold text-gradient mb-4 text-center"></h3>
+
+            <!-- Lesson Progress Bar -->
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
+                <div id="lessonProgressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%;"></div>
+            </div>
+
+            <div id="lessonStepsContainer" class="space-y-6">
                 <!-- Lesson steps will be dynamically loaded here -->
                 <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
                     <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
                     <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
-                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center" style="display: none;">
-                        <twisty-player id="twistyPlayerLessonViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
-                        <!-- NEW: Twisty-player controls -->
-                        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                            <button id="lessonPlayBtn" class="button-preview-control" aria-label="Play 3D animation"><i class="fas fa-play"></i></button>
-                            <button id="lessonPauseBtn" class="button-preview-control" aria-label="Pause 3D animation"><i class="fas fa-pause"></i></button>
-                            <button id="lessonResetViewBtn" class="button-preview-control" aria-label="Reset 3D view"><i class="fas fa-redo"></i></button>
-                            <button id="lessonScrambleCubeBtn" class="button-preview-control" aria-label="Scramble Cube"><i class="fas fa-random"></i></button>
-                            <button id="lessonSolveCubeBtn" class="button-preview-control" aria-label="Solve Cube"><i class="fas fa-check-double"></i></button>
+                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center relative" style="display: none;">
+                        <!-- twisty-player will be inserted here dynamically -->
+                        <twisty-player id="twistyPlayerLessonViewer" class="w-full h-full" background="none"></twisty-player>
+                        <!-- Twisty-player Controls -->
+                        <div class="twisty-player-controls absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2 bg-gray-900 bg-opacity-75 p-2 rounded-lg shadow-md">
+                            <button id="lessonPlayBtn" class="button-icon" title="Play Animation" style="display: none;"><i class="fas fa-play"></i></button>
+                            <button id="lessonPauseBtn" class="button-icon" title="Pause Animation" style="display: none;"><i class="fas fa-pause"></i></button>
+                            <button id="lessonResetViewBtn" class="button-icon" title="Reset View" style="display: none;"><i class="fas fa-redo"></i></button>
+                            <button id="lessonScrambleCubeBtn" class="button-icon" title="Scramble Cube" style="display: none;"><i class="fas fa-random"></i></button>
+                            <button id="lessonSolveCubeBtn" class="button-icon" title="Solve Cube" style="display: none;"><i class="fas fa-cube"></i></button>
                         </div>
                     </div>
                     <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
-                    <!-- NEW: Mark as Complete Button -->
-                    <button id="markStepCompleteBtn" class="button-secondary mt-4 w-full" style="display: none;">
-                        <i class="fas fa-check-circle mr-2"></i> Mark Step Complete
-                    </button>
+                    <button id="markStepCompleteBtn" class="button-secondary mt-4 w-full" style="display: none;">Mark Step Complete</button>
                 </div>
             </div>
 
@@ -88,11 +88,9 @@
                 <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
                 <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
             </div>
-            <!-- NEW: Complete Lesson Button -->
-            <button id="completeLessonBtn" class="button-primary mt-6 w-full" style="display: none;">
-                <i class="fas fa-trophy mr-2"></i> Complete Lesson
-            </button>
-            <p id="lessonCompletionMessage" class="text-green-400 text-center mt-4" style="display: none;"></p>
+
+            <button id="completeLessonBtn" class="button-primary mt-6 w-full" style="display: none;">Complete Lesson</button>
+            <p id="lessonCompletionMessage" class="text-green-400 text-center mt-4 text-lg font-semibold" style="display: none;"></p>
         </div>
 
         <div id="lessonLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
@@ -103,3 +101,4 @@
 </body>
 
 </html>
+
