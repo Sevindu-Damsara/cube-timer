@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Cubing Lessons - Cubically AI Edition</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tone.js for sound effects (if lessons page needs it for any reason) -->
+    <!-- Tone.js for sound effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-    <!-- Cubing.js for 3D scramble visualization -->
+    <!-- Cubing.js for 3D scramble visualization - Using the recommended twisty player module -->
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="style.css">
@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<body class="theme-dark"> <!-- Theme class will be applied by lessons.js -->
+<body class="theme-dark"> <!-- Set default theme class here, will be overridden by lessons.js -->
     <div class="lessons-page-container">
         <!-- Back to Timer Button -->
         <div class="flex justify-start mb-4">
@@ -28,7 +28,7 @@
 
         <h2 id="lessonPageTitle" class="text-3xl font-bold text-gradient mb-6 text-center">AI Cubing Lessons</h2>
 
-        <!-- Lesson Input Section -->
+        <!-- Lesson Input Section (Initially visible) -->
         <div id="lessonInputSection" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8">
             <h3 class="text-xl font-semibold text-white mb-4">Start a New Lesson</h3>
             <div class="mb-4">
@@ -42,7 +42,7 @@
         <!-- Lesson Chat Container (Initially hidden) -->
         <div id="lessonChatContainer" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8" style="display: none;">
             <h3 class="text-xl font-semibold text-white mb-4">Lesson Conversation with Jarvis</h3>
-            <div id="lessonChatHistory" class="chat-history-box bg-gray-900 p-4 rounded-md mb-4 overflow-y-auto h-64">
+            <div id="lessonChatHistory" class="chat-history-box bg-gray-900 p-4 rounded-md mb-4 overflow-y-auto h-64 custom-scrollbar">
                 <!-- Chat messages will be appended here -->
             </div>
             <div class="flex gap-2">
@@ -66,16 +66,16 @@
                 <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
                     <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
                     <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
-                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full h-64 bg-gray-800 rounded-md overflow-hidden flex items-center justify-center relative" style="display: none;">
+                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full bg-gray-800 rounded-md overflow-hidden flex items-center justify-center relative" style="display: none;">
                         <!-- twisty-player will be inserted here dynamically -->
                         <twisty-player id="twistyPlayerLessonViewer" class="w-full h-full" background="none"></twisty-player>
                         <!-- Twisty-player Controls -->
                         <div class="twisty-player-controls absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2 bg-gray-900 bg-opacity-75 p-2 rounded-lg shadow-md">
-                            <button id="lessonPlayBtn" class="button-icon" title="Play Animation" style="display: none;"><i class="fas fa-play"></i></button>
+                            <button id="lessonPlayBtn" class="button-icon" title="Play Animation"><i class="fas fa-play"></i></button>
                             <button id="lessonPauseBtn" class="button-icon" title="Pause Animation" style="display: none;"><i class="fas fa-pause"></i></button>
-                            <button id="lessonResetViewBtn" class="button-icon" title="Reset View" style="display: none;"><i class="fas fa-redo"></i></button>
-                            <button id="lessonScrambleCubeBtn" class="button-icon" title="Scramble Cube" style="display: none;"><i class="fas fa-random"></i></button>
-                            <button id="lessonSolveCubeBtn" class="button-icon" title="Solve Cube" style="display: none;"><i class="fas fa-cube"></i></button>
+                            <button id="lessonResetViewBtn" class="button-icon" title="Reset View"><i class="fas fa-redo"></i></button>
+                            <button id="lessonScrambleCubeBtn" class="button-icon" title="Scramble Cube"><i class="fas fa-random"></i></button>
+                            <button id="lessonSolveCubeBtn" class="button-icon" title="Solve Cube"><i class="fas fa-cube"></i></button>
                         </div>
                     </div>
                     <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
@@ -101,4 +101,3 @@
 </body>
 
 </html>
-
