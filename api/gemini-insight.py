@@ -209,32 +209,28 @@ def gemini_insight_handler():
                 return jsonify({"error": "Missing 'chatHistory', 'cubeType', 'userLevel', or 'initialTopic' for final lesson generation."}), 400
 
             # The prompt for generating the full lesson based on the conversation
-            lesson_generation_prompt = (
-                f"You are Jarvis, an expert Rubik's Cube instructor. Based on the following conversation with Sir Sevindu "
+            final_instruction_prompt = (
+                f"You are Jarvis, an expert Rubik's Cube instructor. Based on the preceding conversation with Sir Sevindu "
                 f"regarding a lesson on '{initial_topic}' for a {cube_type} cube (his skill level is '{user_level}'), "
                 f"please generate a highly personalized and actionable multi-step lesson. "
                 f"The lesson should have between 3 and 7 steps.\n"
-                f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n\n"
-                f"Conversation History:\n"
-            )
-            for turn in chat_history:
-                role = "Sir Sevindu" if turn['role'] == 'user' else "Jarvis"
-                for part in turn['parts']:
-                    if part.get('text'):
-                        # Remove the LESSON_PLAN_PROPOSAL_READY marker from history sent to final generator
-                        text_to_add = part['text'].replace('[LESSON_PLAN_PROPOSAL_READY]', '').strip()
-                        if text_to_add: # Only add if not empty after stripping
-                            lesson_generation_prompt += f"{role}: {text_to_add}\n"
-            
-            lesson_generation_prompt += (
-                f"\nNow, generate the lesson as a JSON object with the following structure:\n"
+                f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n"
+                f"Provide the lesson as a JSON object with the following structure:\n"
                 f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
                 f"Ensure 'lessonId' is a valid UUID. The 'scramble' and 'algorithm' fields are optional and can be null if not applicable to a step."
             )
 
-            # The contents for Gemini API will be just this single, comprehensive prompt
+            # Construct contents for Gemini API: prepend the final instruction to the chat history
+            # Remove the LESSON_PLAN_PROPOSAL_READY marker from the last model message if present
+            contents_for_gemini = json.loads(json.dumps(chat_history)) # Deep copy
+            if contents_for_gemini and contents_for_gemini[-1].get('role') == 'model' and \
+               contents_for_gemini[-1].get('parts') and contents_for_gemini[-1]['parts'][0].get('text'):
+                contents_for_gemini[-1]['parts'][0]['text'] = contents_for_gemini[-1]['parts'][0]['text'].replace('[LESSON_PLAN_PROPOSAL_READY]', '').strip()
+            
+            contents_for_gemini.append({"role": "user", "parts": [{"text": final_instruction_prompt}]})
+
             payload = {
-                "contents": [{"role": "user", "parts": [{"text": lesson_generation_prompt}]}],
+                "contents": contents_for_gemini, # Send the full chat history + final instruction
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "responseSchema": {
