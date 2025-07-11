@@ -31,7 +31,7 @@ body {
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-    /* NEW Theme variables for light and vibrant */
+    /* NEW Theme variables for light and vibrant (from user's provided block) */
     --button-secondary-bg: #475569;
     --button-secondary-text: #e2e8f0;
     --button-secondary-hover-bg: #64748b;
@@ -40,6 +40,23 @@ body {
     --scramble-color: #a78bfa;
     --stats-value-color: #67e8f9;
     --solve-time-color: #a78bfa;
+}
+
+/* Theme specific variables */
+body.theme-dark {
+    --bg-color-primary: #0f172a;
+    --text-color-primary: #e2e8f0;
+    --bg-color-secondary: #1e293b;
+    --button-secondary-bg: #475569;
+    --button-secondary-text: #e2e8f0;
+    --button-secondary-hover-bg: #64748b;
+    --card-bg: #334155;
+    --border-color: #334155;
+    --input-bg: #1e293b; /* ADDED for consistency */
+    --input-text: #e2e8f0; /* ADDED for consistency */
+    --input-border: #475569; /* ADDED for consistency */
+    --input-focus-border: #3b82f6; /* ADDED for consistency */
+    --chat-bg: #0f172a; /* ADDED for consistency */
 }
 
 /* Light theme - Fully upgraded for a pristine, modern look */
@@ -57,6 +74,11 @@ body.theme-light {
     --solve-time-color: #0056b3; /* Deep blue for solve times */
     --border-color: #f1f3f5; /* Extremely subtle light gray border */
     --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
+    --input-bg: #ffffff; /* ADDED for consistency */
+    --input-text: #1a202c; /* ADDED for consistency */
+    --input-border: #cbd5e1; /* ADDED for consistency */
+    --input-focus-border: #3b82f6; /* ADDED for consistency */
+    --chat-bg: #f8fafc; /* ADDED for consistency */
 }
 
 /* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
@@ -74,9 +96,15 @@ body.theme-vibrant {
     --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
     --border-color: #4a148c; /* More distinct, yet harmonious purple border */
     --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
+    --input-bg: #3a0c6a; /* ADDED for consistency */
+    --input-text: #e0f2fe; /* ADDED for consistency */
+    --input-border: #7b2cbf; /* ADDED for consistency */
+    --input-focus-border: #8b5cf6; /* ADDED for consistency */
+    --chat-bg: #220844; /* ADDED for consistency */
 }
 
-/* NEW: Main Layout for Sidebar and Content */
+
+/* NEW: Main Layout for Sidebar and Content (from user's provided block) */
 .main-layout {
     display: flex;
     width: 100%;
@@ -85,7 +113,7 @@ body.theme-vibrant {
     margin: 0;
 }
 
-/* NEW: Sidebar Styling */
+/* NEW: Sidebar Styling (from user's provided block) */
 .sidebar {
     width: 80px; /* Retracted width */
     background-color: var(--bg-color-secondary);
@@ -152,7 +180,7 @@ body.theme-vibrant {
     opacity: 1;
 }
 
-/* NEW: Content Area Styling */
+/* NEW: Content Area Styling (from user's provided block) */
 .content-area {
     flex-grow: 1; /* Take remaining space */
     display: flex;
@@ -181,7 +209,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Authentication buttons in the corner */
+/* Authentication buttons in the corner (from user's provided block) */
 .auth-corner-buttons {
     position: absolute;
     top: 1.5rem;
@@ -262,7 +290,7 @@ body.theme-vibrant {
     box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
-/* NEW: Styling for preview control buttons to make them colorful */
+/* NEW: Styling for preview control buttons to make them colorful (from user's provided block) */
 .button-preview-control {
     background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
     color: white;
@@ -311,7 +339,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* 3D Cube Container Styling */
+/* 3D Cube Container Styling (from user's provided block) */
 #cube3DContainer {
     background-color: var(--bg-color-primary);
     border-radius: 0.75rem;
@@ -328,7 +356,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Twisty player needs a height */
+/* Twisty player needs a height (from user's provided block) */
 #scramble3DViewer {
     height: calc(100% - 60px);
     width: 100%;
@@ -439,7 +467,7 @@ body.theme-vibrant {
     background-color: #45a049;
 }
 
-/* Voice Command Button Styling (fixed position) */
+/* Voice Command Button Styling (fixed position) (from user's provided block) */
 #voiceCommandBtn, #openChatBtn {
     background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
     color: white;
@@ -526,7 +554,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Specifically for AI Insight Modal to take more width on desktop */
+/* Specifically for AI Insight Modal to take more width on desktop (from user's provided block) */
 #aiInsightModal .modal-content {
     max-width: 700px;
     color: var(--text-color-primary); /* Ensure text color is theme-aware */
@@ -536,7 +564,7 @@ body.theme-vibrant {
     background-color: var(--card-bg);
 }
 
-/* AI Insight Modal specific styling for Light Theme */
+/* AI Insight Modal specific styling for Light Theme (from user's provided block) */
 body.theme-light #aiInsightModal .modal-content {
     background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
     color: var(--text-color-primary); /* Ensure text is dark */
@@ -544,7 +572,7 @@ body.theme-light #aiInsightModal .modal-content {
     box-shadow: var(--box-shadow);
 }
 
-/* AI Insight Modal specific styling for Vibrant Theme */
+/* AI Insight Modal specific styling for Vibrant Theme (from user's provided block) */
 body.theme-vibrant #aiInsightModal .modal-content {
     background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
     color: var(--text-color-primary); /* Ensure text is light */
@@ -570,7 +598,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     -webkit-text-fill-color: transparent;
 }
 
-/* NEW: Voice Feedback Display Styling - Moved to bottom center */
+/* NEW: Voice Feedback Display Styling - Moved to bottom center (from previous working version) */
 .voice-feedback-display {
     position: fixed;
     bottom: 5%; /* Position from the bottom */
@@ -606,7 +634,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
-/* Listening Indicator Dots */
+/* Listening Indicator Dots (from previous working version) */
 .listening-indicator {
     display: flex;
     gap: 8px; /* Larger gap between dots */
@@ -642,7 +670,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) (from previous working version) */
 .voice-feedback-display.speaking .listening-indicator .dot {
     background-color: var(--accent-color-blue); /* Different color when speaking */
     animation: pulse-dot 1s infinite ease-in-out;
@@ -663,7 +691,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* NEW: Chat Modal Styling */
+/* NEW: Chat Modal Styling (from previous working version) */
 #chatModal .modal-content {
     max-width: 450px; /* Slightly wider for chat */
     max-height: 80vh; /* Controlled height */
@@ -747,7 +775,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-size: 1rem;
 }
 
-/* Custom Scrollbar for chat history */
+/* Custom Scrollbar for chat history (from previous working version) */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
 }
@@ -766,7 +794,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Lessons Page/Modal Styling (moved from index.html) */
+/* NEW: Lessons Page/Modal Styling (from user's provided block, adjusted for consistency) */
 .lessons-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
     border: 1px solid #334155;
@@ -774,26 +802,27 @@ body.theme-vibrant #aiInsightModal .modal-content {
     max-width: 800px; /* Wider for lessons */
     width: 90%;
     padding: 2rem;
-    border-radius: 1rem;
+    border-radius: 1rem; /* User's preferred radius */
     margin: 20px auto; /* Center the container on the page */
     color: var(--text-color-primary);
+    display: flex; /* Ensure flex for internal layout */
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center children horizontally */
 }
 
-.lesson-input-section { /* New style for the input area */
-    background-color: var(--card-bg); /* Use card background for consistency */
-    padding: 1.5rem;
-    border-radius: 0.75rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    margin-bottom: 1.5rem;
+.lessons-page-container .button-secondary {
+    align-self: flex-start; /* Align back button to start */
 }
 
-.lesson-display-area { /* Container for the lesson steps once generated */
-    background-color: var(--bg-color-secondary);
-    padding: 1.5rem;
-    border-radius: 1rem;
-    border: 1px solid var(--border-color);
+.lesson-input-section, .lesson-chat-container, .lesson-display-area {
+    width: 100%;
+    max-width: 700px; /* Max width for these sections */
+    margin-bottom: 1.5rem; /* Consistent margin-bottom */
+    background-color: var(--card-bg); /* Use card background for these sections */
+    padding: 1.5rem; /* Consistent padding */
+    border-radius: 0.75rem; /* User's preferred radius */
     box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
 }
 
 
@@ -819,7 +848,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-weight: 600;
 }
 
-/* NEW: Style for completed button */
+/* NEW: Style for completed button (from user's provided block) */
 .button-completed {
     background-color: #10b981; /* Emerald green */
     color: white;
@@ -833,7 +862,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 
-/* NEW: History Page Styling */
+/* NEW: History Page Styling (from user's provided block) */
 .history-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -846,7 +875,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     color: var(--text-color-primary);
 }
 
-/* History page specific solve item adjustments */
+/* History page specific solve item adjustments (from user's provided block) */
 .history-page-container .solve-history-item {
     flex-direction: row; /* Ensure row layout for desktop history page */
     align-items: center;
@@ -871,7 +900,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     justify-content: flex-end; /* Align buttons to the right */
 }
 
-/* NEW: Settings Page Styling */
+/* NEW: Settings Page Styling (from user's provided block) */
 .settings-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -897,7 +926,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     margin-bottom: 0; /* No margin after the last section */
 }
 
-/* Toggle switch styling (copied from previous modal styling) */
+/* Toggle switch styling (copied from previous modal styling) (from user's provided block) */
 .toggle-switch {
     /* Hide default checkbox */
     appearance: none;
@@ -935,7 +964,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
 
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
-/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
+/* Targeting screens up to 767px wide (typical for most phones and small tablets) (from user's provided block) */
 @media (max-width: 767px) {
     body {
         padding: 16px;
@@ -1050,7 +1079,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 
     /* Control buttons flex-direction is already column for sm: (which is 640px)
-       but we can specify here for max-width just to be explicit if needed */
+        but we can specify here for max-width just to be explicit if needed */
     .flex-col.sm\:flex-row {
         /* Targeting the control buttons div */
         flex-direction: column;
@@ -1096,164 +1125,95 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
     .solve-history-item .time {
         font-size: 1.0rem;
-        /* Smaller time font */
-        margin-bottom: 0;
-        /* No bottom margin, flex gap handles it */
-    }
-
-    .solve-history-item .scramble-text {
-        flex-grow: 1; /* Allow scramble text to take available space */
-        text-align: left;
-        margin-left: 1rem; /* Space between time and scramble */
-        margin-right: 1rem;
     }
 
     .solve-history-item .penalty-buttons {
-        flex-wrap: wrap;
-        /* Allow buttons to wrap */
-        justify-content: flex-start;
-        /* Align buttons to the left within their block */
-        width: 100%;
-        /* Take full width */
-        margin-top: 0.25rem;
-        /* Small margin above buttons when stacked */
-        gap: 0.4rem;
-        /* Smaller gap between penalty buttons */
+        flex-direction: row; /* Ensure buttons stay in a row on mobile */
+        flex-wrap: wrap; /* Allow wrapping if many buttons */
+        justify-content: flex-start; /* Align to start on mobile */
+        width: 100%; /* Take full width to align buttons */
+        margin-left: 0; /* Remove left margin */
     }
 
     .solve-history-item .penalty-buttons button {
-        font-size: 0.7rem;
-        /* Smallest penalty button font */
+        padding: 0.3rem 0.6rem; /* Smaller padding for mobile buttons */
+        font-size: 0.75rem; /* Smaller font for mobile buttons */
     }
 
-    .solve-history-item .penalty-buttons button.insight-button,
-    .solve-history-item .penalty-buttons button.delete {
-        padding: 0.35rem 0.7rem;
-        /* Slightly larger for main action buttons */
-        font-size: 0.8rem;
+    /* Adjustments for voice feedback and chat on mobile */
+    .voice-feedback-display, .chat-container {
+        bottom: 10px; /* Closer to bottom edge on mobile */
+        left: 10px; /* Adjust left position */
+        right: 10px; /* Adjust right position */
+        transform: none; /* Remove transform for fixed positioning */
+        width: auto; /* Allow width to be determined by left/right */
+        max-width: calc(100% - 20px); /* Max width for mobile */
+        padding: 15px 20px; /* Adjusted padding */
+        font-size: 1rem; /* Smaller font */
+        border-radius: 10px; /* Smaller border radius */
     }
 
-    .modal-content {
-        padding: 1.5rem;
-        /* Adjusted padding for mobile modals */
-        width: 95%;
-        /* Fill almost full width */
-        max-width: none;
-        /* No max width on mobile */
-        max-height: 90vh;
-        /* Control vertical height */
-        overflow-y: auto;
-        /* Allow scrolling within modal */
+    .chat-container {
+        height: 60vh; /* Adjust height for mobile chat */
     }
 
-    /* Adjust AI Insight Modal for mobile */
-    #aiInsightModal .modal-content {
-        max-width: none;
-        /* No max-width on mobile */
-    }
-
-    .modal-close-button {
-        font-size: 1.75rem;
-        /* Larger close button for touch */
-        padding: 0.5rem;
-        /* Increase touch area */
-    }
-
-    /* Adjustments within settings modal for smaller screens */
-    .modal-content label {
-        font-size: 0.95rem;
-        /* Smaller label font */
-    }
-
-    .modal-content select,
-    .modal-content input[type="text"],
-    .modal-content input[type="email"],
-    .modal-content input[type="password"] {
-        padding: 0.6rem 0.8rem;
-        /* Adjusted input padding */
-        font-size: 0.9rem;
-        /* Adjusted input font size */
-    }
-
-    .modal-content h3 {
-        font-size: 1.1rem;
-        /* Smaller subheading */
-        margin-bottom: 0.75rem;
-    }
-
-    /* Voice Command Button Mobile Adjustments */
     #voiceCommandBtn, #openChatBtn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-        bottom: 8px; /* Further reduced for mobile */
+        width: 48px; /* Smaller buttons on mobile */
+        height: 48px;
+        font-size: 1.5rem; /* Smaller icon */
+        bottom: 10px; /* Adjust position */
+        right: 10px;
+        left: auto; /* Ensure right alignment */
     }
-    #voiceCommandBtn {
-        right: 8px; /* Further reduced for mobile */
-    }
+
     #openChatBtn {
-        left: 8px; /* Further reduced for mobile */
+        left: 10px; /* Align chat button to left */
+        right: auto;
     }
 
-
-    /* Voice Feedback Display Mobile Adjustments */
-    .voice-feedback-display {
-        padding: 15px 20px;
-        font-size: 1.1rem;
-        min-width: 240px;
+    /* Lessons page specific mobile adjustments */
+    .lessons-page-container {
+        padding: 1rem;
+        border-radius: 0;
     }
 
-    .listening-indicator .dot {
-        width: 8px;
-        height: 8px;
+    .lesson-input-section, .lesson-chat-container, .lesson-display-area {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .lesson-chat-container .chat-history-box {
+        height: 180px; /* Further adjust chat history height for very small screens */
+    }
+
+    .lesson-step-card {
+        padding: 0.8rem;
+        border-radius: 0.5rem;
+    }
+
+    .twisty-player-lesson-container {
+        border-radius: 0.4rem;
+    }
+
+    .twisty-player-controls {
+        padding: 6px 10px;
+        border-radius: 10px;
         gap: 6px;
     }
 
-    /* Lessons Page container on mobile */
-    .lessons-page-container {
-        padding: 1.5rem;
-        width: 95%;
-        margin: 16px auto;
+    .twisty-player-controls .button-icon {
+        font-size: 1rem;
+        padding: 5px;
     }
 
-    /* History Page container on mobile */
-    .history-page-container {
-        padding: 1.5rem;
-        width: 95%;
-        margin: 16px auto;
-    }
-
-    .history-page-container .solve-history-item {
-        flex-direction: column; /* Stack vertically on mobile */
-        align-items: flex-start;
-    }
-
-    .history-page-container .solve-history-item .scramble-text {
-        margin-left: 0; /* Remove left margin on mobile */
-        margin-right: 0;
-    }
-
-    .history-page-container .solve-history-item .penalty-buttons {
-        justify-content: flex-start; /* Align buttons to left on mobile */
-    }
-
-    /* Settings Page container on mobile */
-    .settings-page-container {
-        padding: 1.5rem;
-        width: 95%;
-        margin: 16px auto;
-    }
-
-    .settings-page-container .setting-section {
-        padding: 1rem;
-    }
-    .settings-page-container .setting-section h3 {
-        font-size: 1.05rem;
-        margin-bottom: 0.5rem;
+    .lesson-navigation button {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
     }
 }
 
-/* Further specific adjustments for very small screens (e.g., iPhone SE) */
+/* Further adjustments for very small screens (e.g., iPhone SE) */
 @media (max-width: 479px) {
     .timer-display {
         font-size: 3rem;
@@ -1275,7 +1235,8 @@ body.theme-vibrant #aiInsightModal .modal-content {
         /* Even smaller stat value font */
     }
 
-    .button-primary,\n    .button-secondary {
+    .button-primary,
+    .button-secondary {
         font-size: 0.9rem;
         /* Slightly smaller button font */
         padding: 0.6rem 1rem;
@@ -1288,36 +1249,48 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-
-/* Theme specific variables (kept same) */
-body.theme-dark {
-    --bg-color-primary: #0f172a;
-    --text-color-primary: #e2e8f0;
-    --bg-color-secondary: #1e293b;
-    --button-secondary-bg: #475569;
-    --button-secondary-text: #e2e8f0;
-    --button-secondary-hover-bg: #64748b;
-    --card-bg: #334155;
-    --timer-color: #818cf8;
-    --scramble-color: #a78bfa;
-    --stats-value-color: #67e8f9;
-}
-
+/* Spinner for loading states (re-added) */
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid #fff;
+    border-top: 4px solid var(--accent-color-blue);
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 40px;
+    height: 40px;
     animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
-    100% {
-        transform: rotate(360deg);
-    }
+/* TOAST NOTIFICATIONS (re-added) */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    transform: translateY(20px);
+    min-width: 200px;
+    text-align: center;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
 }
