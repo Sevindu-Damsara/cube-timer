@@ -40,6 +40,13 @@ body {
     --scramble-color: #a78bfa;
     --stats-value-color: #67e8f9;
     --solve-time-color: #a78bfa;
+
+    /* ADDED for consistency across themes for input fields */
+    --input-bg: #1e293b;
+    --input-text: #e2e8f0;
+    --input-border: #475569;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #0f172a;
 }
 
 /* Theme specific variables */
@@ -52,11 +59,11 @@ body.theme-dark {
     --button-secondary-hover-bg: #64748b;
     --card-bg: #334155;
     --border-color: #334155;
-    --input-bg: #1e293b; /* ADDED for consistency */
-    --input-text: #e2e8f0; /* ADDED for consistency */
-    --input-border: #475569; /* ADDED for consistency */
-    --input-focus-border: #3b82f6; /* ADDED for consistency */
-    --chat-bg: #0f172a; /* ADDED for consistency */
+    --input-bg: #1e293b;
+    --input-text: #e2e8f0;
+    --input-border: #475569;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #0f172a;
 }
 
 /* Light theme - Fully upgraded for a pristine, modern look */
@@ -74,11 +81,11 @@ body.theme-light {
     --solve-time-color: #0056b3; /* Deep blue for solve times */
     --border-color: #f1f3f5; /* Extremely subtle light gray border */
     --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
-    --input-bg: #ffffff; /* ADDED for consistency */
-    --input-text: #1a202c; /* ADDED for consistency */
-    --input-border: #cbd5e1; /* ADDED for consistency */
-    --input-focus-border: #3b82f6; /* ADDED for consistency */
-    --chat-bg: #f8fafc; /* ADDED for consistency */
+    --input-bg: #ffffff;
+    --input-text: #1a202c;
+    --input-border: #cbd5e1;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #f8fafc;
 }
 
 /* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
@@ -96,15 +103,14 @@ body.theme-vibrant {
     --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
     --border-color: #4a148c; /* More distinct, yet harmonious purple border */
     --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
-    --input-bg: #3a0c6a; /* ADDED for consistency */
-    --input-text: #e0f2fe; /* ADDED for consistency */
-    --input-border: #7b2cbf; /* ADDED for consistency */
-    --input-focus-border: #8b5cf6; /* ADDED for consistency */
-    --chat-bg: #220844; /* ADDED for consistency */
+    --input-bg: #3a0c6a;
+    --input-text: #e0f2fe;
+    --input-border: #7b2cbf;
+    --input-focus-border: #8b5cf6;
+    --chat-bg: #220844;
 }
 
-
-/* NEW: Main Layout for Sidebar and Content (from user's provided block) */
+/* NEW: Main Layout for Sidebar and Content */
 .main-layout {
     display: flex;
     width: 100%;
@@ -113,7 +119,7 @@ body.theme-vibrant {
     margin: 0;
 }
 
-/* NEW: Sidebar Styling (from user's provided block) */
+/* NEW: Sidebar Styling */
 .sidebar {
     width: 80px; /* Retracted width */
     background-color: var(--bg-color-secondary);
@@ -180,7 +186,7 @@ body.theme-vibrant {
     opacity: 1;
 }
 
-/* NEW: Content Area Styling (from user's provided block) */
+/* NEW: Content Area Styling */
 .content-area {
     flex-grow: 1; /* Take remaining space */
     display: flex;
@@ -209,7 +215,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Authentication buttons in the corner (from user's provided block) */
+/* Authentication buttons in the corner */
 .auth-corner-buttons {
     position: absolute;
     top: 1.5rem;
@@ -290,7 +296,7 @@ body.theme-vibrant {
     box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
-/* NEW: Styling for preview control buttons to make them colorful (from user's provided block) */
+/* NEW: Styling for preview control buttons to make them colorful */
 .button-preview-control {
     background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
     color: white;
@@ -339,7 +345,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* 3D Cube Container Styling (from user's provided block) */
+/* 3D Cube Container Styling */
 #cube3DContainer {
     background-color: var(--bg-color-primary);
     border-radius: 0.75rem;
@@ -356,7 +362,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Twisty player needs a height (from user's provided block) */
+/* Twisty player needs a height */
 #scramble3DViewer {
     height: calc(100% - 60px);
     width: 100%;
@@ -467,7 +473,7 @@ body.theme-vibrant {
     background-color: #45a049;
 }
 
-/* Voice Command Button Styling (fixed position) (from user's provided block) */
+/* Voice Command Button Styling (fixed position) */
 #voiceCommandBtn, #openChatBtn {
     background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
     color: white;
@@ -554,7 +560,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Specifically for AI Insight Modal to take more width on desktop (from user's provided block) */
+/* Specifically for AI Insight Modal to take more width on desktop */
 #aiInsightModal .modal-content {
     max-width: 700px;
     color: var(--text-color-primary); /* Ensure text color is theme-aware */
@@ -564,7 +570,7 @@ body.theme-vibrant {
     background-color: var(--card-bg);
 }
 
-/* AI Insight Modal specific styling for Light Theme (from user's provided block) */
+/* AI Insight Modal specific styling for Light Theme */
 body.theme-light #aiInsightModal .modal-content {
     background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
     color: var(--text-color-primary); /* Ensure text is dark */
@@ -572,7 +578,7 @@ body.theme-light #aiInsightModal .modal-content {
     box-shadow: var(--box-shadow);
 }
 
-/* AI Insight Modal specific styling for Vibrant Theme (from user's provided block) */
+/* AI Insight Modal specific styling for Vibrant Theme */
 body.theme-vibrant #aiInsightModal .modal-content {
     background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
     color: var(--text-color-primary); /* Ensure text is light */
@@ -598,7 +604,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     -webkit-text-fill-color: transparent;
 }
 
-/* NEW: Voice Feedback Display Styling - Moved to bottom center (from previous working version) */
+/* NEW: Voice Feedback Display Styling - Moved to bottom center */
 .voice-feedback-display {
     position: fixed;
     bottom: 5%; /* Position from the bottom */
@@ -634,7 +640,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
-/* Listening Indicator Dots (from previous working version) */
+/* Listening Indicator Dots */
 .listening-indicator {
     display: flex;
     gap: 8px; /* Larger gap between dots */
@@ -670,7 +676,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) (from previous working version) */
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
 .voice-feedback-display.speaking .listening-indicator .dot {
     background-color: var(--accent-color-blue); /* Different color when speaking */
     animation: pulse-dot 1s infinite ease-in-out;
@@ -691,7 +697,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* NEW: Chat Modal Styling (from previous working version) */
+/* NEW: Chat Modal Styling */
 #chatModal .modal-content {
     max-width: 450px; /* Slightly wider for chat */
     max-height: 80vh; /* Controlled height */
@@ -756,26 +762,39 @@ body.theme-vibrant #aiInsightModal .modal-content {
     align-items: flex-end; /* Align input and button at the bottom */
 }
 
-#chatInput {
+/* Corrected .input-field styling for general use */
+.input-field {
     flex-grow: 1;
-    min-height: 40px; /* Minimum height for textarea */
-    max-height: 120px; /* Max height before scrolling */
+    min-height: 40px; /* Minimum height for consistency */
     padding: 0.75rem;
-    border-radius: 0.5rem;
-    background-color: #2d3748; /* Darker input background */
-    border: 1px solid #4a5568;
-    color: white;
-    font-size: 0.9rem;
-    resize: vertical; /* Allow vertical resizing */
+    border-radius: 0.75rem; /* More rounded corners for beauty */
+    background-color: var(--input-bg); /* Use theme variable */
+    border: 1px solid var(--input-border); /* Use theme variable */
+    color: var(--input-text); /* Use theme variable */
+    font-size: 1rem;
+    resize: vertical; /* Allow vertical resizing for textareas */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--input-focus-border); /* Use theme variable */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Blue glow on focus */
+}
+
+
+#chatInput { /* Specific overrides for chat input if needed, but .input-field should handle most */
+    max-height: 120px; /* Max height before scrolling */
 }
 
 #chatSendBtn {
     padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem; /* Consistent with input-field */
     font-size: 1rem;
 }
 
-/* Custom Scrollbar for chat history (from previous working version) */
+/* Custom Scrollbar for chat history */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
 }
@@ -794,7 +813,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Lessons Page/Modal Styling (from user's provided block, adjusted for consistency) */
+/* NEW: Lessons Page/Modal Styling */
 .lessons-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
     border: 1px solid #334155;
@@ -840,7 +859,47 @@ body.theme-vibrant #aiInsightModal .modal-content {
     overflow: hidden;
     border: 1px solid #334155;
     position: relative; /* Needed for absolute positioning of controls */
+    width: 100%;
+    padding-bottom: 75%; /* 4:3 Aspect Ratio (height is 75% of width) */
+    height: 0; /* Important for aspect ratio to work */
 }
+
+.twisty-player-lesson-container twisty-player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.twisty-player-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 8px 15px;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(5px); /* Frosted glass effect */
+    -webkit-backdrop-filter: blur(5px); /* For Safari */
+}
+
+.twisty-player-controls .button-icon {
+    font-size: 1.1rem;
+    padding: 6px;
+    border-radius: 6px;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.twisty-player-controls .button-icon:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--accent-color-blue);
+}
+
 
 .lesson-navigation button {
     padding: 0.75rem 1.5rem;
@@ -848,7 +907,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-weight: 600;
 }
 
-/* NEW: Style for completed button (from user's provided block) */
+/* NEW: Style for completed button */
 .button-completed {
     background-color: #10b981; /* Emerald green */
     color: white;
@@ -862,7 +921,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 
-/* NEW: History Page Styling (from user's provided block) */
+/* NEW: History Page Styling */
 .history-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -875,7 +934,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     color: var(--text-color-primary);
 }
 
-/* History page specific solve item adjustments (from user's provided block) */
+/* History page specific solve item adjustments */
 .history-page-container .solve-history-item {
     flex-direction: row; /* Ensure row layout for desktop history page */
     align-items: center;
@@ -900,7 +959,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     justify-content: flex-end; /* Align buttons to the right */
 }
 
-/* NEW: Settings Page Styling (from user's provided block) */
+/* NEW: Settings Page Styling */
 .settings-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -926,7 +985,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     margin-bottom: 0; /* No margin after the last section */
 }
 
-/* Toggle switch styling (copied from previous modal styling) (from user's provided block) */
+/* Toggle switch styling (copied from previous modal styling) */
 .toggle-switch {
     /* Hide default checkbox */
     appearance: none;
@@ -964,7 +1023,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
 
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
-/* Targeting screens up to 767px wide (typical for most phones and small tablets) (from user's provided block) */
+/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
 @media (max-width: 767px) {
     body {
         padding: 16px;
@@ -1249,7 +1308,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* Spinner for loading states (re-added) */
+/* Spinner for loading states */
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-top: 4px solid var(--accent-color-blue);
@@ -1264,7 +1323,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     100% { transform: rotate(360deg); }
 }
 
-/* TOAST NOTIFICATIONS (re-added) */
+/* TOAST NOTIFICATIONS */
 .toast-container {
     position: fixed;
     bottom: 20px;
