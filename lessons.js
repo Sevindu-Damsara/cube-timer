@@ -818,4 +818,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex]) {
-            const step = currentLesson.steps[currentC
+            const step = currentLesson.steps[currentLessonStepIndex];
+            if (step.algorithm) {
+                twistyPlayerLessonViewer.alg = step.algorithm; // Apply the algorithm
+                twistyPlayerLessonViewer.play(); // Play the algorithm animation
+            } else {
+                speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific algorithm to demonstrate the solve.");
+            }
+        }
+    });
+
+
+    // Initialize Firebase and load settings when the DOM is ready
+    initializeLessonsPage();
+});
