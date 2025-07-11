@@ -31,7 +31,7 @@ body {
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-    /* NEW Theme variables for light and vibrant (from user's provided block) */
+    /* NEW Theme variables for light and vibrant */
     --button-secondary-bg: #475569;
     --button-secondary-text: #e2e8f0;
     --button-secondary-hover-bg: #64748b;
@@ -42,23 +42,6 @@ body {
     --solve-time-color: #a78bfa;
 
     /* ADDED for consistency across themes for input fields */
-    --input-bg: #1e293b;
-    --input-text: #e2e8f0;
-    --input-border: #475569;
-    --input-focus-border: #3b82f6;
-    --chat-bg: #0f172a;
-}
-
-/* Theme specific variables */
-body.theme-dark {
-    --bg-color-primary: #0f172a;
-    --text-color-primary: #e2e8f0;
-    --bg-color-secondary: #1e293b;
-    --button-secondary-bg: #475569;
-    --button-secondary-text: #e2e8f0;
-    --button-secondary-hover-bg: #64748b;
-    --card-bg: #334155;
-    --border-color: #334155;
     --input-bg: #1e293b;
     --input-text: #e2e8f0;
     --input-border: #475569;
