@@ -5,7 +5,7 @@
 import os
 import requests
 import json
-import uuid # NEW: Import uuid for generating unique lesson IDs
+import uuid # Import uuid for generating unique lesson IDs
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
@@ -47,7 +47,7 @@ def gemini_insight_handler():
             return jsonify({"error": "Server configuration error: Gemini API key is missing."}), 500
 
         request_type = request_json.get('type')
-        print(f"DEBUG: Received request type: {request_type}") # NEW: Debugging line for request type
+        print(f"DEBUG: Received request type: {request_type}") # Debugging line for request type
 
         if request_type == 'get_insight':
             # Existing logic for generating solve insights
@@ -221,7 +221,10 @@ def gemini_insight_handler():
                 role = "Sir Sevindu" if turn['role'] == 'user' else "Jarvis"
                 for part in turn['parts']:
                     if part.get('text'):
-                        lesson_generation_prompt += f"{role}: {part['text']}\n"
+                        # Remove the LESSON_PLAN_PROPOSAL_READY marker from history sent to final generator
+                        text_to_add = part['text'].replace('[LESSON_PLAN_PROPOSAL_READY]', '').strip()
+                        if text_to_add: # Only add if not empty after stripping
+                            lesson_generation_prompt += f"{role}: {text_to_add}\n"
             
             lesson_generation_prompt += (
                 f"\nNow, generate the lesson as a JSON object with the following structure:\n"
