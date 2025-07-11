@@ -31,7 +31,7 @@ let isUserAuthenticated = false; // True if user is signed in via Email/Google, 
 let currentLesson = null; // Stores the entire structured lesson object
 let currentLessonStepIndex = 0; // Current step being displayed
 let currentLessonId = null; // NEW: ID of the current lesson (from AI response or generated)
-let completedSteps = {}; // NEW: Tracks completed steps for the current lesson {stepIndex: true}
+let completedSteps = {}; // NEW: Tracks completed completedSteps for the current lesson {stepIndex: true}
 
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
@@ -59,7 +59,7 @@ let lessonTitleDisplay;
 let lessonStepTitleDisplay;
 let lessonStepDescriptionDisplay;
 let lessonVisualContainer;
-let twistyPlayerLessonViewer;
+let twistyPlayerLessonViewer; // This will hold the twisty-player DOM element
 let lessonExplanationDisplay;
 let prevLessonStepBtn;
 let nextLessonStepBtn;
@@ -482,7 +482,7 @@ async function displayGeneratedLesson(lessonData) {
  * Displays a specific step of the current lesson.
  * @param {number} index - The index of the lesson step to display.
  */
-async function displayLessonStep(index) { // Made async to await twisty-player readiness
+async function displayLessonStep(index) {
     if (!currentLesson || !currentLesson.steps || index < 0 || index >= currentLesson.steps.length) {
         console.error("[ERROR] Attempted to display invalid lesson step index or no lesson loaded.");
         return;
@@ -496,37 +496,42 @@ async function displayLessonStep(index) { // Made async to await twisty-player r
     if (lessonExplanationDisplay) lessonExplanationDisplay.textContent = step.explanation || '';
 
     // Handle twisty-player for visual scramble/algorithm
-    if (step.scramble || step.algorithm) {
-        if (lessonVisualContainer) lessonVisualContainer.style.display = 'flex'; // Show container
-        if (twistyPlayerLessonViewer) {
-            // Ensure twisty-player is ready before interacting
-            await twistyPlayerLessonViewer.ready(); // CRITICAL: Wait for the component to be ready
+    if (lessonVisualContainer && twistyPlayerLessonViewer) {
+        // Clear previous algorithm/scramble before setting new ones
+        twistyPlayerLessonViewer.alg = '';
+        twistyPlayerLessonViewer.puzzle = '';
 
-            twistyPlayerLessonViewer.setAttribute('puzzle', getTwistyPlayerPuzzleType(currentCubeType));
+        if (step.scramble || step.algorithm) {
+            lessonVisualContainer.style.display = 'flex'; // Show container
+            twistyPlayerLessonViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
             twistyPlayerLessonViewer.alg = step.scramble || step.algorithm || ''; // Set the algorithm/scramble
-            twistyPlayerLessonViewer.setAttribute('background', getThemeBackgroundColorHex(currentTheme));
+            twistyPlayerLessonViewer.background = getThemeBackgroundColorHex(currentTheme); // Match theme
             twistyPlayerLessonViewer.jumpToStart(); // Reset view for new step
-            console.log(`[DEBUG] Twisty-player updated: Puzzle=${twistyPlayerLessonViewer.getAttribute('puzzle')}, Alg=${twistyPlayerLessonViewer.alg}`);
+            console.log(`[DEBUG] Twisty-player updated: Puzzle=${twistyPlayerLessonViewer.puzzle}, Alg=${twistyPlayerLessonViewer.alg}`);
+
+            // Show twisty-player controls
+            if (lessonPlayBtn) lessonPlayBtn.style.display = 'inline-block';
+            if (lessonPauseBtn) lessonPauseBtn.style.display = 'none'; // Start with play button visible, pause hidden
+            if (lessonResetViewBtn) lessonResetViewBtn.style.display = 'inline-block';
+            if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.style.display = 'inline-block';
+            if (lessonSolveCubeBtn) lessonSolveCubeBtn.style.display = 'inline-block';
+
+            // Add event listener for when the animation finishes to show play button again
+            twistyPlayerLessonViewer.addEventListener('finish', () => {
+                if (lessonPlayBtn) lessonPlayBtn.style.display = 'inline-block';
+                if (lessonPauseBtn) lessonPauseBtn.style.display = 'none';
+            }, { once: true }); // Use once to avoid multiple listeners
+        } else {
+            lessonVisualContainer.style.display = 'none'; // Hide container if no visual
+            // Hide twisty-player controls
+            if (lessonPlayBtn) lessonPlayBtn.style.display = 'none';
+            if (lessonPauseBtn) lessonPauseBtn.style.display = 'none';
+            if (lessonResetViewBtn) lessonResetViewBtn.style.display = 'none';
+            if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.style.display = 'none';
+            if (lessonSolveCubeBtn) lessonSolveCubeBtn.style.display = 'none';
         }
-        // Show twisty-player controls
-        if (lessonPlayBtn) lessonPlayBtn.style.display = 'inline-block';
-        if (lessonPauseBtn) lessonPauseBtn.style.display = 'inline-block';
-        if (lessonResetViewBtn) lessonResetViewBtn.style.display = 'inline-block';
-        if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.style.display = 'inline-block';
-        if (lessonSolveCubeBtn) lessonSolveCubeBtn.style.display = 'inline-block';
-    } else {
-        if (lessonVisualContainer) lessonVisualContainer.style.display = 'none'; // Hide container if no visual
-        if (twistyPlayerLessonViewer) {
-            await twistyPlayerLessonViewer.ready(); // Still await to ensure it's ready before clearing
-            twistyPlayerLessonViewer.alg = ''; // Clear previous alg
-        }
-        // Hide twisty-player controls
-        if (lessonPlayBtn) lessonPlayBtn.style.display = 'none';
-        if (lessonPauseBtn) lessonPauseBtn.style.display = 'none';
-        if (lessonResetViewBtn) lessonResetViewBtn.style.display = 'none';
-        if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.style.display = 'none';
-        if (lessonSolveCubeBtn) lessonSolveCubeBtn.style.display = 'none';
     }
+
 
     // Update step counter
     if (lessonStepCounter) lessonStepCounter.textContent = `Step ${index + 1} of ${currentLesson.steps.length}`;
@@ -772,17 +777,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign DOM elements
     lessonTopicInput = document.getElementById('lessonTopicInput');
-    startLessonChatBtn = document.getElementById('startLessonChatBtn'); // Renamed
+    startLessonChatBtn = document.getElementById('startLessonChatBtn');
     console.log("[DEBUG] startLessonChatBtn element:", startLessonChatBtn);
     lessonGenerationError = document.getElementById('lessonGenerationError');
     lessonLoadingSpinner = document.getElementById('lessonLoadingSpinner');
-    lessonInputSection = document.getElementById('lessonInputSection'); // Assign the input section
-    lessonChatContainer = document.getElementById('lessonChatContainer'); // Assign chat container
-    lessonChatHistoryDiv = document.getElementById('lessonChatHistory'); // Assign chat history div
-    lessonChatInput = document.getElementById('lessonChatInput'); // Assign chat input
-    lessonChatSendBtn = document.getElementById('lessonChatSendBtn'); // Assign chat send button
-    lessonChatStatus = document.getElementById('lessonChatStatus'); // Assign chat status
-    generateLessonButton = document.getElementById('generateLessonButton'); // NEW: Assign generate lesson button
+    lessonInputSection = document.getElementById('lessonInputSection');
+    lessonChatContainer = document.getElementById('lessonChatContainer');
+    lessonChatHistoryDiv = document.getElementById('lessonChatHistory');
+    lessonChatInput = document.getElementById('lessonChatInput');
+    lessonChatSendBtn = document.getElementById('lessonChatSendBtn');
+    lessonChatStatus = document.getElementById('lessonChatStatus');
+    // generateLessonButton is not used in the current flow, but keep reference if HTML has it
+    generateLessonButton = document.getElementById('generateLessonButton');
 
     lessonDisplayArea = document.getElementById('lessonDisplayArea');
     lessonTitleDisplay = document.getElementById('lessonTitleDisplay');
@@ -846,33 +852,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Twisty-player control listeners
     if (lessonPlayBtn) lessonPlayBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer) twistyPlayerLessonViewer.play();
+        if (twistyPlayerLessonViewer) {
+            twistyPlayerLessonViewer.play();
+            if (lessonPlayBtn) lessonPlayBtn.style.display = 'none';
+            if (lessonPauseBtn) lessonPauseBtn.style.display = 'inline-block';
+        }
     });
     if (lessonPauseBtn) lessonPauseBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer) twistyPlayerLessonViewer.pause();
+        if (twistyPlayerLessonViewer) {
+            twistyPlayerLessonViewer.pause();
+            if (lessonPlayBtn) lessonPlayBtn.style.display = 'inline-block';
+            if (lessonPauseBtn) lessonPauseBtn.style.display = 'none';
+        }
     });
     if (lessonResetViewBtn) lessonResetViewBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer) twistyPlayerLessonViewer.jumpToStart();
     });
-    if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.addEventListener('click', async () => { // Made async
+    if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex]) {
-            await twistyPlayerLessonViewer.ready(); // Ensure ready
             const step = currentLesson.steps[currentLessonStepIndex];
             if (step.scramble) {
                 twistyPlayerLessonViewer.alg = step.scramble; // Apply the scramble
                 twistyPlayerLessonViewer.play(); // Play the scramble animation
+                if (lessonPlayBtn) lessonPlayBtn.style.display = 'none';
+                if (lessonPauseBtn) lessonPauseBtn.style.display = 'inline-block';
             } else {
                 speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific scramble to apply.");
             }
         }
     });
-    if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', async () => { // Made async
+    if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex]) {
-            await twistyPlayerLessonViewer.ready(); // Ensure ready
             const step = currentLesson.steps[currentLessonStepIndex];
             if (step.algorithm) {
                 twistyPlayerLessonViewer.alg = step.algorithm; // Apply the algorithm
                 twistyPlayerLessonViewer.play(); // Play the algorithm animation
+                if (lessonPlayBtn) lessonPlayBtn.style.display = 'none';
+                if (lessonPauseBtn) lessonPauseBtn.style.display = 'inline-block';
             } else {
                 speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific algorithm to demonstrate the solve.");
             }
