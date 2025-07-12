@@ -48,7 +48,7 @@ def gemini_insight_handler():
 
         model_name = "gemini-2.0-flash" # Using gemini-2.0-flash for text generation
 
-        # --- Prompt Engineering and Response Schema Definitions ---
+        # --- Response Schema Definitions (Crucial for structured output) ---
 
         # Schema for conversational chat responses (simple message)
         LESSON_CHAT_RESPONSE_SCHEMA = {
@@ -93,18 +93,19 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # Prompt for conversational turn - extremely concise
+            # System instruction for conversational turn - concise and focused
             system_instruction = f"""
             You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson for Sir Sevindu.
-            Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational.
+            Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational and respectful.
             Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message.
             Context: Cube type: {cube_type}, User skill level: {user_level}.
             """
 
-            # Construct the full prompt for the current turn
+            # Construct the full contents array for the Gemini API call
+            # This is the canonical way to pass system instructions and chat history
             contents = [
-                {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
-                *chat_history # Unpack existing chat history
+                {"role": "system", "parts": [{"text": system_instruction}]},
+                *chat_history # Unpack existing chat history (user/model turns)
             ]
 
             payload = {
@@ -128,10 +129,8 @@ def gemini_insight_handler():
                     ai_message_json = json.loads(response_text)
                     ai_message = ai_message_json.get('message', "My apologies, Sir Sevindu. I could not formulate a response.")
                 except json.JSONDecodeError:
-                    # Fallback if AI doesn't return valid JSON despite schema
                     print(f"WARNING: AI did not return valid JSON for lesson_chat. Falling back to raw text. Raw: '{response_text}'")
                     ai_message = response_text # Use raw text as message
-                    # Ensure the marker is still handled if present in raw text
                     if "[LESSON_PLAN_PROPOSAL_READY]" in ai_message:
                          ai_message = ai_message.replace("[LESSON_PLAN_PROPOSAL_READY]", '').strip() + " [LESSON_PLAN_PROPOSAL_READY]"
 
@@ -142,17 +141,18 @@ def gemini_insight_handler():
 
         elif request_type == "generate_final_lesson":
             print("DEBUG: Handling generate_final_lesson request.")
-            # Prompt for final lesson generation - streamlined and concise
+            # System instruction for final lesson generation - concise and focused
             system_instruction = f"""
-            You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level.
-            Refer to the conversation history provided as separate turns in the 'contents' array.
+            You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson.
+            Refer to the preceding conversation history for context.
             Context: Cube type: {cube_type}, User skill level: {user_level}.
             """
 
-            # Construct the full prompt for the current turn
+            # Construct the full contents array for the Gemini API call
+            # This is the canonical way to pass system instructions and chat history
             contents = [
-                {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
-                *chat_history # Unpack existing chat history
+                {"role": "system", "parts": [{"text": system_instruction}]},
+                *chat_history # Unpack existing chat history (user/model turns)
             ]
 
             payload = {
