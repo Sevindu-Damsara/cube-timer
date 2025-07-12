@@ -123,15 +123,14 @@ def gemini_insight_handler():
                 *chat_history # Unpack existing chat history
             ]
 
-            print(f"DEBUG: Payload for lesson_chat: {json.dumps(payload, indent=2)}") # Log the full payload
-
-            payload = {
+            payload = { # Payload definition moved BEFORE print statement
                 "contents": contents,
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "responseSchema": LESSON_CHAT_RESPONSE_SCHEMA
                 }
             }
+            print(f"DEBUG: Payload for lesson_chat: {json.dumps(payload, indent=2)}") # Log the full payload
 
             api_url = f"{GEMINI_API_BASE_URL}/{model_name}:generateContent?key={GEMINI_API_KEY}"
             response = requests.post(api_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload), timeout=60)
@@ -193,15 +192,14 @@ def gemini_insight_handler():
                 *chat_history # Unpack existing chat history
             ]
 
-            print(f"DEBUG: Payload for generate_final_lesson: {json.dumps(payload, indent=2)}") # Log the full payload
-
-            payload = {
+            payload = { # Payload definition moved BEFORE print statement
                 "contents": contents,
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "responseSchema": FINAL_LESSON_RESPONSE_SCHEMA
                 }
             }
+            print(f"DEBUG: Payload for generate_final_lesson: {json.dumps(payload, indent=2)}") # Log the full payload
 
             api_url = f"{GEMINI_API_BASE_URL}/{model_name}:generateContent?key={GEMINI_API_KEY}"
             response = requests.post(api_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload), timeout=180) # Increased timeout for lesson generation
