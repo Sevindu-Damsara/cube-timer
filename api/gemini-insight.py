@@ -119,6 +119,8 @@ def gemini_insight_handler():
             """
 
             # Construct the full prompt for the current turn
+            # The model expects the full conversation history for context
+            # We add the system instruction as the first message with role "system"
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
                 *chat_history # Unpack existing chat history
@@ -164,7 +166,6 @@ def gemini_insight_handler():
 
             **Conversation History (Crucial Context):**
             The following is the complete dialogue between you and Sir Sevindu. You MUST analyze this history thoroughly to extract all nuances of the user's learning objectives, challenges, and preferences.
-            {json.dumps(chat_history, indent=2)}
 
             **User Context:**
             * Cube Type: {cube_type} (e.g., '3x3', '2x2', '4x4', 'pyraminx')
@@ -225,12 +226,14 @@ def gemini_insight_handler():
             """
 
             # Construct the full prompt for the current turn
+            # The model expects the full conversation history for context
+            # We add the system instruction as the first message with role "system"
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction.format(
-                    chat_history_summary=json.dumps(chat_history, indent=2), # Pass full history for AI to parse
                     cube_type=cube_type,
                     user_level=user_level
-                )}]}
+                )}]},
+                *chat_history # Unpack existing chat history
             ]
 
             payload = {
