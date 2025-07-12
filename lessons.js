@@ -752,7 +752,8 @@ async function sendLessonChatToAI() {
 
         if (isAwaitingLessonGenerationConfirmation) {
             // User is confirming lesson generation
-            if (userMessage.toLowerCase().includes('yes') || userMessage.toLowerCase().includes('confirm') || userMessage.toLowerCase().includes('proceed')) {
+            const confirmationKeywords = ['yes', 'confirm', 'proceed', 'sure', 'ok']; // Expanded keywords
+            if (confirmationKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
                 console.log("[DEBUG] User confirmed lesson generation.");
                 isAwaitingLessonGenerationConfirmation = false;
                 requestFinalLessonFromAI(); // Call the function to generate the final lesson
@@ -939,10 +940,10 @@ function displayLessonStep(index) {
             speakAsJarvis(`Step ${index + 1}: ${step.title}. ${step.description}`);
         }
 
-        // Reset play/pause buttons
+        // Corrected: Use pause() instead of stop()
         lessonPlayBtn.style.display = 'inline-block';
         lessonPauseBtn.style.display = 'none';
-        twistyPlayerLessonViewer.stop(); // Stop any ongoing animation
+        twistyPlayerLessonViewer.pause(); // Pause any ongoing animation
 
     } else {
         console.warn("[WARN] Twisty Player element not found.");
