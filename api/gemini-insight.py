@@ -62,7 +62,9 @@ def gemini_insight_handler():
             "required": ["message"]
         }
 
-        # Schema for the final structured lesson
+        # TEMPORARILY SIMPLIFIED SCHEMA FOR DIAGNOSTIC PURPOSES
+        # If this works, the complexity of the original schema is the issue.
+        # If it still fails, the problem is elsewhere (e.g., API key, environment).
         FINAL_LESSON_RESPONSE_SCHEMA = {
             "type": "OBJECT",
             "properties": {
@@ -70,29 +72,14 @@ def gemini_insight_handler():
                     "type": "OBJECT",
                     "properties": {
                         "id": {"type": "STRING", "description": "Unique UUID for the lesson."},
-                        "lessonTitle": {"type": "STRING", "description": "Descriptive title for the lesson."},
-                        "steps": {
-                            "type": "ARRAY",
-                            "items": {
-                                "type": "OBJECT",
-                                "properties": {
-                                    "title": {"type": "STRING", "description": "Concise title for this step."},
-                                    "description": {"type": "STRING", "description": "Detailed explanation of the step's concept."},
-                                    "scramble": {"type": "STRING", "nullable": True, "description": "Optional: A scramble leading to the state for this step."},
-                                    "algorithm": {"type": "STRING", "nullable": True, "description": "Optional: The algorithm for this step in standard notation."},
-                                    "explanation": {"type": "STRING", "description": "Further tips, common mistakes, or strategic advice for this step."}
-                                },
-                                "required": ["title", "description", "explanation"]
-                            },
-                            "minItems": 3, # Ensure at least 3 steps for a meaningful lesson
-                            "maxItems": 10 # Limit to 10 steps for manageability
-                        }
+                        "lessonTitle": {"type": "STRING", "description": "Descriptive title for the lesson."}
                     },
-                    "required": ["id", "lessonTitle", "steps"]
+                    "required": ["id", "lessonTitle"]
                 }
             },
             "required": ["lessonData"]
         }
+
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
@@ -100,7 +87,6 @@ def gemini_insight_handler():
             system_instruction = "You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson. Do NOT generate the lesson yet. Ask clarifying questions. Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
 
             # Construct the full contents array for the Gemini API call
-            # This is the canonical way to pass system instructions and chat history
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction}]},
                 *chat_history # Unpack existing chat history (user/model turns)
@@ -149,7 +135,6 @@ def gemini_insight_handler():
             system_instruction = "You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level."
 
             # Construct the full contents array for the Gemini API call
-            # This is the canonical way to pass system instructions and chat history
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction}]},
                 *chat_history # Unpack existing chat history (user/model turns)
@@ -159,7 +144,7 @@ def gemini_insight_handler():
                 "contents": contents,
                 "generationConfig": {
                     "responseMimeType": "application/json",
-                    "responseSchema": FINAL_LESSON_RESPONSE_SCHEMA
+                    "responseSchema": FINAL_LESSON_RESPONSE_SCHEMA # Using the simplified schema
                 }
             }
             print(f"DEBUG: Payload for generate_final_lesson: {json.dumps(payload, indent=2)}") # Log the full payload
@@ -181,12 +166,10 @@ def gemini_insight_handler():
                 try:
                     lesson_data = json.loads(lesson_data_json_str)
 
-                    # Validate the generated lesson data against the schema
-                    if not all(k in lesson_data.get('lessonData', {}) for k in ['id', 'lessonTitle', 'steps']):
-                        raise ValueError("Generated lesson data is missing required fields.")
-                    if not isinstance(lesson_data['lessonData']['steps'], list) or not (3 <= len(lesson_data['lessonData']['steps']) <= 10):
-                        raise ValueError("Generated lesson steps array is invalid or out of bounds (3-10 steps required).")
-
+                    # Validate the generated lesson data against the simplified schema
+                    if not all(k in lesson_data.get('lessonData', {}) for k in ['id', 'lessonTitle']):
+                        raise ValueError("Generated lesson data is missing required fields from simplified schema.")
+                    
                     # Ensure lessonId is a UUID
                     if not lesson_data['lessonData']['id']:
                         lesson_data['lessonData']['id'] = str(uuid.uuid4()) # Generate if AI somehow missed it
