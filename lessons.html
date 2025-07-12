@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Cubing Lessons - Cubically AI Edition</title>
-    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tone.js for sound effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-    <!-- Cubing.js for 3D scramble visualization - Using the recommended twisty player module -->
+    <!-- Cubing.js for 3D scramble visualization -->
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="style.css">
@@ -18,82 +18,95 @@
 </head>
 
 <body class="theme-dark"> <!-- Set default theme class here, will be overridden by lessons.js -->
-    <div class="lessons-page-container">
+    <div class="lessons-page-container min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
         <!-- Back to Timer Button -->
-        <div class="flex justify-start mb-4">
+        <div class="w-full flex justify-start mb-6">
             <a href="index.html" class="button-secondary flex items-center justify-center gap-2">
                 <i class="fas fa-arrow-left mr-2"></i> Back to Timer
             </a>
         </div>
 
-        <h2 id="lessonPageTitle" class="text-3xl font-bold text-gradient mb-6 text-center">AI Cubing Lessons</h2>
+        <h2 class="text-3xl sm:text-4xl font-bold text-gradient mb-8 text-center">AI Cubing Lessons</h2>
 
-        <!-- Lesson Input Section (Initially visible) -->
-        <div id="lessonInputSection" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8">
-            <h3 class="text-xl font-semibold text-white mb-4">Start a New Lesson</h3>
-            <div class="mb-4">
-                <label for="lessonTopicInput" class="block text-gray-300 text-sm font-bold mb-2">Lesson Topic:</label>
-                <input type="text" id="lessonTopicInput" placeholder="e.g., F2L, OLL, PLL, specific algorithms" class="input-field">
-            </div>
-            <button id="startLessonChatBtn" class="button-primary mt-4 w-full">Start Lesson Conversation</button>
-            <p id="lessonGenerationError" class="text-red-500 text-sm mt-2" style="display: none;"></p>
+        <!-- Lesson Hub - Initial View -->
+        <div id="lessonHub" class="w-full max-w-md bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg text-center space-y-6">
+            <p class="text-gray-300 text-lg mb-6">How would you like to proceed, Sir Sevindu?</p>
+            <button id="startNewLessonBtn" class="button-primary w-full py-3 text-lg">
+                <i class="fas fa-robot mr-2"></i> Start a New AI Lesson
+            </button>
+            <button id="viewLessonHistoryBtn" class="button-secondary w-full py-3 text-lg">
+                <i class="fas fa-history mr-2"></i> View Lesson History
+            </button>
         </div>
 
-        <!-- Lesson Chat Container (Initially hidden) -->
-        <div id="lessonChatContainer" class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8" style="display: none;">
-            <h3 class="text-xl font-semibold text-white mb-4">Lesson Conversation with Jarvis</h3>
-            <div id="lessonChatHistory" class="chat-history-box bg-gray-900 p-4 rounded-md mb-4 overflow-y-auto h-64 custom-scrollbar">
+        <!-- Lesson Chat Container - Initially Hidden -->
+        <div id="lessonChatContainer" class="w-full max-w-2xl bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg flex flex-col h-[70vh] hidden">
+            <div class="flex-grow overflow-y-auto mb-4 p-2 pr-4 rounded-lg bg-gray-700 custom-scrollbar" id="chatMessagesDisplay">
                 <!-- Chat messages will be appended here -->
+                <div class="text-center text-gray-400 italic">
+                    <p>Jarvis is ready to assist you, Sir Sevindu.</p>
+                </div>
             </div>
+            <div id="chatTypingIndicator" class="text-gray-400 text-sm italic mb-2 hidden">Jarvis is typing...</div>
             <div class="flex gap-2">
-                <input type="text" id="lessonChatInput" placeholder="Type your response..." class="input-field flex-grow">
-                <button id="lessonChatSendBtn" class="button-primary">Send</button>
+                <input type="text" id="lessonChatInput" placeholder="Type your lesson request or question..."
+                       class="flex-grow p-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <button id="sendLessonChatBtn" class="button-primary px-5 py-3">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
-            <p id="lessonChatStatus" class="text-gray-400 text-sm mt-2" style="display: none;">Jarvis is thinking...</p>
         </div>
 
-        <!-- Lesson Display Area (Initially hidden) -->
-        <div id="lessonDisplayArea" class="lesson-display-area bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-4xl mx-auto" style="display: none;">
-            <h3 id="lessonTitleDisplay" class="text-2xl font-bold text-gradient mb-4 text-center"></h3>
+        <!-- Lesson Display Area - Initially Hidden -->
+        <div id="lessonDisplayArea" class="w-full max-w-4xl bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg hidden">
+            <h3 id="lessonTitleDisplay" class="text-2xl sm:text-3xl font-bold text-gradient mb-4 text-center"></h3>
 
-            <!-- Lesson Progress Bar -->
-            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
-                <div id="lessonProgressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%;"></div>
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-700 rounded-full h-3 mb-6">
+                <div id="lessonProgressBar" class="bg-indigo-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%;"></div>
             </div>
 
-            <div id="lessonStepsContainer" class="space-y-6">
-                <!-- Lesson steps will be dynamically loaded here -->
-                <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
-                    <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
-                    <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
-                    <div id="lessonVisualContainer" class="twisty-player-lesson-container w-full bg-gray-800 rounded-md overflow-hidden flex items-center justify-center relative" style="display: none;">
-                        <!-- twisty-player will be inserted here dynamically -->
-                        <twisty-player id="twistyPlayerLessonViewer" class="w-full h-full" background="none"></twisty-player>
-                        <!-- Twisty-player Controls -->
-                        <div class="twisty-player-controls absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2 bg-gray-900 bg-opacity-75 p-2 rounded-lg shadow-md">
-                            <button id="lessonPlayBtn" class="button-icon" title="Play Animation"><i class="fas fa-play"></i></button>
-                            <button id="lessonPauseBtn" class="button-icon" title="Pause Animation" style="display: none;"><i class="fas fa-pause"></i></button>
-                            <button id="lessonResetViewBtn" class="button-icon" title="Reset View"><i class="fas fa-redo"></i></button>
-                            <button id="lessonScrambleCubeBtn" class="button-icon" title="Scramble Cube"><i class="fas fa-random"></i></button>
-                            <button id="lessonSolveCubeBtn" class="button-icon" title="Solve Cube"><i class="fas fa-cube"></i></button>
-                        </div>
+            <div class="lesson-step-content bg-gray-700 p-5 rounded-lg shadow-inner">
+                <h4 id="lessonStepTitleDisplay" class="text-xl sm:text-2xl font-semibold text-white mb-3"></h4>
+                <p id="lessonStepDescriptionDisplay" class="text-gray-300 text-base mb-4"></p>
+
+                <!-- Twisty Player and Controls -->
+                <div id="lessonVisualContainer" class="bg-gray-900 rounded-lg p-4 mb-4" style="display: none;">
+                    <twisty-player id="twistyPlayerLessonViewer" class="w-full h-64 sm:h-80 lg:h-96 rounded-lg"></twisty-player>
+                    <div class="flex flex-wrap justify-center gap-3 mt-4">
+                        <button id="lessonPlayBtn" class="button-icon" title="Play Animation"><i class="fas fa-play"></i></button>
+                        <button id="lessonPauseBtn" class="button-icon" title="Pause Animation" style="display: none;"><i class="fas fa-pause"></i></button>
+                        <button id="lessonResetViewBtn" class="button-icon" title="Reset View"><i class="fas fa-redo"></i></button>
+                        <button id="lessonScrambleCubeBtn" class="button-icon" title="Scramble Cube"><i class="fas fa-random"></i></button>
+                        <button id="lessonSolveCubeBtn" class="button-icon" title="Solve Cube"><i class="fas fa-cube"></i></button>
                     </div>
-                    <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
-                    <button id="markStepCompleteBtn" class="button-secondary mt-4 w-full" style="display: none;">Mark Step Complete</button>
                 </div>
+                <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
+                <button id="markStepCompleteBtn" class="button-secondary mt-4 w-full py-2" style="display: none;">Mark Step Complete</button>
             </div>
 
             <div class="lesson-navigation mt-6 flex justify-between items-center">
-                <button id="prevLessonStepBtn" class="button-secondary" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+                <button id="prevLessonStepBtn" class="button-secondary py-2" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
                 <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
-                <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
+                <button id="nextLessonStepBtn" class="button-primary py-2">Next <i class="fas fa-chevron-right ml-2"></i></button>
             </div>
 
-            <button id="completeLessonBtn" class="button-primary mt-6 w-full" style="display: none;">Complete Lesson</button>
+            <button id="completeLessonBtn" class="button-primary mt-6 w-full py-3" style="display: none;">Complete Lesson</button>
             <p id="lessonCompletionMessage" class="text-green-400 text-center mt-4 text-lg font-semibold" style="display: none;"></p>
         </div>
 
-        <div id="lessonLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
+        <!-- Lesson History Section - Initially Hidden -->
+        <div id="lessonHistorySection" class="w-full max-w-3xl bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg hidden">
+            <h3 class="text-2xl sm:text-3xl font-bold text-gradient mb-6 text-center">Your Lesson History</h3>
+            <div id="historyLoadingSpinner" class="spinner mx-auto my-8" style="display: none;"></div>
+            <ul id="lessonHistoryList" class="space-y-4">
+                <!-- Lesson history items will be dynamically loaded here -->
+            </ul>
+            <p id="noLessonsMessage" class="text-center text-gray-400 italic mt-8 hidden">No lessons found yet, Sir Sevindu. Start a new one!</p>
+        </div>
+
+        <!-- Global Loading Spinner for page transitions -->
+        <div id="globalLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
     </div>
 
     <!-- Link to external JavaScript file for lessons -->
