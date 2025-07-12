@@ -93,37 +93,21 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # Prompt for conversational turn - streamlined and concise
+            # Prompt for conversational turn - extremely concise
             system_instruction = f"""
-            You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson for Sir Sevindu (or his friend).
-
-            **Directive:** Do NOT generate the lesson yet. ONLY ask clarifying questions or provide brief remarks. Your responses MUST be conversational and focused on eliciting details.
-
-            **Context:** Cube type: {cube_type}, User skill level: {user_level}.
-
-            **Strategy:** Be inquisitive. You MUST ask 3-5 distinct, relevant probing questions before signaling readiness. Build on previous turns.
-
-            **Question Areas:** Focus on:
-            1.  **Scope:** Foundational intro, specific cases, advanced techniques, or comprehensive overview?
-            2.  **Current Understanding:** Familiar concepts, difficulties, current method?
-            3.  **Learning Preferences:** Conceptual, visual (scrambles), or hands-on (algorithms)?
-            4.  **Desired Outcome:** Speed, consistency, deeper understanding, or method transition?
-
-            **Readiness Signal:** ONLY when you have sufficient, granular detail for an *exceptional* lesson, end your message with: `[LESSON_PLAN_PROPOSAL_READY]` followed by a confirmation question.
-            Example: "I believe I have gathered all necessary information to construct a highly personalized lesson on [Specific Topic]. Shall I proceed, Sir Sevindu? [LESSON_PLAN_PROPOSAL_READY]"
-
-            **Tone:** Formal, respectful, intelligent, helpful.
-            **Output:** JSON object with a single 'message' field.
+            You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson for Sir Sevindu.
+            Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational.
+            Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message.
+            Context: Cube type: {cube_type}, User skill level: {user_level}.
             """
 
             # Construct the full prompt for the current turn
-            # System instruction as the first part, then unpack chat_history
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
                 *chat_history # Unpack existing chat history
             ]
 
-            payload = { # Payload definition moved BEFORE print statement
+            payload = {
                 "contents": contents,
                 "generationConfig": {
                     "responseMimeType": "application/json",
@@ -160,39 +144,18 @@ def gemini_insight_handler():
             print("DEBUG: Handling generate_final_lesson request.")
             # Prompt for final lesson generation - streamlined and concise
             system_instruction = f"""
-            You are Jarvis, a world-class Rubik's Cube instructor and AI assistant. Your task is to generate an **exceptionally personalized, highly actionable, and pedagogically sound multi-step cubing lesson** based on the preceding detailed conversation, the user's specified cube type, and their skill level.
-
-            **Conversation History (Crucial Context):**
-            Refer to the preceding conversation history provided as separate turns in the 'contents' array for all nuances of the user's learning objectives, challenges, and preferences.
-
-            **User Context:**
-            * Cube Type: {cube_type}
-            * Skill Level: {user_level}
-
-            **Lesson Generation Requirements:**
-            1.  **Overall Structure:** `lessonData` object with `id`, `lessonTitle`, and `steps` array (3-10 steps).
-            2.  **`id`:** Unique UUID.
-            3.  **`lessonTitle`:** Concise, descriptive, engaging title from conversation context.
-            4.  **`steps` Array - Per-Step Detail:** Each step MUST have `title`, `description`, `explanation`.
-                * `title`: Specific, clear.
-                * `description`: Detailed pedagogical explanation.
-                * `scramble` (Optional): Valid, precise scramble for the state/case. Null if not applicable.
-                * `algorithm` (Optional): Correct, efficient algorithm in standard cubing notation. Null if not applicable.
-                * `explanation`: Rich, actionable tips, common mistakes, context, underlying logic.
-            5.  **Pedagogical Flow:** Logical, progressive, adapted to `user_level`. Prioritize user preferences (e.g., "more visual").
-            6.  **Tone:** Formal, precise, encouraging.
-
-            **Output Format:** JSON object with a `lessonData` field, strictly adhering to the `FINAL_LESSON_RESPONSE_SCHEMA`.
+            You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level.
+            Refer to the conversation history provided as separate turns in the 'contents' array.
+            Context: Cube type: {cube_type}, User skill level: {user_level}.
             """
 
             # Construct the full prompt for the current turn
-            # System instruction as the first part, then unpack chat_history
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
                 *chat_history # Unpack existing chat history
             ]
 
-            payload = { # Payload definition moved BEFORE print statement
+            payload = {
                 "contents": contents,
                 "generationConfig": {
                     "responseMimeType": "application/json",
