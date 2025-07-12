@@ -1,406 +1,225 @@
-# api/gemini-insight.py inside your Vercel project's 'api' directory
-# This function specifies Python dependencies for your Vercel Cloud Function.
-# This function generates AI insight and now AI lessons using Gemini API.
+<!DOCTYPE html>
+<html lang="en">
 
-import os
-import requests
-import json
-import uuid # NEW: Import uuid for generating unique lesson IDs
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Timer - Cubically AI Edition</title>
+    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Cubing.js for 3D scramble visualization - Using the recommended twisty player module -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS # Required for handling CORS in Flask functions
+<body class="theme-dark"> <!-- Set default theme class here -->
+    <!-- Main Layout Container for Sidebar and Main Content -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar retracted">
+            <nav class="space-y-4">
+                <a href="index.html" class="nav-item active">
+                    <i class="fas fa-stopwatch nav-icon"></i>
+                    <span class="nav-text">Timer</span>
+                </a>
+                <a href="lessons.html" class="nav-item">
+                    <i class="fas fa-book-open nav-icon"></i>
+                    <span class="nav-text">Lessons</span>
+                </a>
+                <a href="history.html" class="nav-item">
+                    <i class="fas fa-history nav-icon"></i>
+                    <span class="nav-text">History</span>
+                </a>
+                <a href="settings.html" id="settingsBtn" class="nav-item">
+                    <i class="fas fa-cog nav-icon"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+        </aside>
 
-# Initialize the Flask app for Vercel.
-app = Flask(__name__)
-CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
+        <!-- Main Content Area -->
+        <div class="content-area">
+            <div class="container mx-auto rounded-3xl">
+                <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
+                <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
+                    <button id="signInBtn" class="button-primary">Sign In</button>
+                    <button id="signUpBtn" class="button-secondary">Sign Up</button>
+                    <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
+                </div>
 
-# Retrieve Gemini API key from environment variables for security.
-# In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+                <h1 class="text-4xl font-bold text-center text-gradient mb-6">Cubically AI Edition</h1>
 
-@app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
-def gemini_insight_handler():
-    """HTTP endpoint that generates AI insight or AI lessons using Gemini API.
-    Handles both preflight (OPTIONS) and actual (POST) requests.
-    """
-    print("DEBUG: gemini_insight_handler received a request.")
+                <!-- Username Display -->
+                <div class="text-sm text-center text-gray-400">
+                    Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+                </div>
 
-    # Handle CORS preflight (OPTIONS) request. Vercel routes these automatically.
-    if request.method == 'OPTIONS':
-        print("DEBUG: Handling OPTIONS (preflight) request.")
-        return '', 204
+                <!-- Timer Display -->
+                <div id="timerDisplay" class="timer-display text-center">00:00.000</div>
 
-    try:
-        # Attempt to parse the incoming JSON request body.
-        request_json = request.get_json(silent=True)
-        print(f"DEBUG: Received request JSON: {request_json}")
+                <!-- Scramble Display -->
+                <div id="scrambleTextDisplay" class="scramble-display">Generating Scramble...</div>
 
-        # Validate the incoming JSON payload.
-        if not request_json:
-            print("ERROR: No JSON body received.")
-            return jsonify({"error": "Invalid request: JSON body is required."}), 400
+                <!-- 3D Cube Container (Initially hidden, controlled by settings) -->
+                <div id="cube3DContainer" class="relative" style="display: none;">
+                    <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                        <!-- Buttons here will be styled via specific CSS rules -->
+                        <button id="playPreviewBtn" class="button-preview-control" aria-label="Play 3D scramble animation">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="pausePreviewBtn" class="button-preview-control" aria-label="Pause 3D scramble animation">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button id="restartPreviewBtn" class="button-preview-control" aria-label="Restart 3D scramble animation">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
 
-        # Validate API Key
-        if not GEMINI_API_KEY:
-            print("ERROR: GEMINI_API_KEY environment variable not set.")
-            return jsonify({"error": "Server configuration error: Gemini API key is missing."}), 500
+                <!-- Control Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
+                    <button id="resetBtn" class="button-secondary">Reset</button>
+                    <button id="scrambleBtn" class="button-secondary">New Scramble</button>
+                </div>
 
-        request_type = request_json.get('type')
+                <!-- Statistics Grid (moved to main content) -->
+                <div class="stats-grid mt-8">
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Best Time</div>
+                        <div id="bestTime" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Ao5</div>
+                        <div id="ao5" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Ao12</div>
+                        <div id="ao12" class="value">--:--.--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label text-gray-400">Solves</div>
+                        <div id="solveCount" class="value">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        if request_type == 'get_insight':
-            # Existing logic for generating solve insights
-            scramble = request_json.get('scramble')
-            cube_type = request_json.get('cubeType')
-            solve_time_ms = request_json.get('solveTimeMs')
-            penalty = request_json.get('penalty')
-            user_level = request_json.get('userLevel')
+    <!-- Authentication Modal -->
+    <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication modal">&times;</button>
+            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-4">Sign In</h2>
+            <div class="space-y-4 text-gray-300">
+                <div>
+                    <label for="email" class="block text-sm font-medium mb-1">Email:</label>
+                    <input type="email" id="email" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="your.email@example.com">
+                </div>
+                <div id="usernameFieldGroup" style="display:none;">
+                    <label for="usernameInput" class="block text-sm font-medium mb-1">Username:</label>
+                    <input type="text" id="usernameInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Choose a username">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium mb-1">Password:</label>
+                    <input type="password" id="password" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter your password">
+                </div>
+                <p id="authError" class="text-red-500 text-sm" style="display:none;"></p>
+                <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
+                <div class="relative flex py-5 items-center">
+                    <div class="flex-grow border-t border-gray-600"></div>
+                    <span class="flex-shrink mx-4 text-gray-500">Or</span>
+                    <div class="flex-grow border-t border-gray-600"></div>
+                </div>
+                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5">
+                    Sign In with Google
+                </button>
+            </div>
+        </div>
+    </div>
 
-            if not all([scramble, cube_type, solve_time_ms is not None, user_level]):
-                print("ERROR: Missing required fields for get_insight.")
-                return jsonify({"error": "Missing 'scramble', 'cubeType', 'solveTimeMs', or 'user_level' for insight generation."}), 400
+    <!-- AI Insight Modal -->
+    <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
+                <div class="spinner mx-auto my-4" style="display: none;"></div>
+                <p id="insightMessage" class="text-center">Generating insight...</p>
+                <!-- NEW: AI Scramble Analysis Display -->
+                <div id="scrambleAnalysisDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble Analysis:</h3>
+                    <p id="scrambleAnalysisText" class="text-white text-sm"></p>
+                </div>
+                <!-- Existing Personalized Tip Display -->
+                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
+                    <p id="personalizedTipText" class="text-white text-sm"></p>
+                </div>
+                <!-- NEW: Targeted Practice Focus Section -->
+                <div id="targetedPracticeFocusDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Targeted Practice Focus:</h3>
+                    <p id="targetedPracticeFocusText" class="text-white text-sm"></p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            # Convert solve time to seconds and format for prompt
-            solve_time_seconds = solve_time_ms / 1000.0
-            formatted_solve_time = f"{int(solve_time_seconds // 60):02d}:{int(solve_time_seconds % 60):02d}.{int((solve_time_seconds * 1000) % 1000):03d}"
-            if penalty:
-                formatted_solve_time += f" ({penalty})"
+    <!-- NEW: Chat Modal -->
+    <div id="chatModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
+        <div class="modal-content !max-w-md !max-h-[80vh] flex flex-col">
+            <button class="modal-close-button" id="closeChatModal" aria-label="Close chat">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Jarvis Chat</h2>
+            <div id="chatHistory" class="flex-grow overflow-y-auto p-3 bg-gray-800 rounded-lg mb-4 space-y-2 text-sm custom-scrollbar">
+                <!-- Chat messages will be dynamically added here -->
+                <div class="chat-message jarvis-message">
+                    <span class="font-bold text-indigo-400">Jarvis:</span> At your service, Sir Sevindu. How may I assist you via text?
+                </div>
+            </div>
+            <div class="chat-input-container flex gap-2">
+                <textarea id="chatInput" class="flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows="2" placeholder="Type your command..."></textarea>
+                <button id="chatSendBtn" class="button-primary !p-3 !rounded-lg !w-auto flex-shrink-0">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 
-            prompt = (
-                f"You are an expert Rubik's Cube coach and AI assistant. Provide a concise, actionable, and encouraging insight "
-                f"for a {cube_type} cube solve. The scramble was: '{scramble}'. "
-                f"The user's solve time was {formatted_solve_time}. The user's estimated skill level is '{user_level}'.\n\n"
-                "Provide the response in a JSON object with the following keys:\n"
-                "- 'insight': A general, encouraging comment on the solve.\n"
-                "- 'scrambleAnalysis': A brief analysis of the provided scramble, highlighting any interesting features or challenges (e.g., 'easy cross', 'tricky F2L pair').\n"
-                "- 'personalizedTip': A specific, actionable tip tailored to the user's skill level and solve time to help them improve.\n"
-                "- 'targetedPracticeFocus': Suggest a specific area or algorithm set for the user to practice based on their level and the solve context.\n"
-                "Example JSON format: {\"insight\": \"Great job!\", \"scrambleAnalysis\": \"Easy cross.\", \"personalizedTip\": \"Focus on F2L recognition.\", \"targetedPracticeFocus\": \"F2L cases\"}"
-            )
 
-            # Define the response schema for insight generation
-            response_schema = {
-                "type": "OBJECT",
-                "properties": {
-                    "insight": {"type": "STRING"},
-                    "scrambleAnalysis": {"type": "STRING"},
-                    "personalizedTip": {"type": "STRING"},
-                    "targetedPracticeFocus": {"type": "STRING"}
-                },
-                "required": ["insight", "scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
-            }
+    <!-- Jarvis Orb Voice Feedback Display (moved to bottom center) -->
+    <div id="voiceFeedbackDisplay" class="voice-feedback-display">
+        <p id="voiceListeningText">Listening for 'Jarvis'...</p>
+        <p id="voiceLiveTranscript" class="text-xs text-gray-400 italic mt-1" style="display: none;"></p>
+        <div id="voiceListeningIndicator" class="listening-indicator">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
 
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": response_schema
-                }
-            }
+    <!-- Voice Command Button (fixed position) -->
+    <button id="voiceCommandBtn" class="fixed bottom-4 right-4 md:bottom-4 md:right-4 z-50 button-primary !rounded-full !w-14 !h-14 !p-0 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200">
+        <i class="fas fa-microphone text-2xl"></i>
+    </button>
 
-            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            print(f"DEBUG: Calling Gemini API for insight: {model_url}")
-            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-            gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+    <!-- Chat Button (fixed position, mirroring voice button) -->
+    <button id="openChatBtn" class="fixed bottom-4 left-4 md:bottom-4 md:left-4 z-50 button-primary !rounded-full !w-14 !h-14 !p-0 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200">
+        <i class="fas fa-comment-dots text-2xl"></i>
+    </button>
 
-            gemini_result = gemini_response.json()
-            print(f"DEBUG: Raw Gemini insight response: {json.dumps(gemini_result, indent=2)}")
 
-            # Extract the JSON string from the response and parse it
-            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
-               gemini_result['candidates'][0]['content'].get('parts') and \
-               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
-                # The model is configured to return JSON, so we parse it directly
-                insight_data = json.loads(response_text)
-                return jsonify(insight_data)
-            else:
-                print("ERROR: Unexpected Gemini insight response structure.")
-                return jsonify({"error": "Failed to parse AI insight response. Unexpected structure."}), 500
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
-        elif request_type == 'lesson_chat':
-            # Logic for conversational lesson generation - ONLY CHAT RESPONSES
-            chat_history = request_json.get('chatHistory', [])
-            cube_type = request_json.get('cubeType')
-            user_level = request_json.get('userLevel')
-            initial_topic = request_json.get('initialTopic')
+    <!-- Link to external JavaScript file -->
+    <script type="module" src="script.js"></script>
+</body>
 
-            if not all([chat_history, cube_type, user_level, initial_topic]):
-                print("ERROR: Missing required fields for lesson_chat.")
-                return jsonify({"error": "Missing 'chatHistory', 'cubeType', 'userLevel', or 'initialTopic' for lesson conversation."}), 400
-
-            # The instructional prompt for the conversational model
-            instructional_text = (
-                f"You are Jarvis, an expert Rubik's Cube instructor and AI assistant. "
-                f"You are currently having a conversation with Sir Sevindu to understand his learning needs for a lesson on '{initial_topic}' "
-                f"for a {cube_type} cube, considering his skill level is '{user_level}'.\n"
-                f"Your goal is to gather enough information to generate a highly personalized and actionable multi-step lesson. "
-                f"Do NOT generate the lesson yet. ONLY ask clarifying questions or make conversational remarks. "
-                f"Respond with a JSON object of type 'chat_response' containing your message.\n"
-                f"Chat response structure: {{ \"type\": \"chat_response\", \"message\": \"<Your conversational message>\" }}\n"
-                f"Consider the full chat history to avoid asking redundant questions and to build context."
-            )
-
-            # Create a deep copy of chat_history
-            contents_for_gemini = json.loads(json.dumps(chat_history))
-
-            # Prepend the instructional text to the first user message in the history
-            if contents_for_gemini and contents_for_gemini[0].get('role') == 'user' and \
-               contents_for_gemini[0].get('parts') and contents_for_gemini[0]['parts'][0].get('text') is not None:
-                
-                contents_for_gemini[0]['parts'][0]['text'] = instructional_text + "\n\n" + contents_for_gemini[0]['parts'][0]['text']
-            else:
-                print("ERROR: Initial chat history is malformed or empty, or does not start with a user role for lesson_chat. Rejecting request.")
-                return jsonify({"error": "Malformed chat history received from frontend."}), 400
-
-            payload = {
-                "contents": contents_for_gemini,
-                "generationConfig": {
-                    "responseMimeType": "application/json", # Explicitly expect JSON
-                    "responseSchema": { # Simplified schema for chat responses
-                        "type": "OBJECT",
-                        "properties": {
-                            "type": {"type": "STRING", "enum": ["chat_response"]},
-                            "message": {"type": "STRING"}
-                        },
-                        "required": ["type", "message"]
-                    }
-                }
-            }
-
-            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            print(f"DEBUG: Calling Gemini API for lesson chat: {model_url}")
-            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-            gemini_response.raise_for_status()
-
-            gemini_result = gemini_response.json()
-            print(f"DEBUG: Raw Gemini lesson chat response: {json.dumps(gemini_result, indent=2)}")
-
-            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
-               gemini_result['candidates'][0]['content'].get('parts') and \
-               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
-                
-                try:
-                    parsed_response = json.loads(response_text)
-                    # Ensure the type is 'chat_response' as per the simplified schema
-                    if parsed_response.get('type') == 'chat_response' and 'message' in parsed_response:
-                        return jsonify(parsed_response)
-                    else:
-                        print(f"ERROR: Gemini returned unexpected JSON structure for chat_response: {parsed_response}")
-                        return jsonify({"type": "chat_response", "message": "My apologies, Sir Sevindu. I received an unexpected response format. Could you please try again?"})
-                except json.JSONDecodeError as e:
-                    print(f"ERROR: Failed to decode JSON from Gemini response for lesson_chat: {e}. Raw response text: {response_text}")
-                    # If JSON decoding fails, it means the model did not adhere to the JSON format.
-                    # We can return a generic error message or try to use the raw text if it makes sense.
-                    # For now, let's return a structured error message.
-                    return jsonify({"type": "chat_response", "message": "My apologies, Sir Sevindu. I encountered an internal processing error. Please try again shortly."})
-            else:
-                print("ERROR: Unexpected Gemini lesson chat response structure (no candidates/content).")
-                return jsonify({"type": "chat_response", "message": "My apologies, Sir Sevindu. I am experiencing a temporary communication error. Please try again shortly."})
-
-        elif request_type == 'generate_final_lesson': # NEW: Endpoint for final lesson generation
-            chat_history = request_json.get('chatHistory', [])
-            cube_type = request_json.get('cubeType')
-            user_level = request_json.get('userLevel')
-            initial_topic = request_json.get('initialTopic')
-
-            if not all([chat_history, cube_type, user_level, initial_topic]):
-                print("ERROR: Missing required fields for generate_final_lesson.")
-                return jsonify({"error": "Missing 'chatHistory', 'cubeType', 'userLevel', or 'initialTopic' for final lesson generation."}), 400
-
-            # The prompt for generating the full lesson based on the conversation
-            lesson_generation_prompt = (
-                f"You are Jarvis, an expert Rubik's Cube instructor. Based on the following conversation with Sir Sevindu "
-                f"regarding a lesson on '{initial_topic}' for a {cube_type} cube (his skill level is '{user_level}'), "
-                f"please generate a highly personalized and actionable multi-step lesson. "
-                f"The lesson should have between 3 and 7 steps.\n"
-                f"Ensure scrambles are valid for {cube_type} (e.g., for Pyraminx, include tip moves like r, l, u, b).\n\n"
-                f"Conversation History:\n"
-            )
-            for turn in chat_history:
-                role = "Sir Sevindu" if turn['role'] == 'user' else "Jarvis"
-                for part in turn['parts']:
-                    if part.get('text'):
-                        lesson_generation_prompt += f"{role}: {part['text']}\n"
-            
-            lesson_generation_prompt += (
-                f"\nNow, generate the lesson as a JSON object with the following structure:\n"
-                f"{{ \"type\": \"lesson_ready\", \"lessonData\": {{ \"lessonId\": \"<UUID>\", \"lessonTitle\": \"<Title>\", \"steps\": [{{ \"title\": \"<Step Title>\", \"description\": \"<Description>\", \"scramble\": \"<Optional Scramble>\", \"algorithm\": \"<Optional Algorithm>\", \"explanation\": \"<Explanation>\" }}] }} }}\n"
-                f"Ensure 'lessonId' is a valid UUID. The 'scramble' and 'algorithm' fields are optional and can be null if not applicable to a step."
-            )
-
-            # The contents for Gemini API will be just this single, comprehensive prompt
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": lesson_generation_prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "type": {"type": "STRING", "enum": ["lesson_ready"]},
-                            "lessonData": {
-                                "type": "OBJECT",
-                                "properties": {
-                                    "lessonId": {"type": "STRING"},
-                                    "lessonTitle": {"type": "STRING"},
-                                    "steps": {
-                                        "type": "ARRAY",
-                                        "items": {
-                                            "type": "OBJECT",
-                                            "properties": {
-                                                "title": {"type": "STRING"},
-                                                "description": {"type": "STRING"},
-                                                "scramble": {"type": "STRING", "nullable": True},
-                                                "algorithm": {"type": "STRING", "nullable": True},
-                                                "explanation": {"type": "STRING"}
-                                            },
-                                            "required": ["title", "description", "explanation"]
-                                        },
-                                        "minItems": 3, # Ensure at least 3 steps
-                                        "maxItems": 7  # Ensure at most 7 steps
-                                    }
-                                },
-                                "required": ["lessonId", "lessonTitle", "steps"]
-                            }
-                        },
-                        "required": ["type", "lessonData"]
-                    }
-                }
-            }
-
-            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            print(f"DEBUG: Calling Gemini API for final lesson generation: {model_url}")
-            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-            gemini_response.raise_for_status()
-
-            gemini_result = gemini_response.json()
-            print(f"DEBUG: Raw Gemini final lesson response: {json.dumps(gemini_result, indent=2)}")
-
-            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
-               gemini_result['candidates'][0]['content'].get('parts') and \
-               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
-                parsed_response = json.loads(response_text)
-
-                if parsed_response.get('type') == 'lesson_ready':
-                    # Ensure lessonId is present, generate if missing (should be from AI now)
-                    if 'lessonId' not in parsed_response['lessonData']:
-                        parsed_response['lessonData']['lessonId'] = str(uuid.uuid4())
-                    return jsonify(parsed_response)
-                else:
-                    print("ERROR: Unexpected AI response type for final lesson generation.")
-                    return jsonify({"error": "AI returned an unexpected response type for final lesson generation."}), 500
-            else:
-                print("ERROR: Unexpected Gemini final lesson response structure.")
-                return jsonify({"error": "Failed to parse AI final lesson response. Unexpected structure."}), 500
-
-        elif request_type == 'get_algorithm':
-            # Existing logic for getting algorithms/explanations
-            query = request_json.get('query')
-            if not query:
-                return jsonify({"error": "Missing 'query' for algorithm/explanation."}), 400
-
-            prompt = (
-                f"Provide a concise algorithm or explanation for the Rubik's Cube concept: '{query}'. "
-                f"If it's an algorithm, provide the moves. If it's a concept, explain it clearly. "
-                f"Format your response as a JSON object with either an 'algorithm' key or an 'explanation' key. "
-                f"Example: {{ \"algorithm\": \"R U R' U' R' F R2 U' R' U' R U R' F'\" }} "
-                f"Or: {{ \"explanation\": \"F2L stands for First Two Layers...\" }}"
-            )
-            response_schema = {
-                "type": "OBJECT",
-                "properties": {
-                    "algorithm": {"type": "STRING", "nullable": True},
-                    "explanation": {"type": "STRING", "nullable": True}
-                },
-                "minProperties": 1,
-                "maxProperties": 1
-            }
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": response_schema
-                }
-            }
-            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-            gemini_response.raise_for_status()
-
-            gemini_result = gemini_response.json()
-            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
-               gemini_result['candidates'][0]['content'].get('parts') and \
-               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
-                algorithm_data = json.loads(response_text)
-                return jsonify(algorithm_data)
-            else:
-                return jsonify({"error": "Failed to parse AI algorithm/explanation response."}), 500
-
-        elif request_type == 'get_answer':
-            # Existing logic for general questions
-            query = request_json.get('query')
-            if not query:
-                return jsonify({"error": "Missing 'query' for general answer."}), 400
-
-            prompt = (
-                f"Answer the following question about Rubik's Cubes or cubing in general: '{query}'. "
-                f"Provide a concise and informative answer. "
-                f"Format your response as a JSON object with an 'answer' key. "
-                f"Example: {{ \"answer\": \"The Rubik's Cube was invented by Ernő Rubik...\" }}"
-            )
-            response_schema = {
-                "type": "OBJECT",
-                "properties": {
-                    "answer": {"type": "STRING"}
-                },
-                "required": ["answer"]
-            }
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "responseSchema": response_schema
-                }
-            }
-            model_url = f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-            gemini_response = requests.post(model_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-            gemini_response.raise_for_status()
-
-            gemini_result = gemini_response.json()
-            if gemini_result.get('candidates') and gemini_result['candidates'][0].get('content') and \
-               gemini_result['candidates'][0]['content'].get('parts') and \
-               gemini_result['candidates'][0]['content']['parts'][0].get('text'):
-                response_text = gemini_result['candidates'][0]['content']['parts'][0].get('text')
-                answer_data = json.loads(response_text)
-                return jsonify(answer_data)
-            else:
-                return jsonify({"error": "Failed to parse AI general answer response."}), 500
-
-        else:
-            print(f"ERROR: Unknown request type: {request_type}")
-            return jsonify({"error": "Invalid request type specified."}), 400
-
-    except requests.exceptions.ConnectionError as conn_err:
-        print(f"ERROR: Connection error during Gemini API call: {conn_err}")
-        return jsonify({"error": "Network error: Could not connect to the AI service. Please check your internet connection or try again later."}), 503
-    except requests.exceptions.Timeout as timeout_err:
-        print(f"ERROR: Timeout error during Gemini API call: {timeout_err}")
-        return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
-    except requests.exceptions.RequestException as req_err:
-        print(f"ERROR: General request error during Gemini API call: {req_err}")
-        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
-    except json.JSONDecodeError as json_err:
-        raw_body = request.get_data(as_text=True)
-        print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
-        return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
-    except Exception as e:
-        import traceback
-        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
-
-# To run this with Vercel, ensure you have a 'requirements.txt' in the same 'api' directory:
-# Flask==3.*
-# requests==2.*
-# flask-cors==4.*
+</html>
