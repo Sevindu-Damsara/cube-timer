@@ -93,13 +93,8 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # System instruction for conversational turn - concise and focused
-            system_instruction = f"""
-            You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson for Sir Sevindu.
-            Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational and respectful.
-            Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message.
-            Context: Cube type: {cube_type}, User skill level: {user_level}.
-            """
+            # System instruction for conversational turn - now extremely concise
+            system_instruction = "You are Jarvis, an advanced AI cubing instructor. Gather information to create a personalized multi-step cubing lesson. Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational. Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
 
             # Construct the full contents array for the Gemini API call
             # This is the canonical way to pass system instructions and chat history
@@ -119,7 +114,13 @@ def gemini_insight_handler():
 
             api_url = f"{GEMINI_API_BASE_URL}/{model_name}:generateContent?key={GEMINI_API_KEY}"
             response = requests.post(api_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload), timeout=60)
+            
+            # Log the full response text for detailed debugging if an error occurs
+            if not response.ok:
+                print(f"ERROR: Gemini API response status: {response.status_code}")
+                print(f"ERROR: Gemini API response text: {response.text}")
             response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+            
             gemini_response = response.json()
 
             if gemini_response and 'candidates' in gemini_response and gemini_response['candidates']:
@@ -141,12 +142,8 @@ def gemini_insight_handler():
 
         elif request_type == "generate_final_lesson":
             print("DEBUG: Handling generate_final_lesson request.")
-            # System instruction for final lesson generation - concise and focused
-            system_instruction = f"""
-            You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson.
-            Refer to the preceding conversation history for context.
-            Context: Cube type: {cube_type}, User skill level: {user_level}.
-            """
+            # System instruction for final lesson generation - now extremely concise
+            system_instruction = "You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level."
 
             # Construct the full contents array for the Gemini API call
             # This is the canonical way to pass system instructions and chat history
@@ -166,7 +163,13 @@ def gemini_insight_handler():
 
             api_url = f"{GEMINI_API_BASE_URL}/{model_name}:generateContent?key={GEMINI_API_KEY}"
             response = requests.post(api_url, headers={'Content-Type': 'application/json'}, data=json.dumps(payload), timeout=180) # Increased timeout for lesson generation
-            response.raise_for_status()
+            
+            # Log the full response text for detailed debugging if an error occurs
+            if not response.ok:
+                print(f"ERROR: Gemini API response status: {response.status_code}")
+                print(f"ERROR: Gemini API response text: {response.text}")
+            response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+            
             gemini_response = response.json()
 
             if gemini_response and 'candidates' in gemini_response and gemini_response['candidates']:
