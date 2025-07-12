@@ -117,10 +117,13 @@ def gemini_insight_handler():
             """
 
             # Construct the full prompt for the current turn
+            # System instruction as the first part, then unpack chat_history
             contents = [
                 {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
                 *chat_history # Unpack existing chat history
             ]
+
+            print(f"DEBUG: Payload for lesson_chat: {json.dumps(payload, indent=2)}") # Log the full payload
 
             payload = {
                 "contents": contents,
@@ -161,7 +164,7 @@ def gemini_insight_handler():
             You are Jarvis, a world-class Rubik's Cube instructor and AI assistant. Your task is to generate an **exceptionally personalized, highly actionable, and pedagogically sound multi-step cubing lesson** based on the preceding detailed conversation, the user's specified cube type, and their skill level.
 
             **Conversation History (Crucial Context):**
-            The following is the complete dialogue between you and Sir Sevindu. Analyze this history thoroughly to extract all nuances of the user's learning objectives, challenges, and preferences.
+            Refer to the preceding conversation history provided as separate turns in the 'contents' array for all nuances of the user's learning objectives, challenges, and preferences.
 
             **User Context:**
             * Cube Type: {cube_type}
@@ -184,13 +187,13 @@ def gemini_insight_handler():
             """
 
             # Construct the full prompt for the current turn
+            # System instruction as the first part, then unpack chat_history
             contents = [
-                {"role": "system", "parts": [{"text": system_instruction.format(
-                    cube_type=cube_type,
-                    user_level=user_level
-                )}]},
+                {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
                 *chat_history # Unpack existing chat history
             ]
+
+            print(f"DEBUG: Payload for generate_final_lesson: {json.dumps(payload, indent=2)}") # Log the full payload
 
             payload = {
                 "contents": contents,
