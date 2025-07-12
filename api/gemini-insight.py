@@ -150,11 +150,12 @@ def gemini_insight_handler():
             """
 
             # Construct the full prompt for the current turn
-            # The last message in chat_history is the user's current input
             # The model expects the full conversation history for context
-            # We add the system instruction as the first message
-            contents = [{"role": "user", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
-                        *chat_history] # Unpack existing chat history
+            # We add the system instruction as the first message with role "system"
+            contents = [
+                {"role": "system", "parts": [{"text": system_instruction.format(cube_type=cube_type, user_level=user_level)}]},
+                *chat_history # Unpack existing chat history
+            ]
 
             payload = {
                 "contents": contents,
@@ -170,9 +171,19 @@ def gemini_insight_handler():
             gemini_response = response.json()
 
             if gemini_response and 'candidates' in gemini_response and gemini_response['candidates']:
-                # The response is structured as per LESSON_CHAT_RESPONSE_SCHEMA
-                ai_message_json = json.loads(gemini_response['candidates'][0]['content']['parts'][0]['text'])
-                ai_message = ai_message_json.get('message', "My apologies, Sir Sevindu. I could not formulate a response.")
+                response_text = gemini_response['candidates'][0]['content']['parts'][0]['text']
+                print(f"DEBUG: Raw AI message text for lesson_chat: '{response_text}'")
+                try:
+                    ai_message_json = json.loads(response_text)
+                    ai_message = ai_message_json.get('message', "My apologies, Sir Sevindu. I could not formulate a response.")
+                except json.JSONDecodeError:
+                    # Fallback if AI doesn't return valid JSON despite schema
+                    print(f"WARNING: AI did not return valid JSON for lesson_chat. Falling back to raw text. Raw: '{response_text}'")
+                    ai_message = response_text # Use raw text as message
+                    # Ensure the marker is still handled if present in raw text
+                    if "[LESSON_PLAN_PROPOSAL_READY]" in ai_message:
+                         ai_message = ai_message.replace("[LESSON_PLAN_PROPOSAL_READY]", '').strip() + " [LESSON_PLAN_PROPOSAL_READY]"
+
                 return jsonify({"message": ai_message})
             else:
                 print(f"ERROR: Unexpected Gemini API response structure for lesson_chat: {gemini_response}")
@@ -272,15 +283,20 @@ def gemini_insight_handler():
             ```
             """
 
-            # Convert chat_history to a more readable summary for the AI, or pass as-is
-            # For this complex prompt, passing the full chat_history as 'contents' is better
-            # The system instruction will set the context for the model
-            contents = [{"role": "user", "parts": [{"text": system_instruction.format(
-                chat_history_summary=json.dumps(chat_history), # Pass full history for AI to parse
-                cube_type=cube_type,
-                user_level=user_level
-            )}]}
-            ] # Only the system instruction is needed here, as the chat_history_summary provides context
+            # Construct the full prompt for the current turn
+            # The model expects the full conversation history for context
+            # We add the system instruction as the first message with role "system"
+            contents = [
+                {"role": "system", "parts": [{"text": system_instruction.format(
+                    chat_history_summary=json.dumps(chat_history, indent=2), # Pass full history for AI to parse
+                    cube_type=cube_type,
+                    user_level=user_level
+                )}]}
+            ]
+            # Note: For generate_final_lesson, chat_history is passed within the system_instruction's chat_history_summary.
+            # If the model struggles to parse the embedded JSON, we might need to revert to passing chat_history directly
+            # as separate turns and making the system instruction more concise about the history.
+            # However, for complex prompts, embedding it can provide more direct context.
 
             payload = {
                 "contents": contents,
@@ -296,27 +312,30 @@ def gemini_insight_handler():
             gemini_response = response.json()
 
             if gemini_response and 'candidates' in gemini_response and gemini_response['candidates']:
-                # The response is structured as per FINAL_LESSON_RESPONSE_SCHEMA
                 lesson_data_json_str = gemini_response['candidates'][0]['content']['parts'][0]['text']
-                lesson_data = json.loads(lesson_data_json_str)
+                print(f"DEBUG: Raw AI lesson data text: '{lesson_data_json_str}'")
+                try:
+                    lesson_data = json.loads(lesson_data_json_str)
 
-                # Validate the generated lesson data against the schema
-                # (Simplified validation for brevity, full validation would be more extensive)
-                if not all(k in lesson_data.get('lessonData', {}) for k in ['id', 'lessonTitle', 'steps']):
-                    raise ValueError("Generated lesson data is missing required fields.")
-                if not isinstance(lesson_data['lessonData']['steps'], list) or not (3 <= len(lesson_data['lessonData']['steps']) <= 10):
-                    raise ValueError("Generated lesson steps array is invalid or out of bounds (3-10 steps required).")
+                    # Validate the generated lesson data against the schema
+                    if not all(k in lesson_data.get('lessonData', {}) for k in ['id', 'lessonTitle', 'steps']):
+                        raise ValueError("Generated lesson data is missing required fields.")
+                    if not isinstance(lesson_data['lessonData']['steps'], list) or not (3 <= len(lesson_data['lessonData']['steps']) <= 10):
+                        raise ValueError("Generated lesson steps array is invalid or out of bounds (3-10 steps required).")
 
-                # Ensure lessonId is a UUID
-                if not lesson_data['lessonData']['id']:
-                    lesson_data['lessonData']['id'] = str(uuid.uuid4()) # Generate if AI somehow missed it
-                else:
-                    try:
-                        uuid.UUID(lesson_data['lessonData']['id']) # Validate if it's a valid UUID
-                    except ValueError:
-                        lesson_data['lessonData']['id'] = str(uuid.uuid4()) # Regenerate if invalid
+                    # Ensure lessonId is a UUID
+                    if not lesson_data['lessonData']['id']:
+                        lesson_data['lessonData']['id'] = str(uuid.uuid4()) # Generate if AI somehow missed it
+                    else:
+                        try:
+                            uuid.UUID(lesson_data['lessonData']['id']) # Validate if it's a valid UUID
+                        except ValueError:
+                            lesson_data['lessonData']['id'] = str(uuid.uuid4()) # Regenerate if invalid
 
-                return jsonify(lesson_data) # Return the full structured lesson
+                    return jsonify(lesson_data) # Return the full structured lesson
+                except json.JSONDecodeError:
+                    print(f"ERROR: AI did not return valid JSON for final lesson. Raw: '{lesson_data_json_str}'")
+                    return jsonify({"error": "AI failed to generate a valid lesson. Please try again or refine your request."}), 500
             else:
                 print(f"ERROR: Unexpected Gemini API response structure for final lesson: {gemini_response}")
                 return jsonify({"error": "AI did not return a valid structured lesson."}), 500
