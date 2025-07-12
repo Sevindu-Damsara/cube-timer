@@ -146,7 +146,7 @@ def gemini_insight_handler():
 
             **Output Format:**
             Your response MUST be a JSON object with a single 'message' field.
-            Example: `{{"message": "Your conversational response here."}}`
+            Example: `{{{{ "message": "Your conversational response here." }}}}`
             """
 
             # Construct the full prompt for the current turn
@@ -257,7 +257,7 @@ def gemini_insight_handler():
             Your response MUST be a JSON object with a `lessonData` field, strictly adhering to the `FINAL_LESSON_RESPONSE_SCHEMA`.
             Example:
             ```json
-            {{{{
+            {{{{{{
                 "lessonData": {{{{
                     "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
                     "lessonTitle": "Mastering Intuitive F2L Pairings: A Beginner's Guide",
