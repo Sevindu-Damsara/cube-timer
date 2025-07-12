@@ -257,29 +257,29 @@ def gemini_insight_handler():
             Your response MUST be a JSON object with a `lessonData` field, strictly adhering to the `FINAL_LESSON_RESPONSE_SCHEMA`.
             Example:
             ```json
-            {
-                "lessonData": {
+            {{
+                "lessonData": {{
                     "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
                     "lessonTitle": "Mastering Intuitive F2L Pairings: A Beginner's Guide",
                     "steps": [
-                        {
+                        {{
                             "title": "Introduction to F2L: The Concept",
                             "description": "First Two Layers (F2L) is the second step of the CFOP method, where you solve the first two layers of the cube simultaneously, pairing a corner and its corresponding edge and inserting them into their slot.",
                             "scramble": null,
                             "algorithm": null,
                             "explanation": "This method is more efficient than solving layers separately as it reduces moves and look-ahead time. Focus on understanding the 'pair' concept."
-                        },
-                        {
+                        }},
+                        {{
                             "title": "F2L Case 1: Edge in U-Layer, Corner in U-Layer (Matching Colors)",
                             "description": "This case involves an edge piece and its corresponding corner piece both in the top (U) layer, with the edge's top color matching the corner's side color. The goal is to pair them up and insert them into the correct slot.",
                             "scramble": "R U R' U' F' L' U' L F",
                             "algorithm": "U R U' R'",
                             "explanation": "This is a fundamental case. Ensure the edge and corner are positioned correctly above their target slot. The 'U' moves are crucial for setting up the pair."
-                        }
+                        }}
                         // ... more steps ...
                     ]
-                }
-            }
+                }}
+            }}
             ```
             """
 
