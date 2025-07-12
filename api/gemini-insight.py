@@ -42,6 +42,9 @@ def gemini_insight_handler():
         cube_type = request_json.get('cubeType', '3x3')
         user_level = request_json.get('userLevel', 'beginner')
 
+        # Log incoming chat_history for debugging
+        print(f"DEBUG: Incoming chat_history: {json.dumps(chat_history, indent=2)}")
+
         if not GEMINI_API_KEY:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
             return jsonify({"error": "Server configuration error: Gemini API key is missing."}), 500
@@ -93,8 +96,8 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # System instruction for conversational turn - now extremely concise
-            system_instruction = "You are Jarvis, an advanced AI cubing instructor. Gather information to create a personalized multi-step cubing lesson. Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational. Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
+            # System instruction for conversational turn - ABSOLUTELY MINIMAL
+            system_instruction = "You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson. Do NOT generate the lesson yet. Ask clarifying questions. Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
 
             # Construct the full contents array for the Gemini API call
             # This is the canonical way to pass system instructions and chat history
@@ -142,7 +145,7 @@ def gemini_insight_handler():
 
         elif request_type == "generate_final_lesson":
             print("DEBUG: Handling generate_final_lesson request.")
-            # System instruction for final lesson generation - now extremely concise
+            # System instruction for final lesson generation - ABSOLUTELY MINIMAL
             system_instruction = "You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level."
 
             # Construct the full contents array for the Gemini API call
@@ -212,6 +215,9 @@ def gemini_insight_handler():
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
     except requests.exceptions.RequestException as req_err:
         print(f"ERROR: General request error during Gemini API call: {req_err}")
+        # Log the specific error message from the API response body if available
+        if response is not None and response.text:
+            print(f"ERROR: API detailed error response: {response.text}")
         return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
