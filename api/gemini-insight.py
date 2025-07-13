@@ -104,8 +104,9 @@ def gemini_insight_handler():
                 "ONLY ask clarifying, probing questions or provide brief, encouraging, and context-building remarks. Your responses MUST be conversational, respectful, and reflective of your persona as Jarvis. "
                 "Mandatory Questioning Protocol: You MUST ask a minimum of 3 to 5 distinct, highly relevant, and probing clarifying questions before you even consider signaling readiness for lesson generation. These questions must build upon the previous turn and demonstrate a deep understanding of cubing pedagogy. "
                 "Questioning Categories: Focus on Scope (foundational vs. specific cases), Current Understanding (familiar concepts, difficulties, current method), Learning Preferences (conceptual, visual, hands-on), and Desired Outcome (speed, consistency, deeper understanding). "
-                "Readiness Signal: ONLY when you are unequivocally confident that you possess sufficient, granular detail, end your message with: `[LESSON_PLAN_PROPOSAL_READY]` followed by a confirmation question. "
-                "Example Readiness: \"I believe I have gathered all necessary information to construct a highly personalized lesson on [Specific Topic]. Shall I proceed, Sir Sevindu? [LESSON_PLAN_PROPOSAL_READY]\""
+                "Crucial Readiness Signal: When you are unequivocally confident that you possess sufficient, granular detail for a comprehensive lesson, you MUST end your message with the exact string `[LESSON_PLAN_PROPOSAL_READY]` followed immediately by a clear, direct confirmation question to Sir Sevindu. "
+                "Example Readiness Message: \"I believe I have gathered all necessary information to construct a highly personalized lesson on [Specific Topic]. Shall I proceed, Sir Sevindu? [LESSON_PLAN_PROPOSAL_READY]\""
+                "If Sir Sevindu responds with a positive affirmation (e.g., 'yes', 'confirm') after you have sent the `[LESSON_PLAN_PROPOSAL_READY]` marker, then the front-end will proceed with lesson generation. Otherwise, continue the conversation."
                 "</instruction>\n\n"
             )
 
@@ -273,8 +274,3 @@ def gemini_insight_handler():
         import traceback
         print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
-
-# To run this with Vercel, ensure you have a 'requirements.txt' in the same 'api' directory:
-# Flask
-# requests
-# flask-cors
