@@ -36,7 +36,7 @@ let currentLessonStepIndex = 0; // Current step being viewed
 let completedSteps = new Set(); // Stores indices of completed steps for the current lesson
 let lessonChatHistory = []; // For displaying messages in the chat UI
 let backendChatHistory = []; // For sending conversational context to the AI (user/model roles)
-let isAwaitingLessonGenerationConfirmation = false; // Flag to manage lesson generation flow
+// Removed isAwaitingLessonGenerationConfirmation as logic is now AI-driven
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
 let userLevel = 'beginner'; // Determined by best solve time, for AI context
@@ -51,15 +51,14 @@ let lessonDisplayArea, lessonTitleDisplay, lessonProgressBar, lessonStepTitleDis
     lessonExplanationDisplay, markStepCompleteBtn,
     prevLessonStepBtn, lessonStepCounter, nextLessonStepBtn, completeLessonBtn, lessonCompletionMessage;
 
-// NEW: Referencing elements by their updated IDs from lessons.html
-let cube3DContainer; // This was previously lessonVisualContainer
-let scramble3DViewer; // This was previously twistyPlayerLessonViewer
-let playPreviewBtn;   // This was previously lessonPlayBtn
-let pausePreviewBtn;  // This was previously lessonPauseBtn
-let restartPreviewBtn; // This was previously lessonResetViewBtn
+let cube3DContainer; // The main container div
+let scramble3DViewer; // The twisty-player element
+let playPreviewBtn;   // Play button
+let pausePreviewBtn;  // Pause button
+let restartPreviewBtn; // Restart button
 
-let lessonScrambleCubeBtn; // This ID remains the same
-let lessonSolveCubeBtn;    // This ID remains the same
+let lessonScrambleCubeBtn;
+let lessonSolveCubeBtn;
 
 let lessonHistorySection, lessonHistoryList, noLessonsMessage, historyLoadingSpinner;
 let globalLoadingSpinner;
@@ -767,34 +766,14 @@ async function sendLessonChatToAI() {
     lessonChatInput.disabled = true;
 
     try {
-        let payload;
-        let apiUrl = `/api/gemini-insight`; // Vercel serverless function endpoint
-
-        if (isAwaitingLessonGenerationConfirmation) {
-            // User is confirming lesson generation
-            const confirmationKeywords = ['yes', 'confirm', 'proceed', 'sure', 'ok']; // Expanded keywords
-            if (confirmationKeywords.some(keyword => userMessage.toLowerCase().includes(keyword))) {
-                console.log("[DEBUG] User confirmed lesson generation.");
-                isAwaitingLessonGenerationConfirmation = false;
-                requestFinalLessonFromAI(); // Call the function to generate the final lesson
-                return; // Exit here as requestFinalLessonFromAI will handle its own loading/UI
-            } else {
-                appendChatMessage('jarvis', "Pardon me, Sir Sevindu. Did you wish to proceed with the lesson generation? Please confirm with 'yes' or 'confirm' if so, or continue our conversation.");
-                speakAsJarvis("Pardon me, Sir Sevindu. Did you wish to proceed with the lesson generation? Please confirm with 'yes' or 'confirm' if so, or continue our conversation.");
-                showTypingIndicator(false);
-                sendLessonChatBtn.disabled = false;
-                lessonChatInput.disabled = false;
-                return; // Exit as no AI call is needed for this non-confirmation response
-            }
-        }
-
-        // Normal conversational turn
-        payload = {
+        const payload = {
             type: "lesson_chat",
             chatHistory: backendChatHistory,
             cubeType: currentCubeType,
             userLevel: userLevel
         };
+
+        const apiUrl = `/api/gemini-insight`;
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -809,21 +788,20 @@ async function sendLessonChatToAI() {
 
         const result = await response.json();
         const aiMessage = result.message;
+        const aiAction = result.action; // NEW: Get the action from AI response
 
-        // Check for the lesson generation readiness marker
-        const lessonReadyMarker = "[LESSON_PLAN_PROPOSAL_READY]";
-        let displayMessage = aiMessage;
-        if (aiMessage.includes(lessonReadyMarker)) {
-            displayMessage = aiMessage.replace(lessonReadyMarker, '').trim();
-            isAwaitingLessonGenerationConfirmation = true;
-            appendChatMessage('jarvis', displayMessage + " I believe I have sufficient information to generate your personalized lesson. Shall I proceed, Sir Sevindu?");
-            speakAsJarvis(displayMessage + " I believe I have sufficient information to generate your personalized lesson. Shall I proceed, Sir Sevindu?");
+        appendChatMessage('jarvis', aiMessage);
+        speakAsJarvis(aiMessage);
+        backendChatHistory.push({ role: "model", parts: [{ text: aiMessage }] });
+
+        // NEW: Check AI's action to decide next step
+        if (aiAction === "generate_lesson") {
+            console.log("[DEBUG] AI signaled to generate lesson.");
+            requestFinalLessonFromAI(); // Directly trigger lesson generation
         } else {
-            appendChatMessage('jarvis', displayMessage);
-            speakAsJarvis(displayMessage);
+            console.log("[DEBUG] AI signaled to continue chat.");
+            // Continue chat - no special action needed beyond displaying message
         }
-
-        backendChatHistory.push({ role: "model", parts: [{ text: aiMessage }] }); // Store original AI message for context
 
     } catch (error) {
         console.error("[ERROR] Error communicating with AI for lesson chat:", error);
@@ -928,49 +906,44 @@ function displayLessonStep(index) {
     lessonExplanationDisplay.textContent = step.explanation;
 
     // Twisty Player setup
-    if (scramble3DViewer) { // Changed from twistyPlayerLessonViewer
-        // NEW: Show/hide visual container based on user setting
+    if (scramble3DViewer) {
         if (show3DCubeView) {
-            cube3DContainer.style.display = 'block'; // Changed from lessonVisualContainer
-            scramble3DViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType); // Changed from twistyPlayerLessonViewer
+            cube3DContainer.style.display = 'block';
+            scramble3DViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
             scramble3DViewer.alg = ''; // Clear previous alg
             scramble3DViewer.experimentalSetupAlg = ''; // Clear previous setup alg
             scramble3DViewer.camera = 'plan'; // Default camera view
 
-            // Set background color based on theme
-            scramble3DViewer.style.setProperty('--twisty-player-background', getThemeBackgroundColorHex()); // Changed from twistyPlayerLessonViewer
+            scramble3DViewer.style.setProperty('--twisty-player-background', getThemeBackgroundColorHex());
 
             if (step.scramble) {
-                scramble3DViewer.alg = step.scramble; // Apply scramble
+                scramble3DViewer.alg = step.scramble;
                 lessonScrambleCubeBtn.style.display = 'inline-block';
             } else {
                 lessonScrambleCubeBtn.style.display = 'none';
             }
 
             if (step.algorithm) {
-                // If there's an algorithm, set it as the main alg for playback
-                scramble3DViewer.alg = step.algorithm; // Apply algorithm
+                scramble3DViewer.alg = step.algorithm;
                 lessonSolveCubeBtn.style.display = 'inline-block';
             } else {
                 lessonSolveCubeBtn.style.display = 'none';
             }
 
-            // Show play/pause/reset buttons if there's any visual content to play/reset
             if (step.scramble || step.algorithm) {
-                playPreviewBtn.style.display = 'inline-block'; // Changed from lessonPlayBtn
-                pausePreviewBtn.style.display = 'none';  // Changed from lessonPauseBtn
-                restartPreviewBtn.style.display = 'inline-block'; // Changed from lessonResetViewBtn
+                playPreviewBtn.style.display = 'inline-block';
+                pausePreviewBtn.style.display = 'none';
+                restartPreviewBtn.style.display = 'inline-block';
             } else {
                 playPreviewBtn.style.display = 'none';
                 pausePreviewBtn.style.display = 'none';
                 restartPreviewBtn.style.display = 'none';
             }
 
-            scramble3DViewer.pause(); // Pause any ongoing animation when step changes // Changed from twistyPlayerLessonViewer
+            scramble3DViewer.pause();
 
         } else {
-            cube3DContainer.style.display = 'none'; // Changed from lessonVisualContainer // Hide if 3D view is off
-            // Ensure all related buttons are hidden if the container is hidden
+            cube3DContainer.style.display = 'none';
             lessonScrambleCubeBtn.style.display = 'none';
             lessonSolveCubeBtn.style.display = 'none';
             playPreviewBtn.style.display = 'none';
@@ -981,17 +954,15 @@ function displayLessonStep(index) {
         if (!step.scramble && !step.algorithm) {
             speakAsJarvis(`Step ${index + 1}: ${step.title}. ${step.description}`);
         } else if (step.scramble && !show3DCubeView) {
-            // If 3D view is off, still speak the scramble if it exists
             speakAsJarvis(`Step ${index + 1}: ${step.title}. Here is the scramble.`);
         } else if (step.algorithm && !show3DCubeView) {
-            // If 3D view is off, still speak the algorithm if it exists
             speakAsJarvis(`Step ${index + 1}: ${step.title}. Here is the algorithm.`);
         }
 
     } else {
         console.warn("[WARN] Twisty Player element not found.");
-        if (cube3DContainer) { // Ensure container exists before trying to hide
-            cube3DContainer.style.display = 'none'; // Hide container if player not found
+        if (cube3DContainer) {
+            cube3DContainer.style.display = 'none';
         }
     }
 
@@ -1163,7 +1134,7 @@ function setupEventListeners() {
     completeLessonBtn = document.getElementById('completeLessonBtn');
     lessonCompletionMessage = document.getElementById('lessonCompletionMessage');
 
-    // NEW: Assigning DOM elements for the 3D cube preview based on lessons.html
+    // Assigning DOM elements for the 3D cube preview based on lessons.html
     cube3DContainer = document.getElementById('cube3DContainer'); // The main container div
     scramble3DViewer = document.getElementById('scramble3DViewer'); // The twisty-player element
     playPreviewBtn = document.getElementById('playPreviewBtn');     // Play button

@@ -54,12 +54,18 @@ def gemini_insight_handler():
         # --- Response Schema Definitions (Crucial for structured output) ---
 
         # Schema for conversational chat responses (simple message)
+        # NEW: Added 'action' field to allow AI to signal next step
         LESSON_CHAT_RESPONSE_SCHEMA = {
             "type": "OBJECT",
             "properties": {
-                "message": {"type": "STRING"}
+                "message": {"type": "STRING", "description": "The conversational message from Jarvis."},
+                "action": {
+                    "type": "STRING",
+                    "enum": ["generate_lesson", "continue_chat"],
+                    "description": "Indicates the next action for the frontend: 'generate_lesson' to trigger lesson creation, 'continue_chat' to continue conversation."
+                }
             },
-            "required": ["message"]
+            "required": ["message", "action"] # Action is now mandatory
         }
 
         # Original, detailed schema for the final structured lesson
@@ -97,16 +103,17 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # System instruction for conversational turn - now more detailed for better chat quality
+            # System instruction for conversational turn - now instructs AI on using 'action' field
             system_instruction_text = (
                 "<instruction>You are Jarvis, an advanced AI cubing instructor and assistant. Your core function is to engage in a sophisticated, multi-turn dialogue with Sir Sevindu to meticulously gather precise information required to generate an exceptionally personalized and highly actionable multi-step cubing lesson. "
                 "Your Primary Directive: DO NOT generate the full lesson at this stage. Your singular focus is on information elicitation. "
                 "ONLY ask clarifying, probing questions or provide brief, encouraging, and context-building remarks. Your responses MUST be conversational, respectful, and reflective of your persona as Jarvis. "
                 "Mandatory Questioning Protocol: You MUST ask a minimum of 3 to 5 distinct, highly relevant, and probing clarifying questions before you even consider signaling readiness for lesson generation. These questions must build upon the previous turn and demonstrate a deep understanding of cubing pedagogy. "
                 "Questioning Categories: Focus on Scope (foundational vs. specific cases), Current Understanding (familiar concepts, difficulties, current method), Learning Preferences (conceptual, visual, hands-on), and Desired Outcome (speed, consistency, deeper understanding). "
-                "Crucial Readiness Signal: When you are unequivocally confident that you possess sufficient, granular detail for a comprehensive lesson, you MUST end your message with the exact string `[LESSON_PLAN_PROPOSAL_READY]` followed immediately by a clear, direct confirmation question to Sir Sevindu. "
-                "Example Readiness Message: \"I believe I have gathered all necessary information to construct a highly personalized lesson on [Specific Topic]. Shall I proceed, Sir Sevindu? [LESSON_PLAN_PROPOSAL_READY]\""
-                "If Sir Sevindu responds with a positive affirmation (e.g., 'yes', 'confirm') after you have sent the `[LESSON_PLAN_PROPOSAL_READY]` marker, then the front-end will proceed with lesson generation. Otherwise, continue the conversation."
+                "Crucial Action Signal: When you are unequivocally confident that you possess sufficient, granular detail for a comprehensive lesson, AND Sir Sevindu has provided a clear positive affirmation (e.g., 'yes', 'confirm', 'proceed') to your *explicit* question about generating the lesson, then you MUST set the 'action' field in your JSON response to 'generate_lesson'. Otherwise, set 'action' to 'continue_chat'. "
+                "Example 'generate_lesson' response when ready and confirmed: `{\"message\": \"Excellent, Sir Sevindu. Your personalized lesson is now being compiled.\", \"action\": \"generate_lesson\"}`. "
+                "Example 'continue_chat' response: `{\"message\": \"To refine your lesson, could you elaborate on...\", \"action\": \"continue_chat\"}`. "
+                "Always ensure your response is valid JSON with both 'message' and 'action' fields."
                 "</instruction>\n\n"
             )
 
@@ -155,15 +162,24 @@ def gemini_insight_handler():
                 response_text = gemini_response['candidates'][0]['content']['parts'][0]['text']
                 print(f"DEBUG: Raw AI message text for lesson_chat: '{response_text}'")
                 try:
-                    ai_message_json = json.loads(response_text)
-                    ai_message = ai_message_json.get('message', "My apologies, Sir Sevindu. I could not formulate a response.")
+                    ai_response_json = json.loads(response_text)
+                    # Ensure both message and action are present
+                    if "message" not in ai_response_json or "action" not in ai_response_json:
+                        raise ValueError("AI response missing 'message' or 'action' field.")
+                    
+                    return jsonify(ai_response_json) # Return the full structured response
                 except json.JSONDecodeError:
-                    print(f"WARNING: AI did not return valid JSON for lesson_chat. Falling back to raw text. Raw: '{response_text}'")
-                    ai_message = response_text # Use raw text as message
-                    if "[LESSON_PLAN_PROPOSAL_READY]" in ai_message:
-                         ai_message = ai_message.replace("[LESSON_PLAN_PROPOSAL_READY]", '').strip() + " [LESSON_PLAN_PROPOSAL_READY]"
+                    print(f"WARNING: AI did not return valid JSON for lesson_chat. Raw: '{response_text}'")
+                    # Fallback for malformed JSON: attempt to infer action and provide a message
+                    message_content = response_text # Use raw text as message
+                    action_type = "continue_chat" # Default action
+                    if "generate lesson" in message_content.lower() and ("yes" in message_content.lower() or "confirm" in message_content.lower()): # Basic heuristic
+                        action_type = "generate_lesson"
+                    return jsonify({"message": message_content, "action": action_type})
+                except ValueError as ve:
+                    print(f"WARNING: AI response validation error: {ve}. Raw: '{response_text}'")
+                    return jsonify({"message": f"My apologies, Sir Sevindu. I received an incomplete response. Please try again. ({ve})", "action": "continue_chat"})
 
-                return jsonify({"message": ai_message})
             else:
                 print(f"ERROR: Unexpected Gemini API response structure for lesson_chat: {gemini_response}")
                 return jsonify({"error": "AI did not return a valid conversational response."}), 500
