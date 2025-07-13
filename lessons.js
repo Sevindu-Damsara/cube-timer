@@ -319,7 +319,7 @@ async function loadCourseList() {
             const filteredCourses = courses.filter(course => {
                 const matchesType = typeFilter === 'all' || course.cubeType === typeFilter;
                 const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
-                return matchesType && levelFilter === 'all' || course.level === levelFilter; // Corrected logic here
+                return matchesType && matchesLevel; // Corrected logic here
             });
 
             if (filteredCourses.length === 0) {
