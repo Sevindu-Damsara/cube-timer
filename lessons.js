@@ -8,6 +8,8 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
+// Declare __initial_auth_token before firebaseConfig
+const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Global app ID
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
     apiKey: "YOUR_FIREBASE_API_KEY", // Placeholder, will be replaced by Canvas
@@ -18,7 +20,7 @@ const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__f
     appId: "YOUR_FIREBASE_APP_ID",
     measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
 };
-const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
 
 // Firebase variables
 let app;
@@ -538,7 +540,7 @@ async function sendCourseCreationPrompt(prompt) {
             }
         } else {
             displayCourseChatMessage('jarvis', "I encountered an issue generating a response. Please try again.");
-            courseChatHistory.push({ role: "model", parts: [{ text: "I encountered an issue generating a response. Please try again." }] });
+            courseChatHistory.push({ role: "model", parts: [{ text: "I encountered an. issue generating a response. Please try again." }] });
         }
     } catch (e) {
         console.error("Error calling Gemini API for course creation:", e);
@@ -1005,6 +1007,12 @@ function toggleLessonEditor() {
 
         // Initialize SimpleMDE if it's not already
         if (!simpleMDEInstance) {
+            // Ensure SimpleMDE is loaded before initializing
+            if (typeof SimpleMDE === 'undefined') {
+                console.error("SimpleMDE library not loaded. Cannot initialize editor.");
+                showToast("Editor library not loaded. Please try refreshing.", "error");
+                return;
+            }
             simpleMDEInstance = new SimpleMDE({
                 element: lessonMarkdownEditor,
                 spellChecker: false,
