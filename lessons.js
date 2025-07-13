@@ -40,7 +40,7 @@ let isAwaitingLessonGenerationConfirmation = false; // Flag to manage lesson gen
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
 let userLevel = 'beginner'; // Determined by best solve time, for AI context
-let show3DCubeView = false; // NEW: Controls visibility of 3D cube in lessons
+let show3DCubeView = false; // Controls visibility of 3D cube in lessons
 
 // =====================================================================================================
 // --- DOM Elements ---
@@ -48,9 +48,19 @@ let show3DCubeView = false; // NEW: Controls visibility of 3D cube in lessons
 let lessonHub, startNewLessonBtn, viewLessonHistoryBtn;
 let lessonChatContainer, chatMessagesDisplay, lessonChatInput, sendLessonChatBtn, chatTypingIndicator;
 let lessonDisplayArea, lessonTitleDisplay, lessonProgressBar, lessonStepTitleDisplay, lessonStepDescriptionDisplay,
-    lessonVisualContainer, twistyPlayerLessonViewer, lessonExplanationDisplay, markStepCompleteBtn,
+    lessonExplanationDisplay, markStepCompleteBtn,
     prevLessonStepBtn, lessonStepCounter, nextLessonStepBtn, completeLessonBtn, lessonCompletionMessage;
-let lessonPlayBtn, lessonPauseBtn, lessonResetViewBtn, lessonScrambleCubeBtn, lessonSolveCubeBtn;
+
+// NEW: Referencing elements by their updated IDs from lessons.html
+let cube3DContainer; // This was previously lessonVisualContainer
+let scramble3DViewer; // This was previously twistyPlayerLessonViewer
+let playPreviewBtn;   // This was previously lessonPlayBtn
+let pausePreviewBtn;  // This was previously lessonPauseBtn
+let restartPreviewBtn; // This was previously lessonResetViewBtn
+
+let lessonScrambleCubeBtn; // This ID remains the same
+let lessonSolveCubeBtn;    // This ID remains the same
+
 let lessonHistorySection, lessonHistoryList, noLessonsMessage, historyLoadingSpinner;
 let globalLoadingSpinner;
 
@@ -363,7 +373,7 @@ async function loadUserSettings() {
                 const settings = docSnap.data();
                 currentCubeType = settings.cubeType || '3x3';
                 currentTheme = settings.theme || 'dark';
-                show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // NEW: Load 3D view setting
+                show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // Load 3D view setting
                 // Apply theme immediately
                 document.body.className = `theme-${currentTheme}`;
                 console.log(`[DEBUG] Loaded user settings from Firestore: Cube Type: ${currentCubeType}, Theme: ${currentTheme}, Show 3D: ${show3DCubeView}`);
@@ -393,7 +403,7 @@ function loadUserSettingsFromLocalStorage() {
         if (localSettings) {
             currentCubeType = localSettings.cubeType || '3x3';
             currentTheme = localSettings.theme || 'dark';
-            show3DCubeView = localSettings.show3DCubeView !== undefined ? localSettings.show3DCubeView : false; // NEW: Load 3D view setting
+            show3DCubeView = localSettings.show3DCubeView !== undefined ? localSettings.show3DCubeView : false; // Load 3D view setting
             document.body.className = `theme-${currentTheme}`;
             console.log(`[DEBUG] Loaded user settings from localStorage: Cube Type: ${currentCubeType}, Theme: ${currentTheme}, Show 3D: ${show3DCubeView}`);
         } else {
@@ -565,10 +575,6 @@ async function deleteLessonFromHistory(lessonId) {
             await deleteDoc(lessonDocRef);
             console.log(`[DEBUG] Deleted lesson ${lessonId} from Firestore.`);
             showToast("Lesson deleted successfully.", "success");
-        } catch (e) {
-            console.error(`[ERROR] Error deleting lesson ${lessonId} from Firestore:`, e);
-            showToast("Failed to delete lesson from cloud. Deleting locally.", "error");
-            deleteLessonFromHistoryLocalStorage(lessonId);
         }
     } else {
         deleteLessonFromHistoryLocalStorage(lessonId);
@@ -911,20 +917,20 @@ function displayLessonStep(index) {
     lessonExplanationDisplay.textContent = step.explanation;
 
     // Twisty Player setup
-    if (twistyPlayerLessonViewer) {
+    if (scramble3DViewer) { // Changed from twistyPlayerLessonViewer
         // NEW: Show/hide visual container based on user setting
         if (show3DCubeView) {
-            lessonVisualContainer.style.display = 'block';
-            twistyPlayerLessonViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
-            twistyPlayerLessonViewer.alg = ''; // Clear previous alg
-            twistyPlayerLessonViewer.experimentalSetupAlg = ''; // Clear previous setup alg
-            twistyPlayerLessonViewer.camera = 'plan'; // Default camera view
+            cube3DContainer.style.display = 'block'; // Changed from lessonVisualContainer
+            scramble3DViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType); // Changed from twistyPlayerLessonViewer
+            scramble3DViewer.alg = ''; // Clear previous alg
+            scramble3DViewer.experimentalSetupAlg = ''; // Clear previous setup alg
+            scramble3DViewer.camera = 'plan'; // Default camera view
 
             // Set background color based on theme
-            twistyPlayerLessonViewer.style.setProperty('--twisty-player-background', getThemeBackgroundColorHex());
+            scramble3DViewer.style.setProperty('--twisty-player-background', getThemeBackgroundColorHex()); // Changed from twistyPlayerLessonViewer
 
             if (step.scramble) {
-                twistyPlayerLessonViewer.alg = step.scramble; // Apply scramble
+                scramble3DViewer.alg = step.scramble; // Apply scramble
                 lessonScrambleCubeBtn.style.display = 'inline-block';
             } else {
                 lessonScrambleCubeBtn.style.display = 'none';
@@ -932,7 +938,7 @@ function displayLessonStep(index) {
 
             if (step.algorithm) {
                 // If there's an algorithm, set it as the main alg for playback
-                twistyPlayerLessonViewer.alg = step.algorithm;
+                scramble3DViewer.alg = step.algorithm; // Apply algorithm
                 lessonSolveCubeBtn.style.display = 'inline-block';
             } else {
                 lessonSolveCubeBtn.style.display = 'none';
@@ -940,25 +946,25 @@ function displayLessonStep(index) {
 
             // Show play/pause/reset buttons if there's any visual content to play/reset
             if (step.scramble || step.algorithm) {
-                lessonPlayBtn.style.display = 'inline-block';
-                lessonPauseBtn.style.display = 'none'; // Start with play button visible
-                lessonResetViewBtn.style.display = 'inline-block'; // Show reset button
+                playPreviewBtn.style.display = 'inline-block'; // Changed from lessonPlayBtn
+                pausePreviewBtn.style.display = 'none';  // Changed from lessonPauseBtn
+                restartPreviewBtn.style.display = 'inline-block'; // Changed from lessonResetViewBtn
             } else {
-                lessonPlayBtn.style.display = 'none';
-                lessonPauseBtn.style.display = 'none';
-                lessonResetViewBtn.style.display = 'none';
+                playPreviewBtn.style.display = 'none';
+                pausePreviewBtn.style.display = 'none';
+                restartPreviewBtn.style.display = 'none';
             }
 
-            twistyPlayerLessonViewer.pause(); // Pause any ongoing animation when step changes
+            scramble3DViewer.pause(); // Pause any ongoing animation when step changes // Changed from twistyPlayerLessonViewer
 
         } else {
-            lessonVisualContainer.style.display = 'none'; // Hide if 3D view is off
+            cube3DContainer.style.display = 'none'; // Changed from lessonVisualContainer // Hide if 3D view is off
             // Ensure all related buttons are hidden if the container is hidden
             lessonScrambleCubeBtn.style.display = 'none';
             lessonSolveCubeBtn.style.display = 'none';
-            lessonPlayBtn.style.display = 'none';
-            lessonPauseBtn.style.display = 'none';
-            lessonResetViewBtn.style.display = 'none';
+            playPreviewBtn.style.display = 'none';
+            pausePreviewBtn.style.display = 'none';
+            restartPreviewBtn.style.display = 'none';
         }
 
         if (!step.scramble && !step.algorithm) {
@@ -973,7 +979,9 @@ function displayLessonStep(index) {
 
     } else {
         console.warn("[WARN] Twisty Player element not found.");
-        lessonVisualContainer.style.display = 'none'; // Hide container if player not found
+        if (cube3DContainer) { // Ensure container exists before trying to hide
+            cube3DContainer.style.display = 'none'; // Hide container if player not found
+        }
     }
 
     updateNavigationButtons();
@@ -1136,8 +1144,6 @@ function setupEventListeners() {
     lessonProgressBar = document.getElementById('lessonProgressBar');
     lessonStepTitleDisplay = document.getElementById('lessonStepTitleDisplay');
     lessonStepDescriptionDisplay = document.getElementById('lessonStepDescriptionDisplay');
-    lessonVisualContainer = document.getElementById('lessonVisualContainer');
-    twistyPlayerLessonViewer = document.getElementById('twistyPlayerLessonViewer');
     lessonExplanationDisplay = document.getElementById('lessonExplanationDisplay');
     markStepCompleteBtn = document.getElementById('markStepCompleteBtn');
     prevLessonStepBtn = document.getElementById('prevLessonStepBtn');
@@ -1146,10 +1152,14 @@ function setupEventListeners() {
     completeLessonBtn = document.getElementById('completeLessonBtn');
     lessonCompletionMessage = document.getElementById('lessonCompletionMessage');
 
-    // Twisty Player controls
-    lessonPlayBtn = document.getElementById('lessonPlayBtn');
-    lessonPauseBtn = document.getElementById('lessonPauseBtn');
-    lessonResetViewBtn = document.getElementById('lessonResetViewBtn');
+    // NEW: Assigning DOM elements for the 3D cube preview based on lessons.html
+    cube3DContainer = document.getElementById('cube3DContainer'); // The main container div
+    scramble3DViewer = document.getElementById('scramble3DViewer'); // The twisty-player element
+    playPreviewBtn = document.getElementById('playPreviewBtn');     // Play button
+    pausePreviewBtn = document.getElementById('pausePreviewBtn');    // Pause button
+    restartPreviewBtn = document.getElementById('restartPreviewBtn');  // Restart button
+
+    // Lesson-specific cube controls (their IDs remain the same)
     lessonScrambleCubeBtn = document.getElementById('lessonScrambleCubeBtn');
     lessonSolveCubeBtn = document.getElementById('lessonSolveCubeBtn');
 
@@ -1216,50 +1226,48 @@ function setupEventListeners() {
         completeLessonBtn.addEventListener('click', completeLesson);
     }
 
-    // Twisty Player Controls
-    if (lessonPlayBtn) lessonPlayBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer) {
-            twistyPlayerLessonViewer.play();
-            lessonPlayBtn.style.display = 'none';
-            lessonPauseBtn.style.display = 'inline-block';
+    // Twisty Player Controls (now using updated DOM element variables)
+    if (playPreviewBtn) playPreviewBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.play();
+            playPreviewBtn.style.display = 'none';
+            pausePreviewBtn.style.display = 'inline-block';
         }
     });
 
-    if (lessonPauseBtn) lessonPauseBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer) {
-            twistyPlayerLessonViewer.pause();
-            lessonPlayBtn.style.display = 'inline-block';
-            lessonPauseBtn.style.display = 'none';
+    if (pausePreviewBtn) pausePreviewBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.pause();
+            playPreviewBtn.style.display = 'inline-block';
+            pausePreviewBtn.style.display = 'none';
         }
     });
 
-    // FIX: Replaced .resetView() with .alg = '' as .resetView() is not a function in twisty-player
-    // Also added camera reset to 'plan' view for consistency with main timer's restart.
-    if (lessonResetViewBtn) lessonResetViewBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer) {
-            twistyPlayerLessonViewer.alg = ''; // Clear the algorithm/scramble
-            twistyPlayerLessonViewer.camera = 'plan'; // Reset camera to default view
+    if (restartPreviewBtn) restartPreviewBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.alg = ''; // Clear the algorithm/scramble
+            scramble3DViewer.camera = 'plan'; // Reset camera to default view
             speakAsJarvis("Twisty Player view has been reset, Sir Sevindu.");
         }
     });
 
     if (lessonScrambleCubeBtn) lessonScrambleCubeBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex] && currentLesson.steps[currentLessonStepIndex].scramble) {
-            twistyPlayerLessonViewer.alg = currentLesson.steps[currentLessonStepIndex].scramble;
-            twistyPlayerLessonViewer.play();
-            lessonPlayBtn.style.display = 'none';
-            lessonPauseBtn.style.display = 'inline-block';
+        if (scramble3DViewer && currentLesson && currentLesson.steps[currentLessonStepIndex] && currentLesson.steps[currentLessonStepIndex].scramble) {
+            scramble3DViewer.alg = currentLesson.steps[currentLessonStepIndex].scramble;
+            scramble3DViewer.play();
+            playPreviewBtn.style.display = 'none';
+            pausePreviewBtn.style.display = 'inline-block';
         } else {
             speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific scramble to apply.");
         }
     });
 
     if (lessonSolveCubeBtn) lessonSolveCubeBtn.addEventListener('click', () => {
-        if (twistyPlayerLessonViewer && currentLesson && currentLesson.steps[currentLessonStepIndex] && currentLesson.steps[currentLessonStepIndex].algorithm) {
-            twistyPlayerLessonViewer.alg = currentLesson.steps[currentLessonStepIndex].algorithm;
-            twistyPlayerLessonViewer.play();
-            lessonPlayBtn.style.display = 'none';
-            lessonPauseBtn.style.display = 'inline-block';
+        if (scramble3DViewer && currentLesson && currentLesson.steps[currentLessonStepIndex] && currentLesson.steps[currentLessonStepIndex].algorithm) {
+            scramble3DViewer.alg = currentLesson.steps[currentLessonStepIndex].algorithm;
+            scramble3DViewer.play();
+            playPreviewBtn.style.display = 'none';
+            pausePreviewBtn.style.display = 'inline-block';
         } else {
             speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific algorithm to demonstrate the solve.");
         }
