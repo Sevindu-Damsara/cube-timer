@@ -9,17 +9,10 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
 // Ensure these are correctly parsed from the global Canvas environment variables
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Global app ID
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-    apiKey: "YOUR_FIREBASE_API_KEY", // Placeholder, will be replaced by Canvas
-    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-    projectId: "YOUR_FIREBASE_PROJECT_ID",
-    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-    appId: "YOUR_FIREBASE_APP_ID",
-    measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
-};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Global auth token
+// These variables are ALWAYS provided by the Canvas runtime.
+const appId = __app_id; // Global app ID, directly use it.
+const firebaseConfig = JSON.parse(__firebase_config); // Global firebase config, directly parse it.
+const initialAuthToken = __initial_auth_token; // Global auth token, directly use it.
 
 let app;
 let db;
@@ -80,9 +73,27 @@ async function initializeFirebaseAndAuth() {
                 isUserAuthenticated = !user.isAnonymous; // Check if user is not anonymous
                 console.log(`[DEBUG] Auth state changed. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
             } else {
-                // This block is now primarily for handling sign-out or initial state if custom token fails
-                console.log("[DEBUG] No user signed in or user signed out. Attempting persistent guest sign-in.");
-                await attemptPersistentGuestSignIn(); // Call the new function
+                // If no user is signed in (e.g., after sign-out or initial load)
+                // Attempt to sign in with the provided initialAuthToken.
+                // If initialAuthToken is not provided by Canvas (unlikely), fall back to anonymous.
+                console.log("[DEBUG] No user signed in. Attempting sign-in with initialAuthToken or anonymously.");
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("[DEBUG] Signed in with initialAuthToken.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("[DEBUG] Signed in anonymously (initialAuthToken not provided).");
+                    }
+                    userId = auth.currentUser.uid;
+                    isUserAuthenticated = !auth.currentUser.isAnonymous;
+                } catch (error) {
+                    console.error("[ERROR] Failed to sign in with initialAuthToken or anonymously:", error);
+                    // Fallback to a random ID if all authentication attempts truly fail
+                    userId = `guest-fallback-${crypto.randomUUID()}`;
+                    isUserAuthenticated = false;
+                    showToast("Authentication failed. Course saving/loading may not work.", "error");
+                }
             }
             isAuthReady = true;
             await loadUserSettings(); // Load user settings once auth is ready
@@ -90,19 +101,10 @@ async function initializeFirebaseAndAuth() {
             loadCourses(); // Load courses after auth is ready and settings are loaded
         });
 
-        // Attempt to sign in with custom token (for authenticated users from main app)
-        if (initialAuthToken) {
-            try {
-                await signInWithCustomToken(auth, initialAuthToken);
-                console.log("[DEBUG] Attempted sign in with custom token (for authenticated user).");
-            } catch (error) {
-                console.error("[ERROR] Firebase Auth: Custom token sign-in failed for authenticated user:", error);
-                // Fall through to onAuthStateChanged, which will then attempt persistent guest sign-in
-            }
-        } else {
-            // If no initialAuthToken, directly attempt persistent guest sign-in
-            await attemptPersistentGuestSignIn();
-        }
+        // The onAuthStateChanged listener handles the initial sign-in state,
+        // so no need for a separate initial signInWithCustomToken call here.
+        // It will be triggered once the Firebase app is initialized.
+
     } catch (e) {
         console.error("[ERROR] Firebase initialization or authentication failed:", e);
         isAuthReady = true; // Mark as ready even on failure to proceed with UI
@@ -111,52 +113,6 @@ async function initializeFirebaseAndAuth() {
         await loadUserSettings(); // Attempt to load settings from local storage
         loadInitialView();
         loadCourses(); // Attempt to load courses (will be empty for guests)
-    }
-}
-
-/**
- * Attempts to sign in a guest user using a persistent ID stored in localStorage.
- * If no ID exists, a new one is generated and stored.
- * WARNING: Client-side custom token generation is for demonstration ONLY.
- * In production, custom tokens should be generated on a secure backend server.
- */
-async function attemptPersistentGuestSignIn() {
-    let guestFirebaseId = localStorage.getItem('guestFirebaseId');
-
-    if (!guestFirebaseId) {
-        guestFirebaseId = `guest-${crypto.randomUUID()}`;
-        localStorage.setItem('guestFirebaseId', guestFirebaseId);
-        console.log(`[DEBUG] Generated new persistent guest ID: ${guestFirebaseId}`);
-    } else {
-        console.log(`[DEBUG] Found existing persistent guest ID: ${guestFirebaseId}`);
-    }
-
-    try {
-        // This is a simplified client-side custom token generation for demonstration.
-        // In a real application, this JWT would be securely generated on a backend server
-        // using Firebase Admin SDK and returned to the client.
-        // For Canvas environment, we simulate a simple token.
-        const header = {
-            "alg": "none", // No algorithm for simplicity in client-side demo
-            "typ": "JWT"
-        };
-        const payload = {
-            "uid": guestFirebaseId,
-            "isAnonymous": true,
-            // Add any other custom claims if needed for security rules, but keep it simple for demo
-        };
-        const token = btoa(JSON.stringify(header)) + "." + btoa(JSON.stringify(payload)) + "."; // No signature for client-side demo
-
-        await signInWithCustomToken(auth, token);
-        userId = auth.currentUser.uid;
-        isUserAuthenticated = false; // Still anonymous
-        console.log(`[DEBUG] Signed in with persistent guest ID: ${userId}`);
-    } catch (error) {
-        console.error("[ERROR] Failed to sign in with persistent guest ID:", error);
-        // Fallback if custom token sign-in fails (e.g., malformed token, API key issues)
-        userId = `guest-fallback-${crypto.randomUUID()}`; // Use a new ephemeral ID as a last resort
-        isUserAuthenticated = false;
-        showToast("Persistent guest sign-in failed. Data may not be saved across sessions.", "error");
     }
 }
 
@@ -175,7 +131,7 @@ async function loadUserSettings() {
     }
 
     let settingsLoaded = false;
-    if (isUserAuthenticated && db) {
+    if (isUserAuthenticated && db) { // Only try Firestore if explicitly authenticated (not anonymous)
         try {
             const settingsDocRef = doc(db, `artifacts/${appId}/users/${userId}/settings/userSettings`);
             const docSnap = await getDoc(settingsDocRef);
@@ -190,7 +146,6 @@ async function loadUserSettings() {
                 settingsLoaded = true;
             } else {
                 console.log("[INFO] No user settings found in Firestore. Using defaults and saving.");
-                // Only attempt to save if authenticated, otherwise it will fail for anonymous users
                 await setDoc(settingsDocRef, { cubeType: currentCubeType, theme: currentTheme, show3DCubeView: show3DCubeView }, { merge: true });
                 settingsLoaded = true; // Defaults are now effectively loaded/saved
             }
@@ -198,10 +153,32 @@ async function loadUserSettings() {
             console.error("[ERROR] Error loading user settings from Firestore:", e);
             // Fallback to local storage if Firestore read fails
         }
+    } else if (db) { // If anonymous, still try to load/save settings to Firestore using the anonymous ID
+        try {
+            const settingsDocRef = doc(db, `artifacts/${appId}/users/${userId}/settings/userSettings`);
+            const docSnap = await getDoc(settingsDocRef);
+
+            if (docSnap.exists()) {
+                const settings = docSnap.data();
+                currentCubeType = settings.cubeType || '3x3';
+                currentTheme = settings.theme || 'dark';
+                show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : true; // Default to true if not set
+                document.body.className = `theme-${currentTheme}`; // Apply theme
+                console.log(`[DEBUG] Loaded user settings from Firestore (anonymous): Cube Type: ${currentCubeType}, Theme: ${currentTheme}, Show 3D: ${show3DCubeView}`);
+                settingsLoaded = true;
+            } else {
+                console.log("[INFO] No user settings found in Firestore for anonymous user. Using defaults and saving.");
+                await setDoc(settingsDocRef, { cubeType: currentCubeType, theme: currentTheme, show3DCubeView: show3DCubeView }, { merge: true });
+                settingsLoaded = true;
+            }
+        } catch (e) {
+            console.error("[ERROR] Error loading/saving anonymous user settings to Firestore:", e);
+        }
     }
 
+
     if (!settingsLoaded) {
-        // If not authenticated or Firestore failed, try local storage
+        // If Firestore failed or was not attempted, try local storage (for compatibility with main timer page)
         try {
             const localSettings = JSON.parse(localStorage.getItem('cubingTimerSettings'));
             if (localSettings) {
@@ -230,7 +207,7 @@ async function loadUserSettings() {
 async function getUserLevel() {
     let bestTime = null;
 
-    if (isUserAuthenticated && db) {
+    if (db && userId) { // Try Firestore first if DB is ready and userId exists
         try {
             const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/userSettings`);
             const docSnap = await getDoc(userSettingsRef);
@@ -240,7 +217,10 @@ async function getUserLevel() {
         } catch (e) {
             console.error("[ERROR] Error getting bestTime3x3 from Firestore for user level:", e);
         }
-    } else {
+    }
+    
+    // Fallback to local storage if Firestore failed or not applicable
+    if (bestTime === null || bestTime === undefined) {
         try {
             const localSettings = JSON.parse(localStorage.getItem('cubingTimerSettings'));
             if (localSettings && localSettings.bestTime3x3 !== undefined && localSettings.bestTime3x3 !== null) {
