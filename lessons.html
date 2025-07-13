@@ -13,6 +13,8 @@
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <!-- SimpleMDE for Markdown editing -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.js"></script>
+    <!-- Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="style.css">
@@ -20,205 +22,160 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<body class="theme-dark"> <!-- Set default theme class here, will be overridden by lessons.js -->
-    <!-- Global Loading Spinner - Visible immediately, hidden by JS after load -->
-    <div id="globalLoadingSpinner" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[100] transition-opacity duration-300">
-        <div class="spinner text-blue-500"></div>
-        <p class="text-white ml-4 text-lg">Loading your AI lessons</p>
-    </div>
-
-    <div class="lessons-page-container hidden flex-col items-center justify-center min-h-screen">
+<body class="theme-dark">
+    <div class="lessons-page-container flex flex-col w-full min-h-screen p-4 sm:p-6 md:p-8">
         <!-- Back to Timer Button -->
-        <div class="w-full flex justify-start mb-4 px-4 md:px-6">
-            <a href="index.html" class="button-secondary flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg shadow-md">
+        <div class="flex justify-start mb-4">
+            <a href="index.html" class="button-secondary flex items-center justify-center gap-2">
                 <i class="fas fa-arrow-left mr-2"></i> Back to Timer
             </a>
         </div>
 
         <!-- Lesson Hub Section -->
-        <div id="lessonHub" class="w-full max-w-5xl glass-panel p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden">
-            <h2 class="text-3xl font-bold text-center text-gradient mb-6">AI Cubing Lessons Hub</h2>
-
-            <!-- Control Panel Box for Filters and Create Button -->
-            <div class="glass-panel p-6 rounded-xl shadow-lg border border-gray-700 mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
-                <button id="startNewCourseBtn" class="button-primary w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl shadow-lg">
-                    <i class="fas fa-plus-circle mr-2 text-xl"></i> Create New Course
-                </button>
-                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full md:w-auto">
-                    <select id="courseTypeFilter" class="form-select flex-grow p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
-                        <option value="all">All Cube Types</option>
-                        <option value="3x3">3x3</option>
-                        <option value="2x2">2x2</option>
-                        <option value="4x4">4x4</option>
-                        <option value="pyraminx">Pyraminx</option>
-                    </select>
-                    <select id="courseLevelFilter" class="form-select flex-grow p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
-                        <option value="all">All Levels</option>
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                    </select>
-                </div>
+        <div id="lessonHub" class="lesson-hub-container flex flex-col items-center justify-center p-6 rounded-xl shadow-lg glass-panel max-w-4xl mx-auto w-full">
+            <h2 class="text-3xl font-bold text-gradient mb-6 text-center">AI Cubing Courses</h2>
+            <div class="flex flex-col sm:flex-row gap-4 mb-6 w-full justify-center">
+                <button id="startNewCourseBtn" class="button-primary flex-grow sm:flex-grow-0"><i class="fas fa-plus-circle mr-2"></i> Create New Course</button>
+                <select id="courseTypeFilter" class="select-box">
+                    <option value="all">All Cube Types</option>
+                    <option value="3x3">3x3</option>
+                    <option value="2x2">2x2</option>
+                    <option value="4x4">4x4</option>
+                    <option value="pyraminx">Pyraminx</option>
+                    <!-- Add more cube types as needed -->
+                </select>
+                <select id="courseLevelFilter" class="select-box">
+                    <option value="all">All Levels</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="expert">Expert</option>
+                </select>
             </div>
 
             <div id="historyLoadingSpinner" class="spinner mx-auto my-4 hidden"></div>
-            <p id="noCoursesMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No courses recorded yet. Start a new one!</p>
-            <div id="courseList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                <!-- Course cards will be dynamically loaded here -->
+            <p id="noCoursesMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No courses created yet. Click "Create New Course" to get started!</p>
+            <div id="courseList" class="w-full space-y-4">
+                <!-- Course cards will be loaded here -->
             </div>
         </div>
 
-        <!-- Course Creation Modal -->
-        <div id="courseCreationModal" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 hidden p-4">
-            <div class="glass-panel p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 w-full max-w-3xl flex flex-col h-[85vh]">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gradient">Design New Course</h2>
-                    <button id="closeCourseCreationModalBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-                </div>
-                <div id="courseChatContainer" class="glass-panel p-4 overflow-hidden flex-grow flex flex-col shadow-inner border border-gray-600">
-                    <div id="courseChatMessages" class="flex-grow overflow-y-auto mb-4 space-y-3 p-2 custom-scrollbar">
-                        <!-- Chat messages will be appended here -->
-                    </div>
-                    <div class="flex items-center">
-                        <input type="text" id="courseChatInput" placeholder="Type your course preferences..."
-                               class="flex-grow p-3 rounded-l-xl bg-gray-900 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
-                        <button id="sendCourseChatBtn" class="button-primary p-3 rounded-r-xl flex items-center justify-center text-xl">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                        <div id="courseChatSpinner" class="spinner ml-3 hidden"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lesson Viewer Section -->
-        <div id="lessonViewer" class="w-full max-w-7xl glass-panel p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden flex flex-col lg:flex-row gap-6">
-            <!-- Course Navigation Sidebar (Left Column) -->
-            <aside id="courseNavigationSidebar" class="lg:w-1/4 glass-panel p-6 rounded-2xl shadow-2xl border border-gray-700 flex flex-col">
+        <!-- Lesson Viewer Section (Initially hidden) -->
+        <div id="lessonViewer" class="lesson-viewer-container hidden flex-grow grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Sidebar for Course Navigation -->
+            <aside id="courseNavigationSidebar" class="md:col-span-1 bg-gray-800 p-4 rounded-xl shadow-lg flex flex-col">
                 <h3 id="currentCourseTitle" class="text-xl font-bold text-gradient mb-4">Course Title</h3>
                 <div id="courseProgressBarContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4">
-                    <div id="courseProgressBar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%;"></div>
+                    <div id="courseProgressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%;"></div>
                 </div>
-                <ul id="moduleList" class="space-y-3 custom-scrollbar flex-grow overflow-y-auto pr-2">
-                    <!-- Modules and lessons will be dynamically loaded here -->
+                <ul id="moduleList" class="space-y-3 flex-grow overflow-y-auto custom-scrollbar">
+                    <!-- Modules and Lessons will be dynamically loaded here -->
                 </ul>
             </aside>
 
-            <!-- Main Lesson Content Area (Right 3/4 - Flexible Layout) -->
-            <main class="lg:w-3/4 flex flex-col gap-6">
-                <!-- Top Panel: Lesson Title & Controls -->
-                <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h2 id="lessonTitle" class="text-2xl font-bold text-gradient text-center sm:text-left">Lesson Title</h2>
-                    <div class="flex items-center space-x-4">
-                        <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
-                        <button id="editLessonBtn" class="button-secondary text-sm px-3 py-1.5 flex items-center gap-1 rounded-lg shadow-md">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Lesson Content and Visualizer/Quiz Area -->
-                <div class="flex flex-col xl:flex-row gap-6 flex-grow">
-                    <!-- Left Panel: Lesson Content Display / Editor -->
-                    <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col xl:w-2/3">
-                        <h3 class="text-xl font-semibold text-gradient mb-4">Lesson Content</h3>
-                        <div id="lessonContentDisplay" class="text-gray-300 text-base sm:text-lg overflow-y-auto custom-scrollbar flex-grow p-2">
-                            <!-- Lesson content will be loaded here -->
-                        </div>
-
-                        <!-- Lesson Editor (Markdown Input) -->
-                        <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mt-4">
-                            <textarea id="lessonMarkdownEditor" class="w-full h-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"></textarea>
-                            <div class="flex justify-end space-x-3 mt-4">
-                                <button id="cancelEditLessonBtn" class="button-secondary px-4 py-2 rounded-lg shadow-md">Cancel</button>
-                                <button id="saveLessonContentBtn" class="button-primary px-4 py-2 rounded-lg shadow-md">Save Changes</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Panel: 3D Viewer & Quiz (Stacked) -->
-                    <div class="flex flex-col gap-6 xl:w-1/3">
-                        <!-- 3D Scramble/Algorithm Viewer -->
-                        <div id="scramble3DContainer" class="glass-panel p-4 rounded-xl shadow-inner border border-gray-700 flex flex-col items-center justify-center relative hidden h-auto min-h-[250px] flex-grow">
-                            <h3 class="text-xl font-semibold text-gradient mb-4">Scramble/Algorithm Visualizer</h3>
-                            <twisty-player id="scramble3DViewer" class="w-full h-full rounded-xl"
-                                alg=""
-                                puzzle="3x3x3"
-                                control-panel="none"
-                                background="none"
-                                hint-facelets="none"
-                                style="--twisty-player-background: var(--bg-color-secondary); --twisty-player-border-radius: 0.75rem;"></twisty-player>
-                            <div class="flex space-x-3 bg-gray-900 bg-opacity-70 p-2.5 rounded-full shadow-xl backdrop-blur-sm mt-4">
-                                <button id="playPreviewBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-play"></i></button>
-                                <button id="pausePreviewBtn" class="button-secondary p-2 rounded-full text-lg hidden"><i class="fas fa-pause"></i></button>
-                                <button id="stepBackwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-backward"></i></button>
-                                <button id="stepForwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-forward"></i></button>
-                                <button id="resetAlgBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-redo"></i></button>
-                                <button id="applyScrambleBtn" class="button-primary p-2 rounded-full text-lg flex items-center gap-1.5"><i class="fas fa-cubes"></i> Apply Scramble</button>
-                            </div>
-                        </div>
-
-                        <!-- Quiz Area -->
-                        <div id="quizArea" class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 hidden flex-col flex-grow">
-                            <h3 class="text-xl font-semibold text-gradient mb-4">Quiz Time!</h3>
-                            <div id="quizQuestionsContainer" class="space-y-5 flex-grow overflow-y-auto custom-scrollbar p-2">
-                                <!-- Quiz questions will be rendered here -->
-                            </div>
-                            <p id="quizFeedback" class="mt-4 text-center font-semibold text-lg"></p>
-                            <button id="submitQuizBtn" class="button-primary mt-6 w-full px-5 py-2.5 rounded-xl shadow-lg hidden">Submit Quiz</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bottom Panel: Lesson Navigation Buttons -->
-                <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex justify-between items-center mt-auto">
-                    <button id="prevLessonStepBtn" class="button-secondary flex items-center gap-2 px-4 py-2 rounded-lg shadow-md">
-                        <i class="fas fa-chevron-left mr-2"></i> Previous
-                    </button>
-                    <button id="nextLessonStepBtn" class="button-primary flex items-center gap-2 px-4 py-2 rounded-lg shadow-md">
-                        Next <i class="fas fa-chevron-right ml-2"></i>
-                    </button>
-                    <button id="completeLessonBtn" class="button-primary px-5 py-2.5 rounded-xl shadow-lg" style="display: none;">Complete Lesson</button>
-                    <p id="lessonCompletionMessage" class="text-green-400 text-center text-lg font-semibold" style="display: none;"></p>
-                </div>
-            </main>
-
-            <!-- In-Lesson AI Chat (Sidebar) -->
-            <div id="inLessonChatContainer" class="fixed right-0 top-0 h-full w-full md:w-1/2 lg:w-1/3 glass-panel shadow-2xl z-40 p-4 flex flex-col transform translate-x-full transition-transform duration-300 hidden border-l border-gray-700">
+            <!-- Main Lesson Content Area -->
+            <main class="md:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gradient">Jarvis Assistant</h3>
-                    <button id="closeInLessonChatBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                    <h2 id="lessonTitle" class="text-2xl font-bold text-white">Lesson Title</h2>
+                    <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
                 </div>
-                <div id="inLessonChatMessages" class="flex-grow overflow-y-auto mb-4 space-y-3 p-2 custom-scrollbar">
-                    <!-- In-lesson chat messages -->
+
+                <!-- Lesson Content Display -->
+                <div id="lessonContentDisplay" class="prose prose-invert max-w-none text-gray-300 flex-grow overflow-y-auto custom-scrollbar mb-4">
+                    <!-- Lesson content will be loaded here -->
                 </div>
-                <div class="flex items-center">
-                    <input type="text" id="inLessonChatInput" placeholder="Ask Jarvis about this lesson..."
-                           class="flex-grow p-3 rounded-l-xl bg-gray-900 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
-                    <button id="sendInLessonChatBtn" class="button-primary p-3 rounded-r-xl flex items-center justify-center text-xl">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                    <div id="inLessonChatSpinner" class="spinner ml-3 hidden"></div>
+
+                <!-- Lesson Editor (Initially hidden) -->
+                <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mb-4">
+                    <textarea id="lessonMarkdownEditor" class="w-full flex-grow p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    <div class="flex justify-end gap-2 mt-3">
+                        <button id="cancelEditLessonBtn" class="button-secondary">Cancel</button>
+                        <button id="saveLessonContentBtn" class="button-primary">Save Content</button>
+                    </div>
+                </div>
+
+                <!-- 3D Scramble Visualizer -->
+                <div id="scramble3DContainer" class="mt-4 flex flex-col items-center hidden">
+                    <twisty-player id="scramble3DViewer" class="w-full h-64 sm:h-80 md:h-96 rounded-lg overflow-hidden" background="none" control-panel="none"></twisty-player>
+                    <div class="flex flex-wrap justify-center gap-2 mt-3">
+                        <button id="playPreviewBtn" class="button-secondary"><i class="fas fa-play mr-2"></i>Play</button>
+                        <button id="pausePreviewBtn" class="button-secondary" style="display: none;"><i class="fas fa-pause mr-2"></i>Pause</button>
+                        <button id="stepBackwardBtn" class="button-secondary"><i class="fas fa-step-backward mr-2"></i>Backward</button>
+                        <button id="stepForwardBtn" class="button-secondary"><i class="fas fa-step-forward mr-2"></i>Forward</button>
+                        <button id="resetAlgBtn" class="button-secondary"><i class="fas fa-redo mr-2"></i>Reset</button>
+                        <button id="applyScrambleBtn" class="button-secondary"><i class="fas fa-cube mr-2"></i>Apply Scramble</button>
+                    </div>
+                </div>
+
+                <!-- Quiz Area -->
+                <div id="quizArea" class="mt-6 p-4 bg-gray-700 rounded-lg hidden flex-col">
+                    <h3 class="text-xl font-bold text-gradient mb-4">Quiz Time!</h3>
+                    <div id="quizQuestionsContainer" class="space-y-4 mb-4">
+                        <!-- Quiz questions will be dynamically loaded here -->
+                    </div>
+                    <p id="quizFeedback" class="text-center font-semibold mb-4"></p>
+                    <button id="submitQuizBtn" class="button-primary w-full">Submit Quiz</button>
+                </div>
+
+                <div class="flex justify-between items-center mt-6">
+                    <button id="prevLessonStepBtn" class="button-secondary"><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+                    <button id="editLessonBtn" class="button-secondary">Edit</button>
+                    <button id="openInLessonChatBtn" class="button-secondary">AI Chat <i class="fas fa-comment-dots ml-2"></i></button>
+                    <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
+                </div>
+
+                <button id="completeLessonBtn" class="button-primary mt-6 w-full" style="display: none;">Complete Lesson</button>
+                <p id="lessonCompletionMessage" class="text-green-400 text-center mt-4 text-lg font-semibold" style="display: none;"></p>
+            </main>
+        </div>
+
+        <!-- Course Creation Modal -->
+        <div id="courseCreationModal" class="modal-overlay hidden">
+            <div class="modal-content glass-panel p-6 rounded-xl shadow-lg max-w-2xl w-full flex flex-col">
+                <button id="closeCourseCreationModalBtn" class="close-button">&times;</button>
+                <h2 class="text-2xl font-bold text-gradient mb-4">Create New AI Course</h2>
+                <div id="courseChatContainer" class="flex flex-col flex-grow bg-gray-700 rounded-lg p-4 mb-4" style="height: 400px;">
+                    <div id="courseChatMessages" class="flex-grow overflow-y-auto custom-scrollbar space-y-3 p-2">
+                        <!-- Chat messages will appear here -->
+                    </div>
+                    <div class="flex mt-4">
+                        <input type="text" id="courseChatInput" placeholder="Type your course request..." class="flex-grow p-2 rounded-l-md bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="sendCourseChatBtn" class="button-primary rounded-l-none"><i class="fas fa-paper-plane"></i></button>
+                        <div id="courseChatSpinner" class="spinner ml-2 hidden"></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- In-Lesson Chat Modal -->
+        <div id="inLessonChatContainer" class="chat-modal-container hidden">
+            <div class="chat-modal-content glass-panel p-6 rounded-xl shadow-lg flex flex-col">
+                <button id="closeInLessonChatBtn" class="close-button">&times;</button>
+                <h2 class="text-2xl font-bold text-gradient mb-4">AI Lesson Assistant</h2>
+                <div id="inLessonChatMessages" class="flex-grow overflow-y-auto custom-scrollbar space-y-3 p-2 bg-gray-700 rounded-lg mb-4">
+                    <!-- In-lesson chat messages will appear here -->
+                </div>
+                <div class="flex">
+                    <input type="text" id="inLessonChatInput" placeholder="Ask about this lesson..." class="flex-grow p-2 rounded-l-md bg-gray-800 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="sendInLessonChatBtn" class="button-primary rounded-l-none"><i class="fas fa-paper-plane"></i></button>
+                    <div id="inLessonChatSpinner" class="spinner ml-2 hidden"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Lesson History Section (Initially hidden) -->
-        <div id="lessonHistorySection" class="history-page-container w-full max-w-5xl glass-panel p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden">
-            <h2 class="text-3xl font-bold text-gradient mb-6 text-center">Lesson History</h2>
-            <div id="historyLoadingSpinner" class="spinner mx-auto my-4 hidden"></div>
+        <div id="lessonHistorySection" class="history-page-container hidden">
+            <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Lesson History</h2>
+            <div id="historyLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
             <p id="noLessonsMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No lessons recorded yet. Start a new lesson!</p>
             <ul id="lessonHistoryList" class="space-y-4">
                 <!-- Lesson history items will be dynamically loaded here -->
             </ul>
         </div>
+        
+        <!-- Global Loading Spinner -->
+        <div id="globalLoadingSpinner" class="spinner mx-auto my-4 hidden"></div>
     </div>
-
-    <!-- Chat Button (fixed position, mirroring voice button) -->
-    <button id="openInLessonChatBtn" class="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 button-primary !rounded-full !w-14 !h-14 !p-0 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200">
-        <i class="fas fa-comment-dots text-2xl"></i>
-    </button>
 
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>

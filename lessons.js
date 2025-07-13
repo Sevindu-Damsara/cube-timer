@@ -152,6 +152,7 @@ function showGlobalLoadingSpinner(show) {
  * Hides all main sections.
  */
 function hideAllSections() {
+    console.log("[DEBUG] Hiding all sections.");
     lessonHub.classList.add('hidden');
     lessonViewer.classList.add('hidden');
     lessonHistorySection.classList.add('hidden');
@@ -162,9 +163,11 @@ function hideAllSections() {
  * @param {HTMLElement} sectionElement - The section to show.
  */
 function showSection(sectionElement) {
+    console.log(`[DEBUG] Attempting to show section: ${sectionElement.id}`);
     hideAllSections();
     sectionElement.classList.remove('hidden');
     sectionElement.classList.add('flex'); // Ensure it's flex for its internal layout
+    console.log(`[DEBUG] Section ${sectionElement.id} classes after show: ${sectionElement.className}`);
 }
 
 /**
@@ -236,6 +239,7 @@ async function initializeFirebaseAndAuth() {
                 }
             }
             isAuthReady = true;
+            console.log("[DEBUG] Auth ready, calling loadInitialView().");
             await loadInitialView(); // Load initial view after auth is ready
         });
     } catch (e) {
@@ -245,6 +249,7 @@ async function initializeFirebaseAndAuth() {
         userId = `guest-${crypto.randomUUID()}`;
         isAuthReady = true;
         isUserAuthenticated = false;
+        console.log("[DEBUG] Firebase init failed, proceeding as guest and calling loadInitialView().");
         await loadInitialView();
     }
 }
@@ -272,6 +277,7 @@ function getUserCollectionRef(collectionName) {
  * Loads and displays the list of courses.
  */
 async function loadCourseList() {
+    console.log("[DEBUG] loadCourseList() called.");
     showGlobalLoadingSpinner(true);
     historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
@@ -283,17 +289,20 @@ async function loadCourseList() {
             showToast("Failed to load courses: Authentication not ready.", "error");
             historyLoadingSpinner.classList.add('hidden');
             showGlobalLoadingSpinner(false);
+            console.log("[DEBUG] loadCourseList() exiting due to no coursesRef.");
             return;
         }
 
+        console.log("[DEBUG] Setting up onSnapshot listener for courses.");
         // Listen for real-time updates to the courses collection
         onSnapshot(coursesRef, (snapshot) => {
-            console.log("[DEBUG] Course list snapshot received.");
+            console.log("[DEBUG] Course list snapshot received. Number of documents:", snapshot.docs.length);
             courseList.innerHTML = ''; // Clear list on every update
             if (snapshot.empty) {
                 noCoursesMessage.classList.remove('hidden');
                 historyLoadingSpinner.classList.add('hidden');
                 showGlobalLoadingSpinner(false);
+                console.log("[DEBUG] No courses found, displaying message.");
                 return;
             }
 
@@ -310,19 +319,22 @@ async function loadCourseList() {
             const filteredCourses = courses.filter(course => {
                 const matchesType = typeFilter === 'all' || course.cubeType === typeFilter;
                 const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
-                return matchesType && matchesLevel;
+                return matchesType && levelFilter === 'all' || course.level === levelFilter; // Corrected logic here
             });
 
             if (filteredCourses.length === 0) {
                 noCoursesMessage.classList.remove('hidden');
+                console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
             } else {
                 noCoursesMessage.classList.add('hidden');
+                console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
                 filteredCourses.forEach(course => {
                     renderCourseCard(course);
                 });
             }
             historyLoadingSpinner.classList.add('hidden');
             showGlobalLoadingSpinner(false);
+            console.log("[DEBUG] loadCourseList() completed rendering.");
         }, (error) => {
             console.error("Error listening to courses:", error);
             showToast("Error loading courses.", "error");
@@ -1330,11 +1342,14 @@ function setupEventListeners() {
  * Determines which section to show initially based on user state or last activity.
  */
 async function loadInitialView() {
+    console.log("[DEBUG] loadInitialView() called.");
     // For now, always start at the hub. In a more complex app,
     // we might check if a lesson was in progress and resume it directly.
     showSection(lessonHub);
+    console.log("[DEBUG] Calling loadCourseList() from loadInitialView.");
     await loadCourseList(); // Load courses for the hub
     showGlobalLoadingSpinner(false); // Hide global spinner once initial view is set
+    console.log("[DEBUG] loadInitialView() completed.");
 }
 
 
