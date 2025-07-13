@@ -40,6 +40,7 @@ let isAwaitingLessonGenerationConfirmation = false; // Flag to manage lesson gen
 let currentCubeType = '3x3'; // Default, will be loaded from settings
 let currentTheme = 'dark'; // Default, will be loaded from settings
 let userLevel = 'beginner'; // Determined by best solve time, for AI context
+let show3DCubeView = false; // NEW: Controls visibility of 3D cube in lessons
 
 // =====================================================================================================
 // --- DOM Elements ---
@@ -345,7 +346,7 @@ async function initializeFirebaseAndAuth() {
 }
 
 /**
- * Loads user settings (cube type, theme, best time) from Firestore or localStorage.
+ * Loads user settings (cube type, theme, best time, show3DCubeView) from Firestore or localStorage.
  */
 async function loadUserSettings() {
     if (!userId) {
@@ -362,13 +363,14 @@ async function loadUserSettings() {
                 const settings = docSnap.data();
                 currentCubeType = settings.cubeType || '3x3';
                 currentTheme = settings.theme || 'dark';
+                show3DCubeView = settings.show3DCubeView !== undefined ? settings.show3DCubeView : false; // NEW: Load 3D view setting
                 // Apply theme immediately
                 document.body.className = `theme-${currentTheme}`;
-                console.log(`[DEBUG] Loaded user settings from Firestore: Cube Type: ${currentCubeType}, Theme: ${currentTheme}`);
+                console.log(`[DEBUG] Loaded user settings from Firestore: Cube Type: ${currentCubeType}, Theme: ${currentTheme}, Show 3D: ${show3DCubeView}`);
             } else {
                 console.log("[INFO] No user settings found in Firestore. Using defaults.");
                 // Save default settings if none exist, but only if authenticated
-                await setDoc(settingsDocRef, { cubeType: currentCubeType, theme: currentTheme }, { merge: true });
+                await setDoc(settingsDocRef, { cubeType: currentCubeType, theme: currentTheme, show3DCubeView: show3DCubeView }, { merge: true });
             }
         } catch (e) {
             console.error("[ERROR] Error loading user settings from Firestore:", e);
@@ -391,8 +393,9 @@ function loadUserSettingsFromLocalStorage() {
         if (localSettings) {
             currentCubeType = localSettings.cubeType || '3x3';
             currentTheme = localSettings.theme || 'dark';
+            show3DCubeView = localSettings.show3DCubeView !== undefined ? localSettings.show3DCubeView : false; // NEW: Load 3D view setting
             document.body.className = `theme-${currentTheme}`;
-            console.log(`[DEBUG] Loaded user settings from localStorage: Cube Type: ${currentCubeType}, Theme: ${currentTheme}`);
+            console.log(`[DEBUG] Loaded user settings from localStorage: Cube Type: ${currentCubeType}, Theme: ${currentTheme}, Show 3D: ${show3DCubeView}`);
         } else {
             console.log("[INFO] No user settings found in localStorage. Using defaults.");
         }
@@ -909,44 +912,68 @@ function displayLessonStep(index) {
 
     // Twisty Player setup
     if (twistyPlayerLessonViewer) {
-        twistyPlayerLessonViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
-        twistyPlayerLessonViewer.alg = ''; // Clear previous alg
-        twistyPlayerLessonViewer.experimentalSetupAlg = ''; // Clear previous setup alg
-        twistyPlayerLessonViewer.camera = 'plan'; // Default camera view
-
-        // Set background color based on theme
-        twistyPlayerLessonViewer.style.setProperty('--twisty-player-background', getThemeBackgroundColorHex());
-
-        if (step.scramble) {
-            twistyPlayerLessonViewer.alg = step.scramble;
-            lessonScrambleCubeBtn.style.display = 'inline-block';
+        // NEW: Show/hide visual container based on user setting
+        if (show3DCubeView) {
             lessonVisualContainer.style.display = 'block';
-            speakAsJarvis(`Step ${index + 1}: ${step.title}. Here is the scramble.`);
+            twistyPlayerLessonViewer.puzzle = getTwistyPlayerPuzzleType(currentCubeType);
+            twistyPlayerLessonViewer.alg = ''; // Clear previous alg
+            twistyPlayerLessonViewer.experimentalSetupAlg = ''; // Clear previous setup alg
+            twistyPlayerLessonViewer.camera = 'plan'; // Default camera view
+
+            // Set background color based on theme
+            twistyPlayerLessonViewer.style.setProperty('--twisty-player-background', getThemeBackgroundColorHex());
+
+            if (step.scramble) {
+                twistyPlayerLessonViewer.alg = step.scramble; // Apply scramble
+                lessonScrambleCubeBtn.style.display = 'inline-block';
+            } else {
+                lessonScrambleCubeBtn.style.display = 'none';
+            }
+
+            if (step.algorithm) {
+                // If there's an algorithm, set it as the main alg for playback
+                twistyPlayerLessonViewer.alg = step.algorithm;
+                lessonSolveCubeBtn.style.display = 'inline-block';
+            } else {
+                lessonSolveCubeBtn.style.display = 'none';
+            }
+
+            // Show play/pause/reset buttons if there's any visual content to play/reset
+            if (step.scramble || step.algorithm) {
+                lessonPlayBtn.style.display = 'inline-block';
+                lessonPauseBtn.style.display = 'none'; // Start with play button visible
+                lessonResetViewBtn.style.display = 'inline-block'; // Show reset button
+            } else {
+                lessonPlayBtn.style.display = 'none';
+                lessonPauseBtn.style.display = 'none';
+                lessonResetViewBtn.style.display = 'none';
+            }
+
+            twistyPlayerLessonViewer.pause(); // Pause any ongoing animation when step changes
+
         } else {
+            lessonVisualContainer.style.display = 'none'; // Hide if 3D view is off
+            // Ensure all related buttons are hidden if the container is hidden
             lessonScrambleCubeBtn.style.display = 'none';
-        }
-
-        if (step.algorithm) {
-            twistyPlayerLessonViewer.alg = step.algorithm;
-            lessonSolveCubeBtn.style.display = 'inline-block';
-            lessonVisualContainer.style.display = 'block';
-            speakAsJarvis(`Step ${index + 1}: ${step.title}. Here is the algorithm.`);
-        } else {
             lessonSolveCubeBtn.style.display = 'none';
+            lessonPlayBtn.style.display = 'none';
+            lessonPauseBtn.style.display = 'none';
+            lessonResetViewBtn.style.display = 'none';
         }
 
         if (!step.scramble && !step.algorithm) {
-            lessonVisualContainer.style.display = 'none'; // Hide if no visual component
             speakAsJarvis(`Step ${index + 1}: ${step.title}. ${step.description}`);
+        } else if (step.scramble && !show3DCubeView) {
+            // If 3D view is off, still speak the scramble if it exists
+            speakAsJarvis(`Step ${index + 1}: ${step.title}. Here is the scramble.`);
+        } else if (step.algorithm && !show3DCubeView) {
+            // If 3D view is off, still speak the algorithm if it exists
+            speakAsJarvis(`Step ${index + 1}: ${step.title}. Here is the algorithm.`);
         }
-
-        // Corrected: Use pause() instead of stop()
-        lessonPlayBtn.style.display = 'inline-block';
-        lessonPauseBtn.style.display = 'none';
-        twistyPlayerLessonViewer.pause(); // Pause any ongoing animation
 
     } else {
         console.warn("[WARN] Twisty Player element not found.");
+        lessonVisualContainer.style.display = 'none'; // Hide container if player not found
     }
 
     updateNavigationButtons();
@@ -1207,12 +1234,11 @@ function setupEventListeners() {
     });
 
     // FIX: Replaced .resetView() with .alg = '' as .resetView() is not a function in twisty-player
+    // Also added camera reset to 'plan' view for consistency with main timer's restart.
     if (lessonResetViewBtn) lessonResetViewBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer) {
             twistyPlayerLessonViewer.alg = ''; // Clear the algorithm/scramble
-            // If twistyPlayerLessonViewer.reset() exists and is desired for camera reset, keep it.
-            // Otherwise, removing it is safer to avoid potential errors.
-            // twistyPlayerLessonViewer.reset(); 
+            twistyPlayerLessonViewer.camera = 'plan'; // Reset camera to default view
             speakAsJarvis("Twisty Player view has been reset, Sir Sevindu.");
         }
     });
