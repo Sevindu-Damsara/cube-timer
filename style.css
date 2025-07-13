@@ -796,44 +796,45 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Lessons Page/Modal Styling */
+/* NEW: Glassmorphism / Dashboard Panel Style - Specific to Lessons page for enhanced look */
+.glass-panel {
+    background-color: rgba(30, 41, 59, 0.6); /* Slightly transparent secondary background */
+    backdrop-filter: blur(12px); /* Stronger frosted glass effect */
+    -webkit-backdrop-filter: blur(12px); /* For Safari */
+    border: 1px solid rgba(51, 65, 85, 0.8); /* Slightly more opaque border */
+    border-radius: 1.5rem; /* Consistent large rounded corners */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 8px 20px rgba(0, 0, 0, 0.4); /* More pronounced shadow for depth */
+    transition: all 0.3s ease-in-out; /* Smooth transitions for hover/focus */
+}
+
+.glass-panel:hover {
+    border-color: var(--accent-color-blue); /* Highlight on hover */
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 10px 25px rgba(0, 0, 0, 0.5); /* Even more pronounced shadow on hover */
+}
+
+/* Lessons Page Specific Container Styling */
 .lessons-page-container {
-    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
-    border: 1px solid #334155;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-    max-width: 800px; /* Wider for lessons */
-    width: 90%;
-    padding: 2rem;
-    border-radius: 1rem; /* User's preferred radius */
+    width: 100%;
+    max-width: 1400px; /* Increased max-width for expansive dashboard */
     margin: 20px auto; /* Center the container on the page */
     color: var(--text-color-primary);
-    display: flex; /* Ensure flex for internal layout */
-    flex-direction: column; /* Stack children vertically */
-    align-items: center; /* Center children horizontally */
+    min-height: calc(100vh - 40px); /* Ensure it takes up most of the viewport height */
+    display: flex; /* Changed to flex for initial display */
+    flex-direction: column;
+    gap: 1.5rem; /* Gap between back button and main grid */
 }
 
 .lessons-page-container .button-secondary {
     align-self: flex-start; /* Align back button to start */
 }
 
-.lesson-input-section, .lesson-chat-container, .lesson-display-area {
-    width: 100%;
-    max-width: 700px; /* Max width for these sections */
-    margin-bottom: 1.5rem; /* Consistent margin-bottom */
-    background-color: var(--card-bg); /* Use card background for these sections */
-    padding: 1.5rem; /* Consistent padding */
-    border-radius: 0.75rem; /* User's preferred radius */
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-}
-
-
+/* Lesson Step Card - now using glass-panel for consistency */
 .lesson-step-card {
-    background-color: #2d3748; /* Darker card background */
+    background-color: var(--card-bg); /* Use theme variable */
     padding: 1rem;
     border-radius: 0.75rem;
-    border: 1px solid #4a5568;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
 }
 
 .twisty-player-lesson-container {
@@ -904,7 +905,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 
-/* NEW: History Page Styling */
+/* NEW: History Page Styling (Reverted to original for consistency) */
 .history-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -917,7 +918,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     color: var(--text-color-primary);
 }
 
-/* History page specific solve item adjustments */
+/* History page specific solve item adjustments (Reverted to original for consistency) */
 .history-page-container .solve-history-item {
     flex-direction: row; /* Ensure row layout for desktop history page */
     align-items: center;
@@ -942,7 +943,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     justify-content: flex-end; /* Align buttons to the right */
 }
 
-/* NEW: Settings Page Styling */
+/* NEW: Settings Page Styling (Reverted to original for consistency) */
 .settings-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -1131,10 +1132,10 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
     .button-primary,
     .button-secondary {
-        font-size: 0.9rem;
-        /* Slightly smaller button font */
         padding: 0.7rem 1.2rem;
         /* Ensure good touch target */
+        font-size: 0.95rem;
+        /* Slightly smaller font */
     }
 
     .stats-grid {
