@@ -40,7 +40,7 @@ let scramble3DViewer;
 let globalLoadingSpinner;
 let lessonHub, lessonViewer, lessonHistorySection;
 let startNewCourseBtn, courseTypeFilter, courseLevelFilter, courseList, noCoursesMessage;
-let courseCreationModal, closeCourseCreationModalBtn, courseChatContainer, courseChatMessages, courseChatInput, sendCourseChatBtn, courseChatSpinner;
+let courseCreationSection, backToCoursesBtn, courseChatContainer, courseChatMessages, courseChatInput, sendCourseChatBtn, courseChatSpinner; // Renamed from courseCreationModal
 let courseNavigationSidebar, currentCourseTitle, courseProgressBarContainer, courseProgressBar, moduleList;
 let lessonTitle, lessonStepCounter, editLessonBtn, lessonContentDisplay, lessonEditorContainer, lessonMarkdownEditor, cancelEditLessonBtn, saveLessonContentBtn;
 let scramble3DContainer, playPreviewBtn, pausePreviewBtn, stepBackwardBtn, stepForwardBtn, resetAlgBtn, applyScrambleBtn;
@@ -156,6 +156,7 @@ function hideAllSections() {
     lessonHub.classList.add('hidden');
     lessonViewer.classList.add('hidden');
     lessonHistorySection.classList.add('hidden');
+    courseCreationSection.classList.add('hidden'); // Hide the new section
 }
 
 /**
@@ -412,7 +413,7 @@ async function deleteCourse(courseId) {
 // =====================================================================================================
 
 /**
- * Displays a chat message in the course creation modal.
+ * Displays a chat message in the course creation section.
  * @param {string} sender - 'user' or 'jarvis'.
  * @param {string} message - The message content.
  */
@@ -1186,8 +1187,8 @@ function setupEventListeners() {
     noCoursesMessage = document.getElementById('noCoursesMessage');
     historyLoadingSpinner = document.getElementById('historyLoadingSpinner'); // Re-using for course list loading
 
-    courseCreationModal = document.getElementById('courseCreationModal');
-    closeCourseCreationModalBtn = document.getElementById('closeCourseCreationModalBtn');
+    courseCreationSection = document.getElementById('courseCreationSection'); // Renamed from courseCreationModal
+    backToCoursesBtn = document.getElementById('backToCoursesBtn'); // New button for navigation
     courseChatContainer = document.getElementById('courseChatContainer');
     courseChatMessages = document.getElementById('courseChatMessages');
     courseChatInput = document.getElementById('courseChatInput');
@@ -1241,23 +1242,20 @@ function setupEventListeners() {
 
 
     // Event Listeners
-    if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', () => {
-        lessonHub.classList.add('hidden'); // Hide the hub
-        courseCreationModal.classList.remove('opacity-0', 'pointer-events-none'); // Make visible and interactive
-        courseCreationModal.classList.add('opacity-100', 'pointer-events-auto');
-
+    if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', async () => {
+        // Resume AudioContext on user gesture
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+            console.log("[DEBUG] Tone.js AudioContext resumed.");
+        }
+        showSection(courseCreationSection); // Show the new full-screen section
         courseChatHistory = []; // Clear chat history for new course creation
         courseChatMessages.innerHTML = '';
         displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to assist you in designing a new cubing course. Please tell me what type of cube (e.g., 3x3, Pyraminx), what skill level (e.g., beginner, advanced), and any specific topics or methods you would like to include.");
     });
-    if (closeCourseCreationModalBtn) closeCourseCreationModalBtn.addEventListener('click', () => {
-        courseCreationModal.classList.remove('opacity-100', 'pointer-events-auto'); // Make invisible and non-interactive
-        courseCreationModal.classList.add('opacity-0', 'pointer-events-none');
-        // Re-show lesson hub after transition completes
-        setTimeout(() => {
-            lessonHub.classList.remove('hidden');
-            loadCourseList(); // Refresh course list
-        }, 300); // Match CSS transition duration
+    if (backToCoursesBtn) backToCoursesBtn.addEventListener('click', () => { // Updated button
+        showSection(lessonHub); // Go back to the hub
+        loadCourseList(); // Refresh course list
     });
     if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => sendCourseCreationPrompt(courseChatInput.value));
     if (courseChatInput) courseChatInput.addEventListener('keypress', (e) => {
@@ -1373,11 +1371,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners(); // Assign DOM elements and add listeners
     await initializeFirebaseAndAuth(); // Initialize Firebase and authentication
 
-    // Initialize Tone.js only after a user gesture (e.g., DOMContentLoaded is often triggered by initial click to page)
-    // If audio still doesn't play, a dedicated "play sound" button might be needed.
+    // Tone.js Synth initialization is now handled on first user gesture (e.g., clicking 'Create New Course')
+    // This resolves the "AudioContext was not allowed to start" warning.
     try {
         synth = new Tone.Synth().toDestination();
-        console.log("[DEBUG] Tone.js Synth initialized.");
+        // Do NOT call Tone.start() here. It will be called on first user interaction.
+        console.log("[DEBUG] Tone.js Synth initialized (but not yet started).");
     } catch (e) {
         console.warn("[WARN] Tone.js initialization failed:", e.message);
         showToast("Audio playback may not work. Please interact with the page.", "info");
