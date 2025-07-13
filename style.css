@@ -6,7 +6,6 @@ body {
     /* Dark blue-gray background */
     color: var(--text-color-primary, #e2e8f0);
     /* Light text color */
-    /* Original body styles from style (1).css */
     display: flex; /* Changed to flex for main-layout */
     justify-content: center;
     align-items: center;
@@ -30,7 +29,6 @@ body {
     --accent-color-red: #ef4444;
     --button-bg-hover: #475569;
     --border-color: #334155;
-    /* RESTORED: Original box-shadow from style (1).css */
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
     /* NEW Theme variables for light and vibrant */
@@ -95,7 +93,7 @@ body.theme-vibrant {
     --chat-bg: #220844;
 }
 
-/* NEW: Main Layout for Sidebar and Content (from original style (1).css) */
+/* NEW: Main Layout for Sidebar and Content */
 .main-layout {
     display: flex;
     width: 100%;
@@ -104,7 +102,7 @@ body.theme-vibrant {
     margin: 0;
 }
 
-/* NEW: Sidebar Styling (from original style (1).css) */
+/* NEW: Sidebar Styling */
 .sidebar {
     width: 80px; /* Retracted width */
     background-color: var(--bg-color-secondary);
@@ -143,7 +141,6 @@ body.theme-vibrant {
     background-color: var(--button-secondary-hover-bg);
 }
 
-/* RESTORED: Original active state for sidebar nav item */
 .sidebar .nav-item.active {
     background-color: var(--accent-color-blue);
     color: white;
@@ -172,7 +169,7 @@ body.theme-vibrant {
     opacity: 1;
 }
 
-/* NEW: Content Area Styling (from original style (1).css) */
+/* NEW: Content Area Styling */
 .content-area {
     flex-grow: 1; /* Take remaining space */
     display: flex;
@@ -182,7 +179,6 @@ body.theme-vibrant {
     overflow-y: auto; /* Allow scrolling for main content */
 }
 
-/* Container for main timer page (from original style (1).css) */
 .container {
     background-color: var(--bg-color-secondary);
     border-radius: 1.5rem;
@@ -202,7 +198,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Authentication buttons in the corner (from original style (1).css) */
+/* Authentication buttons in the corner */
 .auth-corner-buttons {
     position: absolute;
     top: 1.5rem;
@@ -211,7 +207,6 @@ body.theme-vibrant {
     /* Ensure they are above other content */
 }
 
-/* Timer display (from original style (1).css) */
 .timer-display {
     font-size: 6rem;
     /* Desktop font size for timer */
@@ -232,9 +227,9 @@ body.theme-vibrant {
     /* Green when ready */
 }
 
-/* RESTORED: Original button-primary background from style (1).css */
 .button-primary {
     background: linear-gradient(145deg, #6366f1, #818cf8);
+    /* Gradient button */
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
@@ -284,7 +279,7 @@ body.theme-vibrant {
     box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
-/* NEW: Styling for preview control buttons to make them colorful (from lessons context) */
+/* NEW: Styling for preview control buttons to make them colorful */
 .button-preview-control {
     background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
     color: white;
@@ -312,6 +307,14 @@ body.theme-vibrant {
     box-shadow: 0 2px 5px rgba(34, 197, 94, 0.3);
 }
 
+/* Specific colors for play/pause/restart if needed, otherwise rely on general .button-preview-control */
+/* Example:
+#playPreviewBtn { background: linear-gradient(145deg, #3b82f6, #60a5fa); }
+#pausePreviewBtn { background: linear-gradient(145deg, #fbbf24, #fcd34d); }
+#restartPreviewBtn { background: linear-gradient(145deg, #ef4444, #f87171); }
+*/
+
+
 .scramble-display {
     background-color: var(--card-bg);
     padding: 1rem 1.5rem;
@@ -325,7 +328,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* 3D Cube Container Styling (from original style (1).css) */
+/* 3D Cube Container Styling */
 #cube3DContainer {
     background-color: var(--bg-color-primary);
     border-radius: 0.75rem;
@@ -342,13 +345,12 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Twisty player needs a height (from original style (1).css) */
+/* Twisty player needs a height */
 #scramble3DViewer {
     height: calc(100% - 60px);
     width: 100%;
 }
 
-/* Stats grid (from original style (1).css) */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -356,7 +358,6 @@ body.theme-vibrant {
     gap: 1rem;
 }
 
-/* Stat card (from original style (1).css) */
 .stat-card {
     background-color: var(--card-bg);
     padding: 1rem;
@@ -375,7 +376,6 @@ body.theme-vibrant {
     margin-top: 0.5rem;
 }
 
-/* Solve history item (from original style (1).css) */
 .solve-history-item {
     background-color: var(--card-bg);
     padding: 0.75rem 1.25rem;
@@ -456,7 +456,7 @@ body.theme-vibrant {
     background-color: #45a049;
 }
 
-/* Voice Command Button Styling (fixed position) (from original style (1).css) */
+/* Voice Command Button Styling (fixed position) */
 #voiceCommandBtn, #openChatBtn {
     background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
     color: white;
@@ -503,7 +503,6 @@ body.theme-vibrant {
     }
 }
 
-/* Modal (from original style (1).css) */
 .modal {
     position: fixed;
     top: 0;
@@ -525,7 +524,6 @@ body.theme-vibrant {
     visibility: visible;
 }
 
-/* Modal content (from original style (1).css) */
 .modal-content {
     background-color: var(--bg-color-secondary);
     padding: 2rem;
@@ -545,7 +543,7 @@ body.theme-vibrant {
     border: 1px solid var(--border-color); /* Added border for definition */
 }
 
-/* Specifically for AI Insight Modal to take more width on desktop (from original style (1).css) */
+/* Specifically for AI Insight Modal to take more width on desktop */
 #aiInsightModal .modal-content {
     max-width: 700px;
     color: var(--text-color-primary); /* Ensure text color is theme-aware */
@@ -555,7 +553,7 @@ body.theme-vibrant {
     background-color: var(--card-bg);
 }
 
-/* AI Insight Modal specific styling for Light Theme (from original style (1).css) */
+/* AI Insight Modal specific styling for Light Theme */
 body.theme-light #aiInsightModal .modal-content {
     background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
     color: var(--text-color-primary); /* Ensure text is dark */
@@ -563,7 +561,7 @@ body.theme-light #aiInsightModal .modal-content {
     box-shadow: var(--box-shadow);
 }
 
-/* AI Insight Modal specific styling for Vibrant Theme (from original style (1).css) */
+/* AI Insight Modal specific styling for Vibrant Theme */
 body.theme-vibrant #aiInsightModal .modal-content {
     background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
     color: var(--text-color-primary); /* Ensure text is light */
@@ -583,14 +581,13 @@ body.theme-vibrant #aiInsightModal .modal-content {
     cursor: pointer;
 }
 
-/* Text gradient (from original style (1).css) */
 .text-gradient {
     background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-/* NEW: Voice Feedback Display Styling - Moved to bottom center (from original style (1).css) */
+/* NEW: Voice Feedback Display Styling - Moved to bottom center */
 .voice-feedback-display {
     position: fixed;
     bottom: 5%; /* Position from the bottom */
@@ -626,7 +623,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
-/* Listening Indicator Dots (from original style (1).css) */
+/* Listening Indicator Dots */
 .listening-indicator {
     display: flex;
     gap: 8px; /* Larger gap between dots */
@@ -662,7 +659,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) (from original style (1).css) */
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
 .voice-feedback-display.speaking .listening-indicator .dot {
     background-color: var(--accent-color-blue); /* Different color when speaking */
     animation: pulse-dot 1s infinite ease-in-out;
@@ -683,7 +680,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* NEW: Chat Modal Styling (from original style (1).css) */
+/* NEW: Chat Modal Styling */
 #chatModal .modal-content {
     max-width: 450px; /* Slightly wider for chat */
     max-height: 80vh; /* Controlled height */
@@ -705,7 +702,6 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border: 1px solid #2d3748;
 }
 
-/* RESTORED: Original chat-message styling from style (1).css */
 .chat-message {
     margin-bottom: 0.5rem;
     line-height: 1.4;
@@ -715,7 +711,6 @@ body.theme-vibrant #aiInsightModal .modal-content {
     word-wrap: break-word; /* Ensure long words break */
 }
 
-/* RESTORED: Original user-message styling from style (1).css */
 .user-message {
     text-align: right;
     color: #e2e8f0; /* Light text for user */
@@ -724,7 +719,6 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border-bottom-right-radius: 0; /* Flat corner on sender side */
 }
 
-/* RESTORED: Original jarvis-message styling from style (1).css */
 .jarvis-message {
     text-align: left;
     color: #cbd5e1; /* Slightly darker text for Jarvis */
@@ -751,7 +745,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     align-items: flex-end; /* Align input and button at the bottom */
 }
 
-/* Corrected .input-field styling for general use (from original style (1).css) */
+/* Corrected .input-field styling for general use */
 .input-field {
     flex-grow: 1;
     min-height: 40px; /* Minimum height for consistency */
@@ -783,7 +777,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-size: 1rem;
 }
 
-/* Custom Scrollbar for chat history (from original style (1).css) */
+/* Custom Scrollbar for chat history */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
 }
@@ -802,41 +796,37 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Glassmorphism / Dashboard Panel Style (for lessons.html specific elements) */
-.glass-panel {
-    background-color: rgba(30, 41, 59, 0.6); /* Slightly transparent secondary background */
-    backdrop-filter: blur(10px); /* Frosted glass effect */
-    -webkit-backdrop-filter: blur(10px); /* For Safari */
-    border: 1px solid rgba(51, 65, 85, 0.7); /* Slightly transparent border */
-    border-radius: 1.5rem; /* Consistent large rounded corners */
-    /* Use the original box-shadow for glass-panel for consistency with main page */
-    box-shadow: var(--box-shadow);
-    transition: all 0.3s ease-in-out; /* Smooth transitions for hover/focus */
-}
-
-.glass-panel:hover {
-    border-color: var(--accent-color-blue); /* Highlight on hover */
-    /* Use a slightly more pronounced shadow on hover, but not overriding the root var */
-    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-
-/* NEW: Lessons Page/Modal Styling (from previous iteration, adjusted for new glass-panel) */
+/* NEW: Lessons Page/Modal Styling */
 .lessons-page-container {
-    /* Background and border moved to glass-panel class on inner elements */
-    width: 100%;
-    max-width: 1400px; /* Increased max-width for complex dashboard */
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 800px; /* Wider for lessons */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem; /* User's preferred radius */
     margin: 20px auto; /* Center the container on the page */
     color: var(--text-color-primary);
-    min-height: calc(100vh - 40px); /* Ensure it takes up most of the viewport height */
-    display: flex; /* Changed to flex for initial display */
-    flex-direction: column;
-    gap: 1.5rem; /* Gap between back button and main grid */
+    display: flex; /* Ensure flex for internal layout */
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center children horizontally */
 }
 
 .lessons-page-container .button-secondary {
     align-self: flex-start; /* Align back button to start */
 }
+
+.lesson-input-section, .lesson-chat-container, .lesson-display-area {
+    width: 100%;
+    max-width: 700px; /* Max width for these sections */
+    margin-bottom: 1.5rem; /* Consistent margin-bottom */
+    background-color: var(--card-bg); /* Use card background for these sections */
+    padding: 1.5rem; /* Consistent padding */
+    border-radius: 0.75rem; /* User's preferred radius */
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color);
+}
+
 
 .lesson-step-card {
     background-color: #2d3748; /* Darker card background */
@@ -914,7 +904,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 
-/* NEW: History Page Styling (from original style (1).css) */
+/* NEW: History Page Styling */
 .history-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -927,7 +917,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     color: var(--text-color-primary);
 }
 
-/* History page specific solve item adjustments (from original style (1).css) */
+/* History page specific solve item adjustments */
 .history-page-container .solve-history-item {
     flex-direction: row; /* Ensure row layout for desktop history page */
     align-items: center;
@@ -952,7 +942,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     justify-content: flex-end; /* Align buttons to the right */
 }
 
-/* NEW: Settings Page Styling (from original style (1).css) */
+/* NEW: Settings Page Styling */
 .settings-page-container {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid #334155;
@@ -978,7 +968,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     margin-bottom: 0; /* No margin after the last section */
 }
 
-/* Toggle switch styling (copied from previous modal styling) (from original style (1).css) */
+/* Toggle switch styling (copied from previous modal styling) */
 .toggle-switch {
     /* Hide default checkbox */
     appearance: none;
@@ -1141,10 +1131,10 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
     .button-primary,
     .button-secondary {
+        font-size: 0.9rem;
+        /* Slightly smaller button font */
         padding: 0.7rem 1.2rem;
         /* Ensure good touch target */
-        font-size: 0.95rem;
-        /* Slightly smaller font */
     }
 
     .stats-grid {
@@ -1192,7 +1182,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
         font-size: 0.75rem; /* Smaller font for mobile buttons */
     }
 
-    /* Adjustments for voice feedback and chat on mobile (from original style (1).css) */
+    /* Adjustments for voice feedback and chat on mobile */
     .voice-feedback-display, .chat-container {
         bottom: 10px; /* Closer to bottom edge on mobile */
         left: 10px; /* Adjust left position */
@@ -1223,7 +1213,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
         right: auto;
     }
 
-    /* Lessons page specific mobile adjustments (from previous iteration, adjusted for new glass-panel) */
+    /* Lessons page specific mobile adjustments */
     .lessons-page-container {
         padding: 1rem;
         border-radius: 0;
@@ -1265,7 +1255,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* Further adjustments for very small screens (e.g., iPhone SE) (from original style (1).css) */
+/* Further adjustments for very small screens (e.g., iPhone SE) */
 @media (max-width: 479px) {
     .timer-display {
         font-size: 3rem;
@@ -1301,7 +1291,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 }
 
-/* Spinner for loading states (from original style (1).css) */
+/* Spinner for loading states */
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-top: 4px solid var(--accent-color-blue);
@@ -1316,7 +1306,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     100% { transform: rotate(360deg); }
 }
 
-/* TOAST NOTIFICATIONS (from original style (1).css) */
+/* TOAST NOTIFICATIONS */
 .toast-container {
     position: fixed;
     bottom: 20px;
