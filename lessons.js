@@ -45,19 +45,20 @@ let userLevel = 'beginner'; // Determined by best solve time, for AI context
 let show3DCubeView = true; // Controls visibility of 3D cube in lessons, default to true
 
 // DOM Elements
+let lessonsPageContainer; // Main container to show/hide
 let lessonHub, lessonViewer, lessonHistorySection;
 let startNewCourseBtn, courseList, noCoursesMessage;
 let courseCreationModal, closeCourseCreationModalBtn, courseChatContainer, courseChatMessages, courseChatInput, sendCourseChatBtn, courseChatSpinner;
 let courseNavigationSidebar, currentCourseTitle, courseProgressBarContainer, courseProgressBar, moduleList;
 let lessonTitleElement, lessonStepCounterElement, editLessonBtn, lessonContentDisplay;
-let lessonEditorContainer, lessonMarkdownEditorInstance, saveLessonContentBtn, cancelEditLessonBtn;
+let lessonEditorContainer, lessonMarkdownEditor, saveLessonContentBtn, cancelEditLessonBtn; // Declared lessonMarkdownEditor here
 let scramble3DContainer, scramble3DViewer, playPreviewBtn, pausePreviewBtn, stepForwardBtn, stepBackwardBtn, resetAlgBtn, applyScrambleBtn;
 let quizArea, quizQuestionsContainer, submitQuizBtn, quizFeedback;
 let prevLessonStepBtn, nextLessonStepBtn, completeLessonBtn, lessonCompletionMessage;
 let inLessonChatContainer, closeInLessonChatBtn, inLessonChatMessages, inLessonChatInput, sendInLessonChatBtn, inLessonChatSpinner;
 let globalLoadingSpinner;
 let courseTypeFilter, courseLevelFilter;
-let lessonMarkdownEditor; // Declare this for SimpleMDE initialization
+let openInLessonChatBtn; // New button for in-lesson chat
 
 // SimpleMDE editor instance
 let simpleMDE;
@@ -109,8 +110,8 @@ async function initializeFirebaseAndAuth() {
             }
             isAuthReady = true;
             await loadUserSettings(); // Load user settings once auth is ready
-            loadInitialView(); // Determine which view to show initially
-            loadCourses(); // Load courses after auth is ready and settings are loaded
+            await loadCourses(); // Load courses after auth is ready and settings are loaded
+            loadInitialView(); // Determine which view to show initially *after* all data is loaded
         });
 
         // The onAuthStateChanged listener handles the initial sign-in state,
@@ -123,8 +124,8 @@ async function initializeFirebaseAndAuth() {
         userId = `guest-fallback-${crypto.randomUUID()}`; // Fallback to a random ID if everything fails
         isUserAuthenticated = false;
         await loadUserSettings(); // Attempt to load settings from local storage
+        await loadCourses(); // Attempt to load courses (will be empty for guests)
         loadInitialView();
-        loadCourses(); // Attempt to load courses (will be empty for guests)
     }
 }
 
@@ -315,40 +316,53 @@ function getTwistyPlayerPuzzleType(cubeType) {
 // --- UI State Management (Showing/Hiding Sections) ---
 // =====================================================================================================
 function showSection(sectionElement) {
+    // Hide all main sections
     const sections = [lessonHub, lessonViewer, lessonHistorySection, courseCreationModal];
     sections.forEach(sec => {
         if (sec) {
             sec.classList.add('hidden');
-            sec.classList.remove('flex'); // Remove flex if it was added for layout
-            sec.classList.remove('block'); // Remove block if it was added
+            sec.classList.remove('flex', 'block');
         }
     });
+
+    // Show the requested section
     if (sectionElement) {
         sectionElement.classList.remove('hidden');
-        // Apply appropriate display type based on section
-        if (sectionElement.id === 'lessonViewer') {
+        if (sectionElement.id === 'lessonViewer' || sectionElement.id === 'courseCreationModal') {
             sectionElement.classList.add('flex');
-            if (window.innerWidth >= 1024) { // For large screens, show sidebar
-                courseNavigationSidebar.classList.remove('hidden');
-                courseNavigationSidebar.classList.add('block');
-            } else {
-                courseNavigationSidebar.classList.add('hidden'); // Hide sidebar on smaller screens
-            }
-            // Ensure in-lesson chat is also correctly displayed/hidden based on its own state
-            // For now, let's ensure it's hidden by default when a new lesson is loaded
-            inLessonChatContainer.classList.add('hidden');
-        } else if (sectionElement.id === 'courseCreationModal') {
-            sectionElement.classList.add('flex'); // Modal overlay needs flex for centering
         } else {
             sectionElement.classList.add('block');
         }
     }
-    showGlobalLoadingSpinner(false); // Hide global spinner once a section is displayed
+
+    // Handle sidebar visibility for lessonViewer
+    if (sectionElement === lessonViewer) {
+        if (window.innerWidth >= 1024) {
+            courseNavigationSidebar.classList.remove('hidden');
+            courseNavigationSidebar.classList.add('block');
+        } else {
+            courseNavigationSidebar.classList.add('hidden');
+        }
+        // Ensure in-lesson chat is initially hidden when a new lesson is loaded
+        inLessonChatContainer.classList.add('hidden');
+        inLessonChatContainer.classList.remove('translate-x-0'); // Ensure it's off-screen
+        inLessonChatContainer.classList.add('translate-x-full');
+        openInLessonChatBtn.classList.remove('hidden'); // Show the chat button
+    } else {
+        openInLessonChatBtn.classList.add('hidden'); // Hide chat button on other pages
+    }
+
+    // Hide global loading spinner and show main content container
+    showGlobalLoadingSpinner(false);
+    lessonsPageContainer.classList.remove('hidden');
+    lessonsPageContainer.classList.add('flex'); // Ensure main container is flex for layout
 }
 
 function showGlobalLoadingSpinner(show) {
     if (globalLoadingSpinner) {
         globalLoadingSpinner.classList.toggle('hidden', !show);
+        globalLoadingSpinner.classList.toggle('opacity-0', !show);
+        globalLoadingSpinner.classList.toggle('opacity-100', show);
     }
 }
 
@@ -429,7 +443,7 @@ async function loadCourses() {
         console.log("[DEBUG] Auth not ready, delaying loadCourses.");
         return;
     }
-    showGlobalLoadingSpinner(true);
+    // showGlobalLoadingSpinner(true); // Spinner already shown at page load
     courseList.innerHTML = ''; // Clear existing courses
     noCoursesMessage.classList.add('hidden');
 
@@ -441,7 +455,7 @@ async function loadCourses() {
         if (querySnapshot.empty) {
             noCoursesMessage.classList.remove('hidden');
             showToast("No courses found, Sir Sevindu. Please create a new one.", "info");
-            speakAsJarvis("No courses found, Sir Sevindu. Please create a new one.");
+            // speakAsJarvis("No courses found, Sir Sevindu. Please create a new one."); // Avoid double speak on initial load
         } else {
             querySnapshot.forEach((doc) => {
                 const course = doc.data();
@@ -453,7 +467,7 @@ async function loadCourses() {
         showToast("Failed to load courses, Sir Sevindu. " + error.message, "error");
         speakAsJarvis("I regret to inform you, Sir Sevindu, that I encountered an error while attempting to load your courses.");
     } finally {
-        showGlobalLoadingSpinner(false);
+        // showGlobalLoadingSpinner(false); // Spinner hidden by loadInitialView
     }
 }
 
@@ -488,9 +502,10 @@ function openCourseCreationModal() {
     courseChatInput.disabled = false;
     sendCourseChatBtn.disabled = false;
     
+    // MODIFIED: Dynamic initial prompt based on currentCubeType and userLevel
     let initialPrompt = "Greetings, Sir Sevindu. I am prepared to assist you in designing a new cubing course.";
     if (currentCubeType && userLevel) {
-        initialPrompt += ` You are currently set for ${currentCubeType} and identified as a ${userLevel} level cuber. Would you like to create a course tailored to these settings, or specify different preferences or areas of focus?`;
+        initialPrompt += ` You are currently set for a **${currentCubeType}** cube and identified as a **${userLevel}** level cuber. Would you like to create a course tailored to these settings, or specify different preferences or areas of focus?`;
     } else {
         initialPrompt += " To begin, please inform me of your desired cube type, skill level, and any specific areas of focus.";
     }
@@ -547,8 +562,13 @@ async function sendCourseChatMessage() {
 
     } catch (error) {
         console.error("[ERROR] Error sending course chat message:", error);
-        appendChatMessage("Jarvis", `My apologies, Sir Sevindu. An error occurred: ${error.message}. Please try again.`, "ai");
-        speakAsJarvis(`My apologies, Sir Sevindu. An error occurred: ${error.message}. Please try again.`);
+        // Ensure error message is user-friendly and includes specific error details if available
+        let errorMessage = `My apologies, Sir Sevindu. An error occurred: ${error.message}. Please try again.`;
+        if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
+            errorMessage = "My apologies, Sir Sevindu. I received an unreadable response from the AI. This may be a temporary network issue or an internal error. Please try again.";
+        }
+        appendChatMessage("Jarvis", errorMessage, "ai");
+        speakAsJarvis(errorMessage);
         showToast(`Error: ${error.message}`, "error");
     } finally {
         showCourseChatSpinner(false);
@@ -560,8 +580,9 @@ async function sendCourseChatMessage() {
 
 function appendChatMessage(sender, message, type) {
     const msgElement = document.createElement('div');
-    msgElement.className = `chat-message ${type} p-3 my-2 rounded-lg max-w-[80%] ${type === 'user' ? 'bg-blue-700 ml-auto text-right' : 'bg-gray-700 mr-auto text-left'}`; // Added styling
-    msgElement.innerHTML = `<p class="text-sm">${message}</p>`; // Wrapped message in p tag
+    // Added styling for chat messages
+    msgElement.className = `chat-message ${type} p-3 my-2 rounded-lg max-w-[80%] ${type === 'user' ? 'bg-blue-700 ml-auto text-right' : 'bg-gray-700 mr-auto text-left'}`;
+    msgElement.innerHTML = `<p class="text-sm text-white">${message}</p>`; // Wrapped message in p tag and added text color
     courseChatMessages.appendChild(msgElement);
     courseChatMessages.scrollTop = courseChatMessages.scrollHeight; // Auto-scroll to bottom
 }
@@ -716,7 +737,7 @@ function renderCourseNavigation() {
             });
             lessonList.appendChild(lessonItem);
         });
-        moduleList.appendChild(lessonItem);
+        moduleList.appendChild(moduleItem); // Append module item, not lesson item directly
     });
 }
 
@@ -761,7 +782,7 @@ async function loadLesson(moduleIdx, lessonIdx) {
     nextLessonStepBtn.style.display = 'inline-block';
 
     // Initialize SimpleMDE if not already done
-    if (!simpleMDE) {
+    if (!simpleMDE && lessonMarkdownEditor) { // Ensure lessonMarkdownEditor is available
         simpleMDE = new SimpleMDE({ element: lessonMarkdownEditor, spellChecker: false });
     }
 
@@ -786,7 +807,7 @@ function renderLessonStep() {
 
     // Show content based on lesson type
     if (lessonType.includes('theory') || lessonType.includes('conceptual')) {
-        lessonContentDisplay.innerHTML = window.marked.parse(lesson.content || 'No content provided for this lesson.'); // MODIFIED HERE
+        lessonContentDisplay.innerHTML = window.marked.parse(lesson.content || 'No content provided for this lesson.');
         lessonContentDisplay.classList.remove('hidden');
     }
 
@@ -1100,6 +1121,9 @@ function submitQuiz() {
 // =====================================================================================================
 function toggleInLessonChat() {
     inLessonChatContainer.classList.toggle('hidden');
+    inLessonChatContainer.classList.toggle('translate-x-full'); // Slide out
+    inLessonChatContainer.classList.toggle('translate-x-0'); // Slide in
+
     if (!inLessonChatContainer.classList.contains('hidden')) {
         inLessonChatInput.focus();
         inLessonChatMessages.scrollTop = inLessonChatMessages.scrollHeight;
@@ -1167,8 +1191,9 @@ async function sendInLessonChatMessage() {
 
 function appendInLessonChatMessage(sender, message, type) {
     const msgElement = document.createElement('div');
-    msgElement.className = `chat-message ${type} p-3 my-2 rounded-lg max-w-[80%] ${type === 'user' ? 'bg-blue-700 ml-auto text-right' : 'bg-gray-700 mr-auto text-left'}`; // Added styling
-    msgElement.innerHTML = `<p class="text-sm">${message}</p>`; // Wrapped message in p tag
+    // Added styling for chat messages
+    msgElement.className = `chat-message ${type} p-3 my-2 rounded-lg max-w-[80%] ${type === 'user' ? 'bg-blue-700 ml-auto text-right' : 'bg-gray-700 mr-auto text-left'}`;
+    msgElement.innerHTML = `<p class="text-sm text-white">${message}</p>`; // Wrapped message in p tag and added text color
     inLessonChatMessages.appendChild(msgElement);
     inLessonChatMessages.scrollTop = inLessonChatMessages.scrollHeight;
 }
@@ -1211,6 +1236,7 @@ function enableEditMode() {
     completeLessonBtn.style.display = 'none';
     editLessonBtn.classList.add('hidden'); // Hide edit button itself
     inLessonChatContainer.classList.add('hidden'); // Hide chat during edit
+    openInLessonChatBtn.classList.add('hidden'); // Hide chat button during edit
 }
 
 async function saveLessonContent() {
@@ -1279,6 +1305,7 @@ function disableEditMode() {
     }
     prevLessonStepBtn.classList.remove('hidden');
     nextLessonStepBtn.classList.remove('hidden');
+    openInLessonChatBtn.classList.remove('hidden'); // Show chat button again
     // inLessonChatContainer.classList.remove('hidden'); // Re-show chat if it was open
 }
 
@@ -1289,6 +1316,9 @@ function setupEventListeners() {
     console.log("[DEBUG] lessons.js: Setting up event listeners.");
 
     // Assign DOM elements
+    lessonsPageContainer = document.querySelector('.lessons-page-container'); // Get the main container
+    globalLoadingSpinner = document.getElementById('globalLoadingSpinner'); // Get global spinner
+
     lessonHub = document.getElementById('lessonHub');
     lessonViewer = document.getElementById('lessonViewer');
     lessonHistorySection = document.getElementById('lessonHistorySection'); // Still exists in HTML, but less used now
@@ -1348,8 +1378,7 @@ function setupEventListeners() {
     inLessonChatInput = document.getElementById('inLessonChatInput');
     sendInLessonChatBtn = document.getElementById('sendInLessonChatBtn');
     inLessonChatSpinner = document.getElementById('inLessonChatSpinner');
-
-    globalLoadingSpinner = document.getElementById('globalLoadingSpinner');
+    openInLessonChatBtn = document.getElementById('openInLessonChatBtn'); // New button
 
     // Add event listeners
     if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', openCourseCreationModal);
@@ -1388,18 +1417,17 @@ function setupEventListeners() {
         if (e.key === 'Enter') sendInLessonChatMessage();
     });
     if (closeInLessonChatBtn) closeInLessonChatBtn.addEventListener('click', toggleInLessonChat);
-
-    // Initial state for in-lesson chat (can be triggered by a button later)
-    // For now, let's add a temporary button or just keep it hidden until a user action.
-    // A button to open/close in-lesson chat could be added to lessonViewer section.
-    // For demonstration, let's make it visible when a lesson is loaded.
-    // This will be handled in loadLesson to conditionally show/hide.
+    if (openInLessonChatBtn) openInLessonChatBtn.addEventListener('click', toggleInLessonChat); // New button listener
 }
 
 /**
  * Determines which section to show initially based on user state or last activity.
  */
 async function loadInitialView() {
+    // Show the main content container now that data is loaded
+    lessonsPageContainer.classList.remove('hidden');
+    lessonsPageContainer.classList.add('flex'); // Ensure it uses flex layout
+
     // For now, always start at the hub. In a more complex app,
     // we might check if a lesson was in progress and then resume it directly.
     showSection(lessonHub);
@@ -1412,6 +1440,7 @@ async function loadInitialView() {
  */
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[DEBUG] lessons.js: DOMContentLoaded triggered. Assigning DOM elements and initializing.");
+    showGlobalLoadingSpinner(true); // Show spinner immediately on DOMContentLoaded
     setupEventListeners(); // Assign DOM elements and add listeners
     initializeFirebaseAndAuth(); // Initialize Firebase and authentication
 });
@@ -1427,4 +1456,3 @@ window.addEventListener('resize', () => {
         }
     }
 });
- 
