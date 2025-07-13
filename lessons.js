@@ -8,9 +8,9 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
-// __initial_auth_token is provided globally by Canvas, no need to redeclare with const here.
-const appId = 'my-production-speedcube-timer'; // Global app ID, extracted from script.js
-const firebaseConfig = {
+// Use Canvas global variables if they are defined, otherwise fall back to hardcoded values.
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedcube-timer';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
     apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
     authDomain: "ubically-timer.firebaseapp.com",
     projectId: "ubically-timer",
@@ -19,7 +19,7 @@ const firebaseConfig = {
     appId: "1:467118524389:web:d3455f5be5747be2cb910c",
     measurementId: "G-XXXXXXXXXX" // Placeholder, if a specific value is not available.
 };
-const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+// __initial_auth_token is provided globally by Canvas and should NOT be redeclared with 'const' here.
 
 
 // Firebase variables
@@ -217,7 +217,7 @@ async function initializeFirebaseAndAuth() {
             } else {
                 // Sign in anonymously if no user is logged in
                 try {
-                    // Access __initial_auth_token directly as it's globally provided
+                    // Access __initial_auth_token directly as it's globally provided by Canvas
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                         console.log("[DEBUG] Signed in with custom token.");
