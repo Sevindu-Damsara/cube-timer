@@ -57,6 +57,7 @@ let prevLessonStepBtn, nextLessonStepBtn, completeLessonBtn, lessonCompletionMes
 let inLessonChatContainer, closeInLessonChatBtn, inLessonChatMessages, inLessonChatInput, sendInLessonChatBtn, inLessonChatSpinner;
 let globalLoadingSpinner;
 let courseTypeFilter, courseLevelFilter;
+let lessonMarkdownEditor; // Declare this for SimpleMDE initialization
 
 // SimpleMDE editor instance
 let simpleMDE;
@@ -486,8 +487,16 @@ function openCourseCreationModal() {
     courseChatInput.value = '';
     courseChatInput.disabled = false;
     sendCourseChatBtn.disabled = false;
-    appendChatMessage("Jarvis", "Greetings, Sir Sevindu. I am prepared to assist you in designing a new cubing course. To begin, please inform me of your desired cube type, skill level, and any specific areas of focus.", "ai");
-    speakAsJarvis("Greetings, Sir Sevindu. I am prepared to assist you in designing a new cubing course. To begin, please inform me of your desired cube type, skill level, and any specific areas of focus.");
+    
+    let initialPrompt = "Greetings, Sir Sevindu. I am prepared to assist you in designing a new cubing course.";
+    if (currentCubeType && userLevel) {
+        initialPrompt += ` You are currently set for ${currentCubeType} and identified as a ${userLevel} level cuber. Would you like to create a course tailored to these settings, or specify different preferences or areas of focus?`;
+    } else {
+        initialPrompt += " To begin, please inform me of your desired cube type, skill level, and any specific areas of focus.";
+    }
+
+    appendChatMessage("Jarvis", initialPrompt, "ai");
+    speakAsJarvis(initialPrompt);
     courseChatInput.focus();
 }
 
@@ -508,11 +517,12 @@ async function sendCourseChatMessage() {
     showCourseChatSpinner(true);
 
     try {
-        const response = await fetch('/api/lesson-chat', {
+        // MODIFIED: Pointing to /api/gemini-insight instead of /api/lesson-chat
+        const response = await fetch('/api/gemini-insight', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                type: 'lesson_chat',
+                type: 'lesson_chat', // Indicate this is a lesson chat request
                 chatHistory: courseChatHistory,
                 cubeType: currentCubeType, // Pass current user's cube type
                 userLevel: userLevel // Pass current user's skill level
@@ -550,8 +560,8 @@ async function sendCourseChatMessage() {
 
 function appendChatMessage(sender, message, type) {
     const msgElement = document.createElement('div');
-    msgElement.className = `chat-message ${type}`;
-    msgElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+    msgElement.className = `chat-message ${type} p-3 my-2 rounded-lg max-w-[80%] ${type === 'user' ? 'bg-blue-700 ml-auto text-right' : 'bg-gray-700 mr-auto text-left'}`; // Added styling
+    msgElement.innerHTML = `<p class="text-sm">${message}</p>`; // Wrapped message in p tag
     courseChatMessages.appendChild(msgElement);
     courseChatMessages.scrollTop = courseChatMessages.scrollHeight; // Auto-scroll to bottom
 }
@@ -570,10 +580,12 @@ async function generateAndSaveCourse() {
     speakAsJarvis("Generating your course, Sir Sevindu. This may take a moment.");
 
     try {
-        const response = await fetch('/api/generate-course', {
+        // MODIFIED: Pointing to /api/gemini-insight instead of /api/lesson-chat
+        const response = await fetch('/api/gemini-insight', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                type: 'generate_course', // Indicate this is a generate course request
                 chatHistory: courseChatHistory,
                 cubeType: currentCubeType, // Pass current user's cube type
                 skillLevel: userLevel, // Pass current user's skill level
@@ -1107,11 +1119,12 @@ async function sendInLessonChatMessage() {
 
     try {
         const lesson = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex];
-        const response = await fetch('/api/lesson-chat', {
+        // MODIFIED: Pointing to /api/gemini-insight instead of /api/lesson-chat
+        const response = await fetch('/api/gemini-insight', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                type: 'lesson_chat',
+                type: 'lesson_chat', // Indicate this is a lesson chat request
                 chatHistory: inLessonChatHistory,
                 currentLessonContext: { // Provide detailed context for Jarvis
                     lessonTitle: lesson.lesson_title,
@@ -1154,8 +1167,8 @@ async function sendInLessonChatMessage() {
 
 function appendInLessonChatMessage(sender, message, type) {
     const msgElement = document.createElement('div');
-    msgElement.className = `chat-message ${type}`;
-    msgElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+    msgElement.className = `chat-message ${type} p-3 my-2 rounded-lg max-w-[80%] ${type === 'user' ? 'bg-blue-700 ml-auto text-right' : 'bg-gray-700 mr-auto text-left'}`; // Added styling
+    msgElement.innerHTML = `<p class="text-sm">${message}</p>`; // Wrapped message in p tag
     inLessonChatMessages.appendChild(msgElement);
     inLessonChatMessages.scrollTop = inLessonChatMessages.scrollHeight;
 }
@@ -1306,7 +1319,7 @@ function setupEventListeners() {
     lessonContentDisplay = document.getElementById('lessonContentDisplay');
 
     lessonEditorContainer = document.getElementById('lessonEditorContainer');
-    // lessonMarkdownEditor is initialized later with SimpleMDE
+    lessonMarkdownEditor = document.getElementById('lessonMarkdownEditor'); // Assigned here
     saveLessonContentBtn = document.getElementById('saveLessonContentBtn');
     cancelEditLessonBtn = document.getElementById('cancelEditLessonBtn');
 
@@ -1414,3 +1427,4 @@ window.addEventListener('resize', () => {
         }
     }
 });
+ 
