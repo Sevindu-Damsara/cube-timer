@@ -796,215 +796,441 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: #64748b; /* Darker on hover */
 }
 
-/* NEW: Glassmorphism / Dashboard Panel Style - Specific to Lessons page for enhanced look */
+/* Lessons Page Specific Styling - Overhaul */
+
+/* Main container for the lessons page content */
+.lessons-page-container {
+    width: 100%;
+    max-width: 1400px; /* Wider for a more expansive feel */
+    margin: 20px auto;
+    padding: 20px; /* Overall padding for the page content */
+    color: var(--text-color-primary);
+    min-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* General glass-panel style for all major sections within lessons */
 .glass-panel {
-    background-color: rgba(30, 41, 59, 0.6); /* Slightly transparent secondary background */
-    backdrop-filter: blur(12px); /* Stronger frosted glass effect */
-    -webkit-backdrop-filter: blur(12px); /* For Safari */
-    border: 1px solid rgba(51, 65, 85, 0.8); /* Slightly more opaque border */
-    border-radius: 1.5rem; /* Consistent large rounded corners */
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 8px 20px rgba(0, 0, 0, 0.4); /* More pronounced shadow for depth */
-    transition: all 0.3s ease-in-out; /* Smooth transitions for hover/focus */
+    background-color: rgba(30, 41, 59, 0.7); /* Slightly more opaque for better contrast */
+    backdrop-filter: blur(15px); /* Stronger blur for a premium glass effect */
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(51, 65, 85, 0.9); /* More defined border */
+    border-radius: 1.5rem;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 10px 25px rgba(0, 0, 0, 0.5); /* Deeper, more impactful shadow */
+    transition: all 0.4s ease-in-out; /* Smoother transitions */
 }
 
 .glass-panel:hover {
-    border-color: var(--accent-color-blue); /* Highlight on hover */
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 10px 25px rgba(0, 0, 0, 0.5); /* Even more pronounced shadow on hover */
+    border-color: var(--accent-color-blue);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 15px 30px rgba(0, 0, 0, 0.6); /* Even more dramatic on hover */
+    transform: translateY(-2px); /* Subtle lift effect */
 }
 
-/* Lessons Page Specific Container Styling */
-.lessons-page-container {
-    width: 100%;
-    max-width: 1400px; /* Increased max-width for expansive dashboard */
-    margin: 20px auto; /* Center the container on the page */
-    color: var(--text-color-primary);
-    min-height: calc(100vh - 40px); /* Ensure it takes up most of the viewport height */
-    display: flex; /* Changed to flex for initial display */
-    flex-direction: column;
-    gap: 1.5rem; /* Gap between back button and main grid */
+/* Lesson Hub Specific Styles */
+#lessonHub {
+    padding: 3rem; /* More generous padding */
+    text-align: center;
 }
 
-.lessons-page-container .button-secondary {
-    align-self: flex-start; /* Align back button to start */
+#lessonHub h2 {
+    font-size: 3.5rem; /* Larger, more impactful title */
+    margin-bottom: 2rem;
 }
 
-/* Lesson Step Card - now using glass-panel for consistency */
-.lesson-step-card {
-    background-color: var(--card-bg); /* Use theme variable */
-    padding: 1rem;
-    border-radius: 0.75rem;
+#courseList {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Flexible grid for course cards */
+    gap: 2rem; /* Increased gap */
+}
+
+.course-card {
+    background-color: var(--card-bg);
+    border-radius: 1.25rem; /* More rounded */
+    padding: 2rem;
+    text-align: left;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden; /* For background effects */
 }
 
-.twisty-player-lesson-container {
-    background-color: #0f172a; /* Dark background for player */
-    border-radius: 0.5rem;
-    overflow: hidden;
-    border: 1px solid #334155;
-    position: relative; /* Needed for absolute positioning of controls */
-    width: 100%;
-    padding-bottom: 75%; /* 4:3 Aspect Ratio (height is 75% of width) */
-    height: 0; /* Important for aspect ratio to work */
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+    border-color: var(--accent-color-blue);
 }
 
-.twisty-player-lesson-container twisty-player {
+.course-card::before {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    background: linear-gradient(135deg, rgba(var(--accent-color-blue-rgb), 0.1), rgba(var(--accent-color-green-rgb), 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
 }
 
-.twisty-player-controls {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 8px;
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 8px 15px;
-    border-radius: 12px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(5px); /* Frosted glass effect */
-    -webkit-backdrop-filter: blur(5px); /* For Safari */
+.course-card:hover::before {
+    opacity: 1;
 }
 
-.twisty-player-controls .button-icon {
-    font-size: 1.1rem;
-    padding: 6px;
-    border-radius: 6px;
+.course-card h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-color-primary);
+    margin-bottom: 0.75rem;
+    position: relative;
+    z-index: 1;
+}
+
+.course-card p {
+    color: var(--text-color-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+}
+
+.course-card .level-badge {
+    display: inline-block;
+    background-color: var(--accent-color-blue);
     color: white;
-    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.3rem 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
 }
 
-.twisty-player-controls .button-icon:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+/* Lesson Viewer Specific Styles */
+#lessonViewer {
+    display: grid;
+    grid-template-columns: 1fr; /* Default to single column */
+    gap: 2rem; /* Increased gap between main sections */
+    padding: 2rem;
+}
+
+@media (min-width: 1024px) { /* Large screens for two-column layout */
+    #lessonViewer {
+        grid-template-columns: 1fr 3fr; /* Sidebar on left, main content on right */
+    }
+}
+
+/* Course Navigation Sidebar */
+#courseNavigationSidebar {
+    padding: 2rem;
+    min-height: 600px; /* Minimum height for the sidebar */
+}
+
+#courseNavigationSidebar h3 {
+    font-size: 1.6rem;
+    margin-bottom: 1.5rem;
+}
+
+#moduleList .module-item {
+    margin-bottom: 1rem;
+}
+
+#moduleList .module-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color-primary);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+#moduleList .module-title:hover {
     color: var(--accent-color-blue);
 }
 
+#moduleList .module-title i {
+    transition: transform 0.2s ease;
+}
 
-.lesson-navigation button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
+#moduleList .module-title.expanded i {
+    transform: rotate(90deg);
+}
+
+#moduleList .lesson-list {
+    list-style: none;
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    border-left: 2px solid var(--border-color);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+#moduleList .lesson-list.open {
+    max-height: 500px; /* Arbitrary large value for smooth expansion */
+}
+
+#moduleList .lesson-item {
+    padding: 0.5rem 0;
+    cursor: pointer;
+    color: var(--text-color-secondary);
+    transition: color 0.2s ease, background-color 0.2s ease;
+    border-radius: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+#moduleList .lesson-item:hover {
+    color: var(--accent-color-blue);
+    background-color: rgba(var(--accent-color-blue-rgb), 0.1);
+}
+
+#moduleList .lesson-item.active {
+    color: white;
+    background-color: var(--accent-color-blue);
     font-weight: 600;
 }
 
-/* NEW: Style for completed button */
-.button-completed {
-    background-color: #10b981; /* Emerald green */
-    color: white;
-    cursor: not-allowed;
-    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+/* Main Lesson Content Area */
+main.grid {
+    grid-template-columns: 1fr; /* Default to single column on smaller screens */
 }
 
-.button-completed:hover {
-    transform: none;
-    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+@media (min-width: 1280px) { /* XL screens for two-column main content */
+    main.grid {
+        grid-template-columns: 2fr 1fr; /* Content wider than visualizer/quiz */
+    }
 }
 
+/* Top Panel: Lesson Title & Controls */
+main .glass-panel.xl\:col-span-2 { /* Targeting the title panel specifically */
+    padding: 1.5rem 2rem; /* Adjusted padding */
+    margin-bottom: 1rem; /* Space below title panel */
+}
 
-/* NEW: History Page Styling (Reverted to original for consistency) */
-.history-page-container {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border: 1px solid #334155;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-    max-width: 900px; /* Wider for history */
-    width: 90%;
-    padding: 2rem;
-    border-radius: 1rem;
-    margin: 20px auto;
+main .glass-panel.xl\:col-span-2 h2 {
+    font-size: 2.5rem; /* Larger lesson title */
+}
+
+/* Lesson Content Display / Editor */
+#lessonContentDisplay {
+    line-height: 1.8; /* Improved readability */
+    font-size: 1.1rem;
+    padding: 1rem;
+}
+
+#lessonContentDisplay p {
+    margin-bottom: 1rem;
+}
+
+#lessonContentDisplay ul, #lessonContentDisplay ol {
+    list-style-position: inside;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+#lessonContentDisplay h1, #lessonContentDisplay h2, #lessonContentDisplay h3 {
     color: var(--text-color-primary);
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
 }
 
-/* History page specific solve item adjustments (Reverted to original for consistency) */
-.history-page-container .solve-history-item {
-    flex-direction: row; /* Ensure row layout for desktop history page */
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap; /* Allow wrapping if content is too long */
-    gap: 0.75rem;
+#lessonContentDisplay h1 { font-size: 2.2rem; }
+#lessonContentDisplay h2 { font-size: 1.8rem; }
+#lessonContentDisplay h3 { font-size: 1.4rem; }
+
+#lessonContentDisplay code {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
 }
 
-.history-page-container .solve-history-item .time {
-    flex-shrink: 0; /* Prevent time from shrinking */
+#lessonContentDisplay pre {
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 1em;
+    border-radius: 0.5em;
+    overflow-x: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
-.history-page-container .solve-history-item .scramble-text {
-    flex-grow: 1; /* Allow scramble text to take available space */
-    text-align: left;
-    margin-left: 1rem; /* Space between time and scramble */
-    margin-right: 1rem;
+#lessonContentDisplay pre code {
+    padding: 0;
+    background: none;
+    font-size: 1em;
 }
 
-.history-page-container .solve-history-item .penalty-buttons {
-    flex-shrink: 0; /* Prevent buttons from shrinking */
-    justify-content: flex-end; /* Align buttons to the right */
-}
-
-/* NEW: Settings Page Styling (Reverted to original for consistency) */
-.settings-page-container {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border: 1px solid #334155;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-    max-width: 600px; /* Appropriate width for settings */
-    width: 90%;
-    padding: 2rem;
-    border-radius: 1rem;
-    margin: 20px auto;
-    color: var(--text-color-primary);
-}
-
-.settings-page-container .setting-section {
-    background-color: var(--card-bg);
-    padding: 1.5rem;
+/* Markdown Editor */
+.CodeMirror, .CodeMirror-scroll {
+    min-height: 300px; /* Ensure editor has a good height */
     border-radius: 0.75rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    margin-bottom: 1.5rem; /* Space between sections */
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    font-family: 'Inter', sans-serif; /* Use Inter for editor too */
 }
 
-.settings-page-container .setting-section:last-child {
-    margin-bottom: 0; /* No margin after the last section */
+.CodeMirror-focused {
+    border-color: var(--input-focus-border) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
 
-/* Toggle switch styling (copied from previous modal styling) */
-.toggle-switch {
-    /* Hide default checkbox */
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    width: 40px;
-    height: 20px;
-    background-color: #475569; /* Off state background */
-    border-radius: 10px;
-    position: relative;
-    cursor: pointer;
-    outline: none;
-    transition: background-color 0.2s;
+.editor-toolbar {
+    background-color: var(--bg-color-secondary) !important;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    border-bottom: 1px solid var(--input-border) !important;
+    padding: 0.5rem 0.75rem !important;
 }
 
-.toggle-switch::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
-    background-color: #e2e8f0; /* Handle color */
+.editor-toolbar button {
+    color: var(--text-color-secondary) !important;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.editor-toolbar button.active, .editor-toolbar button:hover {
+    background-color: var(--button-bg-hover) !important;
+    color: var(--text-color-primary) !important;
+}
+
+/* 3D Scramble/Algorithm Viewer */
+#scramble3DContainer {
+    min-height: 350px; /* Slightly taller for better visualization */
+    padding: 1.5rem;
+}
+
+.twisty-player-controls {
+    background-color: rgba(0, 0, 0, 0.8); /* Darker, more prominent controls */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+}
+
+.twisty-player-controls .button-secondary { /* Apply secondary button styles for consistency */
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
     border-radius: 50%;
-    transition: transform 0.2s;
+    width: 45px; /* Slightly larger touch target */
+    height: 45px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: none; /* No extra shadow here */
 }
 
-.toggle-switch:checked {
-    background-color: #3b82f6; /* On state background */
+.twisty-player-controls .button-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--accent-color-blue);
+    transform: none; /* Remove translateY for these controls */
 }
 
-.toggle-switch:checked::before {
-    transform: translateX(20px);
+.twisty-player-controls .button-primary { /* Apply primary button styles */
+    border-radius: 50%; /* Circular */
+    width: 45px;
+    height: 45px;
+    padding: 0;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4); /* Consistent primary button shadow */
 }
 
+
+/* Quiz Area */
+#quizArea {
+    padding: 2rem;
+}
+
+#quizQuestionsContainer .question-item {
+    background-color: rgba(var(--bg-color-secondary-rgb), 0.5); /* Lighter background for questions */
+    padding: 1.5rem;
+    border-radius: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(var(--border-color-rgb), 0.7);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+#quizQuestionsContainer .question-item p {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-color-primary);
+}
+
+#quizQuestionsContainer .answer-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    transition: background-color 0.2s ease;
+}
+
+#quizQuestionsContainer .answer-option:hover {
+    background-color: rgba(var(--button-secondary-hover-bg-rgb), 0.2);
+}
+
+#quizQuestionsContainer .answer-option input[type="radio"],
+#quizQuestionsContainer .answer-option input[type="checkbox"] {
+    margin-right: 0.75rem;
+    accent-color: var(--accent-color-blue); /* Custom color for radio/checkbox */
+}
+
+#quizQuestionsContainer .answer-option.correct {
+    background-color: rgba(34, 197, 94, 0.2); /* Light green for correct */
+    border: 1px solid #22c55e;
+}
+
+#quizQuestionsContainer .answer-option.incorrect {
+    background-color: rgba(239, 68, 68, 0.2); /* Light red for incorrect */
+    border: 1px solid #ef4444;
+}
+
+/* In-Lesson Chat Sidebar */
+#inLessonChatContainer {
+    width: 350px; /* Fixed width for the sidebar */
+    padding: 1.5rem;
+    background-color: rgba(15, 23, 42, 0.9); /* Darker, more opaque background for chat */
+    border-left: 1px solid var(--border-color);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5); /* Shadow on the left edge */
+}
+
+#inLessonChatContainer.open {
+    transform: translateX(0); /* Slide in */
+}
+
+#inLessonChatMessages .chat-message {
+    padding: 0.75rem 1rem;
+    border-radius: 1rem; /* More rounded chat bubbles */
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+#inLessonChatMessages .user-message {
+    background-color: var(--accent-color-blue);
+    color: white;
+    border-bottom-right-radius: 0.5rem; /* Smoother corner */
+}
+
+#inLessonChatMessages .jarvis-message {
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color-primary);
+    border-bottom-left-radius: 0.5rem; /* Smoother corner */
+}
+
+/* Global Loading Spinner for lessons page */
+#globalLoadingSpinner {
+    z-index: 1000; /* Ensure it's on top */
+}
 
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
 /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
@@ -1220,38 +1446,78 @@ body.theme-vibrant #aiInsightModal .modal-content {
         border-radius: 0;
     }
 
-    .lesson-input-section, .lesson-chat-container, .lesson-display-area {
+    #lessonHub {
+        padding: 1.5rem;
+    }
+
+    #lessonHub h2 {
+        font-size: 2.5rem;
+    }
+
+    .course-card {
+        padding: 1.5rem;
+    }
+
+    .course-card h3 {
+        font-size: 1.5rem;
+    }
+
+    #lessonViewer {
         padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
+        gap: 1.5rem;
     }
 
-    .lesson-chat-container .chat-history-box {
-        height: 180px; /* Further adjust chat history height for very small screens */
+    #courseNavigationSidebar {
+        padding: 1.5rem;
+        min-height: auto;
     }
 
-    .lesson-step-card {
-        padding: 0.8rem;
-        border-radius: 0.5rem;
+    main .glass-panel.xl\:col-span-2 {
+        padding: 1rem 1.5rem;
     }
 
-    .twisty-player-lesson-container {
-        border-radius: 0.4rem;
+    main .glass-panel.xl\:col-span-2 h2 {
+        font-size: 1.8rem;
     }
 
-    .twisty-player-controls {
-        padding: 6px 10px;
-        border-radius: 10px;
-        gap: 6px;
-    }
-
-    .twisty-player-controls .button-icon {
+    #lessonContentDisplay {
         font-size: 1rem;
-        padding: 5px;
+        padding: 0.5rem;
     }
 
-    .lesson-navigation button {
-        padding: 0.6rem 1rem;
+    #scramble3DContainer {
+        min-height: 200px;
+        padding: 1rem;
+    }
+
+    .twisty-player-controls .button-secondary,
+    .twisty-player-controls .button-primary {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    #quizArea {
+        padding: 1.5rem;
+    }
+
+    #quizQuestionsContainer .question-item {
+        padding: 1rem;
+    }
+
+    #quizQuestionsContainer .question-item p {
+        font-size: 1rem;
+    }
+
+    #inLessonChatContainer {
+        width: 100%; /* Full width on mobile */
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5); /* Shadow on top edge */
+    }
+
+    #inLessonChatMessages .chat-message {
+        padding: 0.6rem 0.8rem;
         font-size: 0.9rem;
     }
 }

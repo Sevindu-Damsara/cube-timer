@@ -27,9 +27,9 @@
         <p class="text-white ml-4 text-lg">Loading your AI lessons</p>
     </div>
 
-    <div class="lessons-page-container hidden flex-col items-center justify-center min-h-screen p-4 md:p-6">
+    <div class="lessons-page-container hidden flex-col items-center justify-center min-h-screen">
         <!-- Back to Timer Button -->
-        <div class="w-full flex justify-start mb-4">
+        <div class="w-full flex justify-start mb-4 px-4 md:px-6">
             <a href="index.html" class="button-secondary flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg shadow-md">
                 <i class="fas fa-arrow-left mr-2"></i> Back to Timer
             </a>
@@ -92,10 +92,10 @@
             </div>
         </div>
 
-        <!-- Lesson Viewer Section - Advanced Dashboard Layout -->
-        <div id="lessonViewer" class="w-full max-w-7xl glass-panel p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Lesson Viewer Section -->
+        <div id="lessonViewer" class="w-full max-w-7xl glass-panel p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden flex flex-col lg:flex-row gap-6">
             <!-- Course Navigation Sidebar (Left Column) -->
-            <aside id="courseNavigationSidebar" class="lg:col-span-1 glass-panel p-6 rounded-2xl shadow-2xl border border-gray-700 flex flex-col">
+            <aside id="courseNavigationSidebar" class="lg:w-1/4 glass-panel p-6 rounded-2xl shadow-2xl border border-gray-700 flex flex-col">
                 <h3 id="currentCourseTitle" class="text-xl font-bold text-gradient mb-4">Course Title</h3>
                 <div id="courseProgressBarContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4">
                     <div id="courseProgressBar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%;"></div>
@@ -105,11 +105,11 @@
                 </ul>
             </aside>
 
-            <!-- Main Lesson Content Area (Right 3 Columns - Nested Grid Dashboard) -->
-            <main class="lg:col-span-3 grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <!-- Top Panel: Lesson Title & Controls (Spans all 2 columns on large screens) -->
-                <div class="xl:col-span-2 glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex justify-between items-center">
-                    <h2 id="lessonTitle" class="text-2xl font-bold text-gradient">Lesson Title</h2>
+            <!-- Main Lesson Content Area (Right 3/4 - Flexible Layout) -->
+            <main class="lg:w-3/4 flex flex-col gap-6">
+                <!-- Top Panel: Lesson Title & Controls -->
+                <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h2 id="lessonTitle" class="text-2xl font-bold text-gradient text-center sm:text-left">Lesson Title</h2>
                     <div class="flex items-center space-x-4">
                         <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
                         <button id="editLessonBtn" class="button-secondary text-sm px-3 py-1.5 flex items-center gap-1 rounded-lg shadow-md">
@@ -118,58 +118,61 @@
                     </div>
                 </div>
 
-                <!-- Left Panel: Lesson Content Display / Editor -->
-                <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col">
-                    <h3 class="text-xl font-semibold text-gradient mb-4">Lesson Content</h3>
-                    <div id="lessonContentDisplay" class="text-gray-300 text-base sm:text-lg overflow-y-auto custom-scrollbar flex-grow p-2">
-                        <!-- Lesson content will be loaded here -->
+                <!-- Lesson Content and Visualizer/Quiz Area -->
+                <div class="flex flex-col xl:flex-row gap-6 flex-grow">
+                    <!-- Left Panel: Lesson Content Display / Editor -->
+                    <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col xl:w-2/3">
+                        <h3 class="text-xl font-semibold text-gradient mb-4">Lesson Content</h3>
+                        <div id="lessonContentDisplay" class="text-gray-300 text-base sm:text-lg overflow-y-auto custom-scrollbar flex-grow p-2">
+                            <!-- Lesson content will be loaded here -->
+                        </div>
+
+                        <!-- Lesson Editor (Markdown Input) -->
+                        <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mt-4">
+                            <textarea id="lessonMarkdownEditor" class="w-full h-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"></textarea>
+                            <div class="flex justify-end space-x-3 mt-4">
+                                <button id="cancelEditLessonBtn" class="button-secondary px-4 py-2 rounded-lg shadow-md">Cancel</button>
+                                <button id="saveLessonContentBtn" class="button-primary px-4 py-2 rounded-lg shadow-md">Save Changes</button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Lesson Editor (Markdown Input) -->
-                    <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mt-4">
-                        <textarea id="lessonMarkdownEditor" class="w-full h-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"></textarea>
-                        <div class="flex justify-end space-x-3 mt-4">
-                            <button id="cancelEditLessonBtn" class="button-secondary px-4 py-2 rounded-lg shadow-md">Cancel</button>
-                            <button id="saveLessonContentBtn" class="button-primary px-4 py-2 rounded-lg shadow-md">Save Changes</button>
+                    <!-- Right Panel: 3D Viewer & Quiz (Stacked) -->
+                    <div class="flex flex-col gap-6 xl:w-1/3">
+                        <!-- 3D Scramble/Algorithm Viewer -->
+                        <div id="scramble3DContainer" class="glass-panel p-4 rounded-xl shadow-inner border border-gray-700 flex flex-col items-center justify-center relative hidden h-auto min-h-[250px] flex-grow">
+                            <h3 class="text-xl font-semibold text-gradient mb-4">Scramble/Algorithm Visualizer</h3>
+                            <twisty-player id="scramble3DViewer" class="w-full h-full rounded-xl"
+                                alg=""
+                                puzzle="3x3x3"
+                                control-panel="none"
+                                background="none"
+                                hint-facelets="none"
+                                style="--twisty-player-background: var(--bg-color-secondary); --twisty-player-border-radius: 0.75rem;"></twisty-player>
+                            <div class="flex space-x-3 bg-gray-900 bg-opacity-70 p-2.5 rounded-full shadow-xl backdrop-blur-sm mt-4">
+                                <button id="playPreviewBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-play"></i></button>
+                                <button id="pausePreviewBtn" class="button-secondary p-2 rounded-full text-lg hidden"><i class="fas fa-pause"></i></button>
+                                <button id="stepBackwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-backward"></i></button>
+                                <button id="stepForwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-forward"></i></button>
+                                <button id="resetAlgBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-redo"></i></button>
+                                <button id="applyScrambleBtn" class="button-primary p-2 rounded-full text-lg flex items-center gap-1.5"><i class="fas fa-cubes"></i> Apply Scramble</button>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Area -->
+                        <div id="quizArea" class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 hidden flex-col flex-grow">
+                            <h3 class="text-xl font-semibold text-gradient mb-4">Quiz Time!</h3>
+                            <div id="quizQuestionsContainer" class="space-y-5 flex-grow overflow-y-auto custom-scrollbar p-2">
+                                <!-- Quiz questions will be rendered here -->
+                            </div>
+                            <p id="quizFeedback" class="mt-4 text-center font-semibold text-lg"></p>
+                            <button id="submitQuizBtn" class="button-primary mt-6 w-full px-5 py-2.5 rounded-xl shadow-lg hidden">Submit Quiz</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Panels: 3D Viewer & Quiz (Stacked) -->
-                <div class="flex flex-col gap-6">
-                    <!-- 3D Scramble/Algorithm Viewer -->
-                    <div id="scramble3DContainer" class="glass-panel p-4 rounded-xl shadow-inner border border-gray-700 flex flex-col items-center justify-center relative hidden h-auto min-h-[250px] flex-grow">
-                        <h3 class="text-xl font-semibold text-gradient mb-4">Scramble/Algorithm Visualizer</h3>
-                        <twisty-player id="scramble3DViewer" class="w-full h-full rounded-xl"
-                            alg=""
-                            puzzle="3x3x3"
-                            control-panel="none"
-                            background="none"
-                            hint-facelets="none"
-                            style="--twisty-player-background: var(--bg-color-secondary); --twisty-player-border-radius: 0.75rem;"></twisty-player>
-                        <div class="flex space-x-3 bg-gray-900 bg-opacity-70 p-2.5 rounded-full shadow-xl backdrop-blur-sm mt-4">
-                            <button id="playPreviewBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-play"></i></button>
-                            <button id="pausePreviewBtn" class="button-secondary p-2 rounded-full text-lg hidden"><i class="fas fa-pause"></i></button>
-                            <button id="stepBackwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-backward"></i></button>
-                            <button id="stepForwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-forward"></i></button>
-                            <button id="resetAlgBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-redo"></i></button>
-                            <button id="applyScrambleBtn" class="button-primary p-2 rounded-full text-lg flex items-center gap-1.5"><i class="fas fa-cubes"></i> Apply Scramble</button>
-                        </div>
-                    </div>
-
-                    <!-- Quiz Area -->
-                    <div id="quizArea" class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 hidden flex-col flex-grow">
-                        <h3 class="text-xl font-semibold text-gradient mb-4">Quiz Time!</h3>
-                        <div id="quizQuestionsContainer" class="space-y-5 flex-grow overflow-y-auto custom-scrollbar p-2">
-                            <!-- Quiz questions will be rendered here -->
-                        </div>
-                        <p id="quizFeedback" class="mt-4 text-center font-semibold text-lg"></p>
-                        <button id="submitQuizBtn" class="button-primary mt-6 w-full px-5 py-2.5 rounded-xl shadow-lg hidden">Submit Quiz</button>
-                    </div>
-                </div>
-
-                <!-- Bottom Panel: Lesson Navigation Buttons (Spans all 2 columns on large screens) -->
-                <div class="xl:col-span-2 glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex justify-between items-center mt-auto">
+                <!-- Bottom Panel: Lesson Navigation Buttons -->
+                <div class="glass-panel p-6 rounded-xl shadow-inner border border-gray-700 flex justify-between items-center mt-auto">
                     <button id="prevLessonStepBtn" class="button-secondary flex items-center gap-2 px-4 py-2 rounded-lg shadow-md">
                         <i class="fas fa-chevron-left mr-2"></i> Previous
                     </button>
