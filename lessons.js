@@ -80,20 +80,9 @@ async function initializeFirebaseAndAuth() {
                 isUserAuthenticated = !user.isAnonymous; // Check if user is not anonymous
                 console.log(`[DEBUG] Auth state changed. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
             } else {
-                // If user logs out or token expires, handle re-authentication or guest mode
-                console.log("[DEBUG] No user signed in. Attempting anonymous sign-in.");
-                try {
-                    const anonUser = await signInAnonymously(auth);
-                    userId = anonUser.user.uid;
-                    isUserAuthenticated = false; // Still anonymous
-                    console.log(`[DEBUG] Re-signed in anonymously. User ID: ${userId}`);
-                } catch (error) {
-                    console.error("[ERROR] Failed to sign in anonymously:", error);
-                    // Fallback to a random ID if anonymous sign-in truly fails (e.g., API key invalid)
-                    userId = `guest-${crypto.randomUUID()}`;
-                    isUserAuthenticated = false;
-                    showToast("Authentication failed. Course saving/loading may not work.", "error");
-                }
+                // This block is now primarily for handling sign-out or initial state if custom token fails
+                console.log("[DEBUG] No user signed in or user signed out. Attempting persistent guest sign-in.");
+                await attemptPersistentGuestSignIn(); // Call the new function
             }
             isAuthReady = true;
             await loadUserSettings(); // Load user settings once auth is ready
@@ -101,24 +90,73 @@ async function initializeFirebaseAndAuth() {
             loadCourses(); // Load courses after auth is ready and settings are loaded
         });
 
-        // Attempt to sign in with custom token if available (from main app)
+        // Attempt to sign in with custom token (for authenticated users from main app)
         if (initialAuthToken) {
             try {
                 await signInWithCustomToken(auth, initialAuthToken);
-                console.log("[DEBUG] Attempted sign in with custom token.");
+                console.log("[DEBUG] Attempted sign in with custom token (for authenticated user).");
             } catch (error) {
-                console.error("[ERROR] Firebase Auth: Custom token sign-in failed:", error);
-                // onAuthStateChanged will handle the anonymous/guest state if custom token fails
+                console.error("[ERROR] Firebase Auth: Custom token sign-in failed for authenticated user:", error);
+                // Fall through to onAuthStateChanged, which will then attempt persistent guest sign-in
             }
+        } else {
+            // If no initialAuthToken, directly attempt persistent guest sign-in
+            await attemptPersistentGuestSignIn();
         }
     } catch (e) {
         console.error("[ERROR] Firebase initialization or authentication failed:", e);
         isAuthReady = true; // Mark as ready even on failure to proceed with UI
-        userId = `guest-${crypto.randomUUID()}`; // Fallback to a random ID for guest mode
+        userId = `guest-fallback-${crypto.randomUUID()}`; // Fallback to a random ID if everything fails
         isUserAuthenticated = false;
         await loadUserSettings(); // Attempt to load settings from local storage
         loadInitialView();
         loadCourses(); // Attempt to load courses (will be empty for guests)
+    }
+}
+
+/**
+ * Attempts to sign in a guest user using a persistent ID stored in localStorage.
+ * If no ID exists, a new one is generated and stored.
+ * WARNING: Client-side custom token generation is for demonstration ONLY.
+ * In production, custom tokens should be generated on a secure backend server.
+ */
+async function attemptPersistentGuestSignIn() {
+    let guestFirebaseId = localStorage.getItem('guestFirebaseId');
+
+    if (!guestFirebaseId) {
+        guestFirebaseId = `guest-${crypto.randomUUID()}`;
+        localStorage.setItem('guestFirebaseId', guestFirebaseId);
+        console.log(`[DEBUG] Generated new persistent guest ID: ${guestFirebaseId}`);
+    } else {
+        console.log(`[DEBUG] Found existing persistent guest ID: ${guestFirebaseId}`);
+    }
+
+    try {
+        // This is a simplified client-side custom token generation for demonstration.
+        // In a real application, this JWT would be securely generated on a backend server
+        // using Firebase Admin SDK and returned to the client.
+        // For Canvas environment, we simulate a simple token.
+        const header = {
+            "alg": "none", // No algorithm for simplicity in client-side demo
+            "typ": "JWT"
+        };
+        const payload = {
+            "uid": guestFirebaseId,
+            "isAnonymous": true,
+            // Add any other custom claims if needed for security rules, but keep it simple for demo
+        };
+        const token = btoa(JSON.stringify(header)) + "." + btoa(JSON.stringify(payload)) + "."; // No signature for client-side demo
+
+        await signInWithCustomToken(auth, token);
+        userId = auth.currentUser.uid;
+        isUserAuthenticated = false; // Still anonymous
+        console.log(`[DEBUG] Signed in with persistent guest ID: ${userId}`);
+    } catch (error) {
+        console.error("[ERROR] Failed to sign in with persistent guest ID:", error);
+        // Fallback if custom token sign-in fails (e.g., malformed token, API key issues)
+        userId = `guest-fallback-${crypto.randomUUID()}`; // Use a new ephemeral ID as a last resort
+        isUserAuthenticated = false;
+        showToast("Persistent guest sign-in failed. Data may not be saved across sessions.", "error");
     }
 }
 
