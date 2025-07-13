@@ -23,171 +23,105 @@
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar retracted">
             <nav class="space-y-4">
+                <!-- Apply 'active' class to the current page's nav-item for gradient -->
                 <a href="index.html" class="nav-item active">
                     <i class="fas fa-stopwatch nav-icon"></i>
                     <span class="nav-text">Timer</span>
                 </a>
                 <a href="lessons.html" class="nav-item">
-                    <i class="fas fa-book-open nav-icon"></i>
+                    <i class="fas fa-graduation-cap nav-icon"></i>
                     <span class="nav-text">Lessons</span>
                 </a>
                 <a href="history.html" class="nav-item">
                     <i class="fas fa-history nav-icon"></i>
                     <span class="nav-text">History</span>
                 </a>
-                <a href="settings.html" id="settingsBtn" class="nav-item">
+                <a href="settings.html" class="nav-item">
                     <i class="fas fa-cog nav-icon"></i>
                     <span class="nav-text">Settings</span>
                 </a>
             </nav>
+            <!-- Authentication Buttons -->
+            <div class="auth-section mt-auto space-y-3 w-full">
+                <div id="authStatus" class="text-xs text-gray-400 text-center mb-2"></div>
+                <button id="authButton" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-user-circle"></i> Sign In
+                </button>
+                <button id="googleSignInButton" class="button-secondary w-full flex items-center justify-center gap-2">
+                    <i class="fab fa-google"></i> Google Sign In
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content Area -->
-        <div class="content-area">
-            <div class="container mx-auto rounded-3xl">
-                <!-- Authentication Controls - Positioned at the top right, uses flex for responsiveness -->
-                <div class="flex flex-wrap justify-end gap-2 text-sm auth-corner-buttons">
-                    <button id="signInBtn" class="button-primary">Sign In</button>
-                    <button id="signUpBtn" class="button-secondary">Sign Up</button>
-                    <button id="signOutBtn" class="button-secondary" style="display:none;">Sign Out</button>
+        <div class="content-area flex-grow p-4 md:p-8 overflow-y-auto">
+            <div class="container bg-gray-900 p-6 md:p-10 rounded-2xl shadow-2xl border border-gray-700 flex flex-col gap-8 items-center justify-center relative">
+                <!-- Authentication Buttons (Desktop only, absolute positioned) -->
+                <div class="auth-corner-buttons hidden md:flex space-x-3">
+                    <div id="authStatusDesktop" class="text-xs text-gray-400 flex items-center"></div>
+                    <button id="authButtonDesktop" class="button-secondary flex items-center justify-center gap-2">
+                        <i class="fas fa-user-circle"></i> Sign In
+                    </button>
+                    <button id="googleSignInButtonDesktop" class="button-secondary flex items-center justify-center gap-2">
+                        <i class="fab fa-google"></i> Google Sign In
+                    </button>
                 </div>
 
-                <h1 class="text-4xl font-bold text-center text-gradient mb-6">Cubically AI Edition</h1>
+                <!-- Scramble Display -->
+                <div id="scrambleDisplay" class="scramble-display bg-gray-800 p-4 md:p-6 rounded-xl shadow-inner border border-gray-700 text-purple-400 text-xl md:text-2xl font-semibold text-center break-all">
+                    Loading Scramble...
+                </div>
 
-                <!-- Username Display -->
-                <div class="text-sm text-center text-gray-400">
-                    Current User: <span id="usernameDisplay" class="font-mono text-gray-300">Loading...</span>
+                <!-- 3D Cube Viewer -->
+                <div id="cube3DContainer" class="w-full max-w-md h-64 md:h-80 bg-gray-800 rounded-xl shadow-inner border border-gray-700 flex items-center justify-center relative overflow-hidden">
+                    <twisty-player id="twistyPlayer" class="w-full h-full rounded-xl"
+                        alg=""
+                        puzzle="3x3x3"
+                        control-panel="none"
+                        background="none"
+                        hint-facelets="none"
+                        style="--twisty-player-background: var(--bg-color-secondary); --twisty-player-border-radius: 0.75rem;"></twisty-player>
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-3">
+                        <button id="playPreviewBtn" class="button-preview-control"><i class="fas fa-play"></i></button>
+                        <button id="pausePreviewBtn" class="button-preview-control hidden"><i class="fas fa-pause"></i></button>
+                        <button id="stepBackwardBtn" class="button-preview-control"><i class="fas fa-step-backward"></i></button>
+                        <button id="stepForwardBtn" class="button-preview-control"><i class="fas fa-step-forward"></i></button>
+                        <button id="resetAlgBtn" class="button-preview-control"><i class="fas fa-redo"></i></button>
+                    </div>
                 </div>
 
                 <!-- Timer Display -->
-                <div id="timerDisplay" class="timer-display text-center">00:00.000</div>
+                <div id="timerDisplay" class="timer-display text-blue-400">0.00</div>
 
-                <!-- Scramble Display -->
-                <div id="scrambleTextDisplay" class="scramble-display">Generating Scramble...</div>
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full justify-center">
+                    <button id="generateScrambleBtn" class="button-primary flex-grow flex items-center justify-center gap-2">
+                        <i class="fas fa-sync-alt"></i> New Scramble
+                    </button>
+                    <button id="viewHistoryBtn" class="button-secondary flex-grow flex items-center justify-center gap-2">
+                        <i class="fas fa-history"></i> View History
+                    </button>
+                </div>
 
-                <!-- 3D Cube Container (Initially hidden, controlled by settings) -->
-                <div id="cube3DContainer" class="relative" style="display: none;">
-                    <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="#0f172a"></twisty-player>
-                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                        <!-- Buttons here will be styled via specific CSS rules -->
-                        <button id="playPreviewBtn" class="button-preview-control" aria-label="Play 3D scramble animation">
-                            <i class="fas fa-play"></i>
-                        </button>
-                        <button id="pausePreviewBtn" class="button-preview-control" aria-label="Pause 3D scramble animation">
-                            <i class="fas fa-pause"></i>
-                        </button>
-                        <button id="restartPreviewBtn" class="button-preview-control" aria-label="Restart 3D scramble animation">
-                            <i class="fas fa-redo"></i>
-                        </button>
+                <!-- Statistics Grid -->
+                <div class="stats-grid w-full">
+                    <div class="stat-card bg-gray-800 p-4 rounded-xl shadow-inner border border-gray-700">
+                        <p class="text-sm text-gray-400">Ao5</p>
+                        <p id="ao5" class="value text-cyan-400">0.00</p>
+                    </div>
+                    <div class="stat-card bg-gray-800 p-4 rounded-xl shadow-inner border border-gray-700">
+                        <p class="text-sm text-gray-400">Ao12</p>
+                        <p id="ao12" class="value text-cyan-400">0.00</p>
+                    </div>
+                    <div class="stat-card bg-gray-800 p-4 rounded-xl shadow-inner border border-gray-700">
+                        <p class="text-sm text-gray-400">Best Time</p>
+                        <p id="bestTime" class="value text-green-400">0.00</p>
+                    </div>
+                    <div class="stat-card bg-gray-800 p-4 rounded-xl shadow-inner border border-gray-700">
+                        <p class="text-sm text-gray-400">Total Solves</p>
+                        <p id="totalSolves" class="value text-indigo-400">0</p>
                     </div>
                 </div>
-
-                <!-- Control Buttons -->
-                <div class="flex flex-col sm:flex-row justify-center gap-4">
-                    <button id="startStopBtn" class="button-primary">Start / Stop (Space)</button>
-                    <button id="resetBtn" class="button-secondary">Reset</button>
-                    <button id="scrambleBtn" class="button-secondary">New Scramble</button>
-                </div>
-
-                <!-- Statistics Grid (moved to main content) -->
-                <div class="stats-grid mt-8">
-                    <div class="stat-card">
-                        <div class="label text-gray-400">Best Time</div>
-                        <div id="bestTime" class="value">--:--.--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label text-gray-400">Ao5</div>
-                        <div id="ao5" class="value">--:--.--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label text-gray-400">Ao12</div>
-                        <div id="ao12" class="value">--:--.--</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="label text-gray-400">Solves</div>
-                        <div id="solveCount" class="value">0</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Authentication Modal -->
-    <div id="authModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
-        <div class="modal-content">
-            <button class="modal-close-button" id="closeAuthModal" aria-label="Close authentication modal">&times;</button>
-            <h2 id="authModalTitle" class="text-2xl font-bold text-gradient mb-4">Sign In</h2>
-            <div class="space-y-4 text-gray-300">
-                <div>
-                    <label for="email" class="block text-sm font-medium mb-1">Email:</label>
-                    <input type="email" id="email" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="your.email@example.com">
-                </div>
-                <div id="usernameFieldGroup" style="display:none;">
-                    <label for="usernameInput" class="block text-sm font-medium mb-1">Username:</label>
-                    <input type="text" id="usernameInput" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Choose a username">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium mb-1">Password:</label>
-                    <input type="password" id="password" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter your password">
-                </div>
-                <p id="authError" class="text-red-500 text-sm" style="display:none;"></p>
-                <button id="emailAuthBtn" class="button-primary w-full">Sign In</button>
-                <div class="relative flex py-5 items-center">
-                    <div class="flex-grow border-t border-gray-600"></div>
-                    <span class="flex-shrink mx-4 text-gray-500">Or</span>
-                    <div class="flex-grow border-t border-gray-600"></div>
-                </div>
-                <button id="googleSignInBtn" class="button-secondary w-full flex items-center justify-center gap-2">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5">
-                    Sign In with Google
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI Insight Modal -->
-    <div id="aiInsightModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
-        <div class="modal-content">
-            <button class="modal-close-button" id="closeAiInsightModal" aria-label="Close AI insight">&times;</button>
-            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
-            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
-                <div class="spinner mx-auto my-4" style="display: none;"></div>
-                <p id="insightMessage" class="text-center">Generating insight...</p>
-                <!-- NEW: AI Scramble Analysis Display -->
-                <div id="scrambleAnalysisDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
-                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble Analysis:</h3>
-                    <p id="scrambleAnalysisText" class="text-white text-sm"></p>
-                </div>
-                <!-- Existing Personalized Tip Display -->
-                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
-                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
-                    <p id="personalizedTipText" class="text-white text-sm"></p>
-                </div>
-                <!-- NEW: Targeted Practice Focus Section -->
-                <div id="targetedPracticeFocusDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
-                    <h3 class="text-lg font-semibold text-gradient mb-2">Targeted Practice Focus:</h3>
-                    <p id="targetedPracticeFocusText" class="text-white text-sm"></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NEW: Chat Modal -->
-    <div id="chatModal" class="modal" role="dialog" aria-modal="true" tabindex="-1">
-        <div class="modal-content !max-w-md !max-h-[80vh] flex flex-col">
-            <button class="modal-close-button" id="closeChatModal" aria-label="Close chat">&times;</button>
-            <h2 class="text-2xl font-bold text-gradient mb-4">Jarvis Chat</h2>
-            <div id="chatHistory" class="flex-grow overflow-y-auto p-3 bg-gray-800 rounded-lg mb-4 space-y-2 text-sm custom-scrollbar">
-                <!-- Chat messages will be dynamically added here -->
-                <div class="chat-message jarvis-message">
-                    <span class="font-bold text-indigo-400">Jarvis:</span> At your service, Sir Sevindu. How may I assist you via text?
-                </div>
-            </div>
-            <div class="chat-input-container flex gap-2">
-                <textarea id="chatInput" class="flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" rows="2" placeholder="Type your command..."></textarea>
-                <button id="chatSendBtn" class="button-primary !p-3 !rounded-lg !w-auto flex-shrink-0">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
             </div>
         </div>
     </div>
@@ -218,7 +152,46 @@
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Link to external JavaScript file -->
+    <!-- AI Insight Modal -->
+    <div id="aiInsightModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeAiInsightModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Solve Insight ✨</h2>
+            <div id="aiInsightContent" class="text-gray-300 text-sm sm:text-base">
+                <div class="spinner mx-auto my-4" style="display: none;"></div>
+                <p id="insightMessage" class="text-center">Generating insight...</p>
+                <div id="scrambleAnalysisDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Scramble Analysis:</h3>
+                    <p id="scrambleAnalysisText" class="text-white text-sm"></p>
+                </div>
+                <div id="personalizedTipDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Personalized Tip:</h3>
+                    <p id="personalizedTipText" class="text-white text-sm"></p>
+                </div>
+                <div id="targetedPracticeFocusDisplay" class="mt-4 p-3 bg-gray-700 rounded-lg" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gradient mb-2">Targeted Practice Focus:</h3>
+                    <p id="targetedPracticeFocusText" class="text-white text-sm"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-button" id="closeChatModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gradient mb-4">Jarvis Chat</h2>
+            <div id="chatHistory" class="flex-grow overflow-y-auto mb-4 space-y-3 custom-scrollbar">
+                <!-- Chat messages will be appended here -->
+            </div>
+            <div class="chat-input-container">
+                <textarea id="chatInput" class="input-field" placeholder="Ask Jarvis anything..." rows="1"></textarea>
+                <button id="chatSendBtn" class="button-primary">Send</button>
+            </div>
+        </div>
+    </div>
+
+
     <script type="module" src="script.js"></script>
 </body>
 

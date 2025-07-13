@@ -142,7 +142,7 @@ body.theme-vibrant {
 }
 
 .sidebar .nav-item.active {
-    background-color: var(--accent-color-blue);
+    background: linear-gradient(145deg, #6366f1, #818cf8); /* Applied blue-to-purple gradient */
     color: white;
 }
 
