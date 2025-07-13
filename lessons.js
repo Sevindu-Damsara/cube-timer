@@ -321,14 +321,16 @@ function showSection(sectionElement) {
     sections.forEach(sec => {
         if (sec) {
             sec.classList.add('hidden');
-            sec.classList.remove('flex', 'block');
+            sec.classList.remove('flex', 'block', 'grid'); // Remove grid as well
         }
     });
 
     // Show the requested section
     if (sectionElement) {
         sectionElement.classList.remove('hidden');
-        if (sectionElement.id === 'lessonViewer' || sectionElement.id === 'courseCreationModal') {
+        if (sectionElement.id === 'lessonViewer') {
+            sectionElement.classList.add('grid'); // Use grid for lessonViewer
+        } else if (sectionElement.id === 'courseCreationModal') {
             sectionElement.classList.add('flex');
         } else {
             sectionElement.classList.add('block');
@@ -337,9 +339,9 @@ function showSection(sectionElement) {
 
     // Handle sidebar visibility for lessonViewer
     if (sectionElement === lessonViewer) {
-        if (window.innerWidth >= 1024) {
+        if (window.innerWidth >= 1024) { // lg breakpoint
             courseNavigationSidebar.classList.remove('hidden');
-            courseNavigationSidebar.classList.add('block');
+            courseNavigationSidebar.classList.add('flex'); // Sidebar is flex column
         } else {
             courseNavigationSidebar.classList.add('hidden');
         }
@@ -1058,7 +1060,7 @@ function renderQuiz(questions) {
 
     questions.forEach((q, index) => {
         const questionDiv = document.createElement('div');
-        questionDiv.className = 'bg-gray-800 p-4 rounded-lg shadow-md';
+        questionDiv.className = 'bg-gray-700 p-4 rounded-lg shadow-md border border-gray-600'; // Added styling to quiz question cards
         questionDiv.innerHTML = `
             <p class="font-semibold text-white mb-3">${index + 1}. ${q.question}</p>
             <div class="options-container space-y-2">
@@ -1448,9 +1450,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Add a window resize listener for responsive sidebar
 window.addEventListener('resize', () => {
     if (lessonViewer && !lessonViewer.classList.contains('hidden')) {
-        if (window.innerWidth >= 1024) {
+        if (window.innerWidth >= 1024) { // lg breakpoint
             courseNavigationSidebar.classList.remove('hidden');
-            courseNavigationSidebar.classList.add('block');
+            courseNavigationSidebar.classList.add('flex'); // Sidebar is flex column
         } else {
             courseNavigationSidebar.classList.add('hidden');
         }

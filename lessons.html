@@ -41,12 +41,12 @@
         <div id="lessonHub" class="w-full max-w-5xl bg-gray-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden">
             <h2 class="text-3xl font-bold text-gradient mb-6 text-center">AI Cubing Lessons Hub</h2>
 
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
+            <!-- Control Panel Box for Filters and Create Button -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
                 <button id="startNewCourseBtn" class="button-primary w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl shadow-lg">
                     <i class="fas fa-plus-circle mr-2 text-xl"></i> Create New Course
                 </button>
                 <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full md:w-auto">
-                    <!-- Corrected styling for select elements -->
                     <select id="courseTypeFilter" class="form-select flex-grow p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
                         <option value="all">All Cube Types</option>
                         <option value="3x3">3x3</option>
@@ -83,7 +83,6 @@
                         <!-- Chat messages will be appended here -->
                     </div>
                     <div class="flex items-center">
-                        <!-- Corrected styling for input text box -->
                         <input type="text" id="courseChatInput" placeholder="Type your course preferences..."
                                class="flex-grow p-3 rounded-l-xl bg-gray-900 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
                         <button id="sendCourseChatBtn" class="button-primary p-3 rounded-r-xl flex items-center justify-center text-xl">
@@ -95,83 +94,92 @@
             </div>
         </div>
 
-        <!-- Lesson Viewer Section -->
-        <div id="lessonViewer" class="w-full max-w-7xl bg-gray-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden flex-col lg:flex-row">
-            <!-- Course Navigation Sidebar -->
-            <aside id="courseNavigationSidebar" class="w-full lg:w-1/4 bg-gray-800 p-4 rounded-xl lg:mr-6 mb-6 lg:mb-0 shadow-inner border border-gray-700 hidden lg:block">
+        <!-- Lesson Viewer Section - Advanced Dashboard Layout -->
+        <div id="lessonViewer" class="w-full max-w-7xl bg-gray-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-700 hidden grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Course Navigation Sidebar (Left Column) -->
+            <aside id="courseNavigationSidebar" class="lg:col-span-1 bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700 flex flex-col">
                 <h3 id="currentCourseTitle" class="text-xl font-bold text-gradient mb-4">Course Title</h3>
                 <div id="courseProgressBarContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4">
                     <div id="courseProgressBar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%;"></div>
                 </div>
-                <ul id="moduleList" class="space-y-3 custom-scrollbar max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
+                <ul id="moduleList" class="space-y-3 custom-scrollbar flex-grow overflow-y-auto pr-2">
                     <!-- Modules and lessons will be dynamically loaded here -->
                 </ul>
             </aside>
 
-            <!-- Main Lesson Content Area -->
-            <main class="flex-grow bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col relative">
-                <div class="flex justify-between items-center mb-4">
+            <!-- Main Lesson Content Area (Right 3 Columns - Nested Grid Dashboard) -->
+            <main class="lg:col-span-3 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- Top Panel: Lesson Title & Controls (Spans all 2 columns on large screens) -->
+                <div class="xl:col-span-2 bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 flex justify-between items-center">
                     <h2 id="lessonTitle" class="text-2xl font-bold text-gradient">Lesson Title</h2>
-                    <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
-                    <button id="editLessonBtn" class="button-secondary text-sm px-3 py-1.5 ml-auto flex items-center gap-1 rounded-lg shadow-md">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                </div>
-
-                <!-- Lesson Content Display (Markdown Rendered) -->
-                <div id="lessonContentDisplay" class="text-gray-300 text-base sm:text-lg mb-6 overflow-y-auto custom-scrollbar flex-grow p-3">
-                    <!-- Lesson content will be loaded here -->
-                </div>
-
-                <!-- Lesson Editor (Markdown Input) -->
-                <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mb-6">
-                    <!-- Corrected styling for textarea -->
-                    <textarea id="lessonMarkdownEditor" class="w-full h-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"></textarea>
-                    <div class="flex justify-end space-x-3 mt-4">
-                        <button id="cancelEditLessonBtn" class="button-secondary px-4 py-2 rounded-lg shadow-md">Cancel</button>
-                        <button id="saveLessonContentBtn" class="button-primary px-4 py-2 rounded-lg shadow-md">Save Changes</button>
+                    <div class="flex items-center space-x-4">
+                        <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
+                        <button id="editLessonBtn" class="button-secondary text-sm px-3 py-1.5 flex items-center gap-1 rounded-lg shadow-md">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
                     </div>
                 </div>
 
-                <!-- 3D Scramble/Algorithm Viewer -->
-                <div id="scramble3DContainer" class="w-full h-64 md:h-80 bg-gray-700 rounded-xl mb-6 flex items-center justify-center relative hidden shadow-lg border border-gray-600">
-                    <twisty-player id="scramble3DViewer" class="w-full h-full rounded-xl"
-                        alg=""
-                        puzzle="3x3x3"
-                        control-panel="none"
-                        background="none"
-                        hint-facelets="none"
-                        style="--twisty-player-background: var(--bg-color-secondary); --twisty-player-border-radius: 0.75rem;"></twisty-player>
-                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-3 bg-gray-900 bg-opacity-70 p-2.5 rounded-full shadow-xl backdrop-blur-sm">
-                        <button id="playPreviewBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-play"></i></button>
-                        <button id="pausePreviewBtn" class="button-secondary p-2 rounded-full text-lg hidden"><i class="fas fa-pause"></i></button>
-                        <button id="stepBackwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-backward"></i></button>
-                        <button id="stepForwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-forward"></i></button>
-                        <button id="resetAlgBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-redo"></i></button>
-                        <button id="applyScrambleBtn" class="button-primary p-2 rounded-full text-lg flex items-center gap-1.5"><i class="fas fa-cubes"></i> Apply Scramble</button>
+                <!-- Left Panel: Lesson Content Display / Editor -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 flex flex-col">
+                    <h3 class="text-xl font-semibold text-gradient mb-4">Lesson Content</h3>
+                    <div id="lessonContentDisplay" class="text-gray-300 text-base sm:text-lg overflow-y-auto custom-scrollbar flex-grow p-2">
+                        <!-- Lesson content will be loaded here -->
+                    </div>
+
+                    <!-- Lesson Editor (Markdown Input) -->
+                    <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mt-4">
+                        <textarea id="lessonMarkdownEditor" class="w-full h-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"></textarea>
+                        <div class="flex justify-end space-x-3 mt-4">
+                            <button id="cancelEditLessonBtn" class="button-secondary px-4 py-2 rounded-lg shadow-md">Cancel</button>
+                            <button id="saveLessonContentBtn" class="button-primary px-4 py-2 rounded-lg shadow-md">Save Changes</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Quiz Area -->
-                <div id="quizArea" class="bg-gray-700 p-6 rounded-xl shadow-lg border border-gray-600 mb-6 hidden">
-                    <h3 class="text-xl font-semibold text-gradient mb-4">Quiz Time!</h3>
-                    <div id="quizQuestionsContainer" class="space-y-5">
-                        <!-- Quiz questions will be rendered here -->
+                <!-- Right Panels: 3D Viewer & Quiz (Stacked) -->
+                <div class="flex flex-col gap-6">
+                    <!-- 3D Scramble/Algorithm Viewer -->
+                    <div id="scramble3DContainer" class="bg-gray-800 p-4 rounded-xl shadow-inner border border-gray-700 flex flex-col items-center justify-center relative hidden h-auto min-h-[250px] flex-grow">
+                        <h3 class="text-xl font-semibold text-gradient mb-4">Scramble/Algorithm Visualizer</h3>
+                        <twisty-player id="scramble3DViewer" class="w-full h-full rounded-xl"
+                            alg=""
+                            puzzle="3x3x3"
+                            control-panel="none"
+                            background="none"
+                            hint-facelets="none"
+                            style="--twisty-player-background: var(--bg-color-secondary); --twisty-player-border-radius: 0.75rem;"></twisty-player>
+                        <div class="flex space-x-3 bg-gray-900 bg-opacity-70 p-2.5 rounded-full shadow-xl backdrop-blur-sm mt-4">
+                            <button id="playPreviewBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-play"></i></button>
+                            <button id="pausePreviewBtn" class="button-secondary p-2 rounded-full text-lg hidden"><i class="fas fa-pause"></i></button>
+                            <button id="stepBackwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-backward"></i></button>
+                            <button id="stepForwardBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-step-forward"></i></button>
+                            <button id="resetAlgBtn" class="button-secondary p-2 rounded-full text-lg"><i class="fas fa-redo"></i></button>
+                            <button id="applyScrambleBtn" class="button-primary p-2 rounded-full text-lg flex items-center gap-1.5"><i class="fas fa-cubes"></i> Apply Scramble</button>
+                        </div>
                     </div>
-                    <p id="quizFeedback" class="mt-4 text-center font-semibold text-lg"></p>
-                    <button id="submitQuizBtn" class="button-primary mt-6 w-full px-5 py-2.5 rounded-xl shadow-lg hidden">Submit Quiz</button>
+
+                    <!-- Quiz Area -->
+                    <div id="quizArea" class="bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 hidden flex-col flex-grow">
+                        <h3 class="text-xl font-semibold text-gradient mb-4">Quiz Time!</h3>
+                        <div id="quizQuestionsContainer" class="space-y-5 flex-grow overflow-y-auto custom-scrollbar p-2">
+                            <!-- Quiz questions will be rendered here -->
+                        </div>
+                        <p id="quizFeedback" class="mt-4 text-center font-semibold text-lg"></p>
+                        <button id="submitQuizBtn" class="button-primary mt-6 w-full px-5 py-2.5 rounded-xl shadow-lg hidden">Submit Quiz</button>
+                    </div>
                 </div>
 
-                <!-- Lesson Navigation Buttons -->
-                <div class="flex justify-between items-center mt-auto pt-4 border-t border-gray-700">
+                <!-- Bottom Panel: Lesson Navigation Buttons (Spans all 2 columns on large screens) -->
+                <div class="xl:col-span-2 bg-gray-800 p-6 rounded-xl shadow-inner border border-gray-700 flex justify-between items-center mt-auto">
                     <button id="prevLessonStepBtn" class="button-secondary flex items-center gap-2 px-4 py-2 rounded-lg shadow-md">
                         <i class="fas fa-chevron-left mr-2"></i> Previous
                     </button>
                     <button id="nextLessonStepBtn" class="button-primary flex items-center gap-2 px-4 py-2 rounded-lg shadow-md">
                         Next <i class="fas fa-chevron-right ml-2"></i>
                     </button>
-                    <button id="completeLessonBtn" class="button-primary mt-6 w-full px-5 py-2.5 rounded-xl shadow-lg" style="display: none;">Complete Lesson</button>
-                    <p id="lessonCompletionMessage" class="text-green-400 text-center mt-4 text-lg font-semibold" style="display: none;"></p>
+                    <button id="completeLessonBtn" class="button-primary px-5 py-2.5 rounded-xl shadow-lg" style="display: none;">Complete Lesson</button>
+                    <p id="lessonCompletionMessage" class="text-green-400 text-center text-lg font-semibold" style="display: none;"></p>
                 </div>
             </main>
 
@@ -185,7 +193,6 @@
                     <!-- In-lesson chat messages -->
                 </div>
                 <div class="flex items-center">
-                    <!-- Corrected styling for in-lesson chat input -->
                     <input type="text" id="inLessonChatInput" placeholder="Ask Jarvis about this lesson..."
                            class="flex-grow p-3 rounded-l-xl bg-gray-900 border border-gray-600 text-white text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
                     <button id="sendInLessonChatBtn" class="button-primary p-3 rounded-r-xl flex items-center justify-center text-xl">
