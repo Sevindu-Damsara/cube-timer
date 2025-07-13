@@ -575,9 +575,20 @@ async function deleteLessonFromHistory(lessonId) {
             await deleteDoc(lessonDocRef);
             console.log(`[DEBUG] Deleted lesson ${lessonId} from Firestore.`);
             showToast("Lesson deleted successfully.", "success");
+        } catch (e) { // Catch block for Firestore operation
+            console.error(`[ERROR] Error deleting lesson ${lessonId} from Firestore:`, e);
+            showToast("Failed to delete lesson from cloud. Deleting locally.", "error");
+            deleteLessonFromHistoryLocalStorage(lessonId);
         }
     } else {
-        deleteLessonFromHistoryLocalStorage(lessonId);
+        // This 'else' block for local storage also needs a try-catch
+        try {
+            deleteLessonFromHistoryLocalStorage(lessonId);
+            showToast("Lesson deleted successfully from local storage.", "success");
+        } catch (e) {
+            console.error(`[ERROR] Error deleting lesson ${lessonId} from local storage:`, e);
+            showToast("Failed to delete lesson from local storage.", "error");
+        }
     }
     await loadLessonHistory(); // Reload history to update UI
     showGlobalLoadingSpinner(false);
