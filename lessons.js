@@ -355,7 +355,7 @@ async function loadCourseList() {
  * @param {Object} course - The course data.
  */
 function renderCourseCard(course) {
-    console.log("[DEBUG] Rendering course card for:", course); // Diagnostic log: This will show the full course object
+    console.log("[DEBUG] Full course object being rendered:", course); // Diagnostic log: This will show the full course object
     const card = document.createElement('div');
     card.className = 'course-card glass-panel p-6 rounded-xl shadow-lg border border-gray-700';
     card.innerHTML = `
@@ -1242,12 +1242,23 @@ function setupEventListeners() {
 
     // Event Listeners
     if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', () => {
-        courseCreationModal.classList.remove('hidden');
+        lessonHub.classList.add('hidden'); // Hide the hub
+        courseCreationModal.classList.remove('opacity-0', 'pointer-events-none'); // Make visible and interactive
+        courseCreationModal.classList.add('opacity-100', 'pointer-events-auto');
+
         courseChatHistory = []; // Clear chat history for new course creation
         courseChatMessages.innerHTML = '';
         displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to assist you in designing a new cubing course. Please tell me what type of cube (e.g., 3x3, Pyraminx), what skill level (e.g., beginner, advanced), and any specific topics or methods you would like to include.");
     });
-    if (closeCourseCreationModalBtn) closeCourseCreationModalBtn.addEventListener('click', () => courseCreationModal.classList.add('hidden'));
+    if (closeCourseCreationModalBtn) closeCourseCreationModalBtn.addEventListener('click', () => {
+        courseCreationModal.classList.remove('opacity-100', 'pointer-events-auto'); // Make invisible and non-interactive
+        courseCreationModal.classList.add('opacity-0', 'pointer-events-none');
+        // Re-show lesson hub after transition completes
+        setTimeout(() => {
+            lessonHub.classList.remove('hidden');
+            loadCourseList(); // Refresh course list
+        }, 300); // Match CSS transition duration
+    });
     if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => sendCourseCreationPrompt(courseChatInput.value));
     if (courseChatInput) courseChatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && courseChatInput.value.trim() !== '') {
