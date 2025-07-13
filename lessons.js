@@ -8,11 +8,20 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
-// Ensure these are correctly parsed from the global Canvas environment variables
-// These variables are ALWAYS provided by the Canvas runtime.
-const appId = __app_id; // Global app ID, directly use it.
-const firebaseConfig = JSON.parse(__firebase_config); // Global firebase config, directly parse it.
-const initialAuthToken = __initial_auth_token; // Global auth token, directly use it.
+// Firebase configuration extracted from script.js as per Sir Sevindu's instruction.
+// This ensures direct synchronization with the main timer page's Firebase setup.
+const appId = 'my-production-speedcube-timer'; // Global app ID from script.js
+const firebaseConfig = {
+    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+    authDomain: "ubically-timer.firebaseapp.com",
+    projectId: "ubically-timer",
+    storageBucket: "ubically-timer.firebaseystorage.app",
+    messagingSenderId: "467118524389",
+    appId: "1:467118524389:web:d3455f5be5747be2cb910c", // Specific appId from script.js config
+    measurementId: "G-YOUR_MEASUREMENT_ID" // Placeholder, if needed, or remove if not in script.js
+};
+// The __initial_auth_token is still provided by the Canvas environment for session sync.
+const initialAuthToken = __initial_auth_token; 
 
 let app;
 let db;
@@ -693,7 +702,7 @@ function renderCourseNavigation() {
             });
             lessonList.appendChild(lessonItem);
         });
-        moduleList.appendChild(moduleItem);
+        moduleList.appendChild(lessonItem);
     });
 }
 
