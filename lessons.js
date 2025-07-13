@@ -9,16 +9,17 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
 // __initial_auth_token is provided globally by Canvas, no need to redeclare with const here.
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Global app ID
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-    apiKey: "YOUR_FIREBASE_API_KEY", // Placeholder, will be replaced by Canvas
-    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-    projectId: "YOUR_FIREBASE_PROJECT_ID",
-    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-    appId: "YOUR_FIREBASE_APP_ID",
-    measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
+const appId = 'my-production-speedcube-timer'; // Global app ID, extracted from script.js
+const firebaseConfig = {
+    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+    authDomain: "ubically-timer.firebaseapp.com",
+    projectId: "ubically-timer",
+    storageBucket: "ubically-timer.firebaseystorage.app",
+    messagingSenderId: "467118524389",
+    appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+    measurementId: "G-XXXXXXXXXX" // Placeholder, if a specific value is not available.
 };
+const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 
 // Firebase variables
