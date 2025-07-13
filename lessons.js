@@ -1206,9 +1206,14 @@ function setupEventListeners() {
         }
     });
 
+    // FIX: Replaced .resetView() with .alg = '' as .resetView() is not a function in twisty-player
     if (lessonResetViewBtn) lessonResetViewBtn.addEventListener('click', () => {
         if (twistyPlayerLessonViewer) {
-            twistyPlayerLessonViewer.resetView();
+            twistyPlayerLessonViewer.alg = ''; // Clear the algorithm/scramble
+            // If twistyPlayerLessonViewer.reset() exists and is desired for camera reset, keep it.
+            // Otherwise, removing it is safer to avoid potential errors.
+            // twistyPlayerLessonViewer.reset(); 
+            speakAsJarvis("Twisty Player view has been reset, Sir Sevindu.");
         }
     });
 
