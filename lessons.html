@@ -5,21 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Cubing Lessons - Cubically AI Edition</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN - Note: For production, consider installing Tailwind as a PostCSS plugin or using the Tailwind CLI for optimized builds. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tone.js for sound effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-    <!-- Cubing.js for 3D scramble visualization -->
+    <!-- Cubing.js for 3D scramble visualization - Using the recommended twisty player module -->
     <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="style.css">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Markdown-it for rendering Markdown content -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.1/markdown-it.min.js"></script>
 </head>
 
-<body class="theme-dark">
+<body class="theme-dark"> <!-- Set default theme class here, will be overridden by lessons.js -->
     <div class="lessons-page-container">
         <!-- Back to Timer Button -->
         <div class="flex justify-start mb-4">
@@ -28,126 +26,85 @@
             </a>
         </div>
 
-        <h1 class="text-3xl font-extrabold text-gradient mb-8 text-center">AI Cubing Academy</h1>
+        <h2 id="lessonPageTitle" class="text-3xl font-bold text-gradient mb-6 text-center">AI Cubing Lessons</h2>
 
-        <!-- Global Loading Spinner -->
-        <div id="globalLoadingSpinner" class="spinner mx-auto my-8 hidden"></div>
-
-        <!-- Course Hub Section -->
-        <div id="lessonHubSection" class="section-container hidden">
-            <h2 class="text-2xl font-bold text-gradient mb-6 text-center">Available Courses</h2>
-            <div id="courseList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Course cards will be dynamically loaded here -->
-                <div class="course-card bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col items-center justify-center text-center transition-transform transform hover:scale-105 cursor-pointer" id="generateNewCourseCard">
-                    <i class="fas fa-plus-circle text-5xl text-blue-400 mb-4"></i>
-                    <h3 class="text-xl font-semibold text-white mb-2">Generate New Course</h3>
-                    <p class="text-gray-400 text-sm">Let Jarvis create a personalized learning path for you.</p>
-                </div>
-            </div>
-            <p id="noCoursesMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No courses available yet. Generate a new one!</p>
+        <!-- Lesson Hub Section (Initially visible) -->
+        <div id="lessonHub" class="lesson-input-section bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8">
+            <h3 class="text-xl font-semibold text-white mb-4">Welcome, Sir Sevindu!</h3>
+            <p class="text-gray-300 mb-4">I am Jarvis, your AI Cubing Instructor. I can generate personalized lessons to help you improve your Rubik's Cube skills.</p>
+            <button id="startNewLessonBtn" class="button-primary mt-4 w-full">Start New Lesson</button>
+            <button id="viewLessonHistoryBtn" class="button-secondary mt-4 w-full">View Lesson History</button>
         </div>
 
-        <!-- Course Detail Section -->
-        <div id="courseDetailSection" class="section-container hidden">
-            <button id="backToCoursesBtn" class="button-secondary flex items-center justify-center gap-2 mb-6">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Courses
-            </button>
-            <h2 id="courseTitle" class="text-3xl font-bold text-gradient mb-4"></h2>
-            <p id="courseDescription" class="text-gray-400 mb-6"></p>
-
-            <h3 class="text-2xl font-semibold text-gradient mb-4">Modules</h3>
-            <div id="moduleList" class="space-y-4">
-                <!-- Modules will be dynamically loaded here -->
+        <!-- Lesson Chat Container (Initially hidden) -->
+        <div id="lessonChatContainer" class="lesson-chat-container bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-2xl mx-auto mb-8 hidden">
+            <h3 class="text-xl font-semibold text-white mb-4">Lesson Conversation with Jarvis</h3>
+            <div id="chatMessagesDisplay" class="chat-history-box bg-gray-900 p-4 rounded-md mb-4 overflow-y-auto h-64 custom-scrollbar">
+                <!-- Chat messages will be appended here -->
+                <div class="text-center text-gray-400 italic">
+                    <p>Jarvis is ready to assist you, Sir Sevindu.</p>
+                </div>
             </div>
+            <div class="flex gap-2">
+                <input type="text" id="lessonChatInput" placeholder="Type your response..." class="input-field flex-grow">
+                <button id="sendLessonChatBtn" class="button-primary">Send</button>
+            </div>
+            <div id="chatTypingIndicator" class="spinner mx-auto my-2 hidden" style="width: 20px; height: 20px; border-width: 2px;"></div>
         </div>
 
-        <!-- Lesson Viewer Section -->
-        <div id="lessonViewerSection" class="section-container hidden">
-            <button id="backToCourseDetailBtn" class="button-secondary flex items-center justify-center gap-2 mb-6">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Course
-            </button>
-            <h2 id="lessonTitle" class="text-3xl font-bold text-gradient mb-4"></h2>
-            <p id="lessonDescription" class="text-gray-400 mb-6"></p>
+        <!-- Lesson Display Area (Initially hidden) -->
+        <div id="lessonDisplayArea" class="lesson-display-area bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 max-w-4xl mx-auto hidden">
+            <h3 id="lessonTitleDisplay" class="text-2xl font-bold text-gradient mb-4 text-center"></h3>
 
-            <!-- Lesson Content Area -->
-            <div class="lesson-content-area bg-gray-800 p-6 rounded-xl shadow-lg mb-6 relative">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 id="lessonStepTitle" class="text-2xl font-semibold text-white"></h3>
-                    <div class="flex items-center space-x-2">
-                        <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
-                        <button id="editLessonBtn" class="button-secondary text-sm px-3 py-1"><i class="fas fa-edit mr-1"></i> Edit</button>
+            <!-- Lesson Progress Bar -->
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
+                <div id="lessonProgressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%;"></div>
+            </div>
+
+            <div id="lessonStepsContainer" class="space-y-6">
+                <!-- Lesson steps will be dynamically loaded here -->
+                <div class="lesson-step-card p-4 bg-gray-700 rounded-lg border border-gray-600">
+                    <h4 id="lessonStepTitleDisplay" class="text-lg font-semibold text-white mb-2"></h4>
+                    <p id="lessonStepDescriptionDisplay" class="text-gray-300 mb-2"></p>
+                    
+                    <!-- NEW: Integrated 3D Cube Container from Main Timer Page -->
+                    <div id="cube3DContainer" class="relative" style="display: none;">
+                        <twisty-player id="scramble3DViewer" alg="" puzzle="3x3x3" control-panel="none" background="none"></twisty-player>
+                        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                            <!-- Buttons here will be styled via specific CSS rules from style.css -->
+                            <button id="playPreviewBtn" class="button-preview-control" aria-label="Play 3D animation">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button id="pausePreviewBtn" class="button-preview-control" aria-label="Pause 3D animation" style="display: none;">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button id="restartPreviewBtn" class="button-preview-control" aria-label="Restart 3D animation">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <!-- Lesson-specific buttons, now also using button-preview-control -->
+                            <button id="lessonScrambleCubeBtn" class="button-preview-control" title="Scramble Cube"><i class="fas fa-random"></i></button>
+                            <button id="lessonSolveCubeBtn" class="button-preview-control" title="Solve Cube"><i class="fas fa-cube"></i></button>
+                        </div>
                     </div>
-                </div>
+                    <!-- END NEW 3D Cube Container -->
 
-                <!-- 3D Cube Viewer -->
-                <div id="scramble3DViewerContainer" class="w-full h-64 md:h-80 lg:h-96 bg-gray-900 rounded-lg overflow-hidden mb-4 flex items-center justify-center relative">
-                    <twisty-player id="scramble3DViewer" class="w-full h-full" camera-controller="none" background="none"></twisty-player>
-                    <div class="cube-controls absolute bottom-4 right-4 flex space-x-2">
-                        <button id="playPreviewBtn" class="button-icon"><i class="fas fa-play"></i></button>
-                        <button id="pausePreviewBtn" class="button-icon hidden"><i class="fas fa-pause"></i></button>
-                        <button id="resetPreviewBtn" class="button-icon"><i class="fas fa-redo"></i></button>
-                        <button id="lessonSolveCubeBtn" class="button-icon"><i class="fas fa-magic"></i></button>
-                    </div>
-                </div>
-
-                <div id="lessonContentDisplay" class="markdown-content text-gray-300 text-sm sm:text-base leading-relaxed">
-                    <!-- Markdown content will be rendered here -->
-                </div>
-
-                <!-- Quiz Section -->
-                <div id="quizSection" class="quiz-section mt-6 p-4 bg-gray-700 rounded-lg hidden">
-                    <p id="quizQuestion" class="text-lg font-semibold text-white mb-4"></p>
-                    <div id="quizOptions" class="space-y-3">
-                        <!-- Quiz options dynamically loaded here -->
-                    </div>
-                    <button id="submitQuizBtn" class="button-primary mt-4 w-full">Submit Answer</button>
-                    <p id="quizFeedback" class="mt-2 text-center font-semibold"></p>
-                </div>
-
-                <!-- Edit Lesson Modal/Overlay -->
-                <div id="editLessonModal" class="modal-overlay hidden">
-                    <div class="modal-content">
-                        <button id="closeEditLessonModal" class="close-button">&times;</button>
-                        <h3 class="text-2xl font-bold text-gradient mb-4">Edit Lesson Step</h3>
-                        <label for="editStepTitle" class="block text-sm font-medium mb-1">Step Title:</label>
-                        <input type="text" id="editStepTitle" class="input-field mb-3">
-                        <label for="editStepContent" class="block text-sm font-medium mb-1">Step Content (Markdown):</label>
-                        <textarea id="editStepContent" class="textarea-field mb-3 h-48"></textarea>
-                        <label for="editStepScramble" class="block text-sm font-medium mb-1">Scramble (optional):</label>
-                        <input type="text" id="editStepScramble" class="input-field mb-3">
-                        <label for="editStepAlgorithm" class="block text-sm font-medium mb-1">Algorithm (optional):</label>
-                        <input type="text" id="editStepAlgorithm" class="input-field mb-4">
-                        <button id="saveLessonEditsBtn" class="button-primary w-full">Save Changes</button>
-                    </div>
+                    <p id="lessonExplanationDisplay" class="text-sm text-gray-400 italic mt-2"></p>
+                    <button id="markStepCompleteBtn" class="button-secondary mt-4 w-full" style="display: none;">Mark Step Complete</button>
                 </div>
             </div>
 
-            <!-- Lesson Navigation & Completion -->
-            <div class="flex justify-between items-center mt-6">
-                <button id="prevLessonStepBtn" class="button-secondary" style="display: none;"><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+            <div class="lesson-navigation mt-6 flex justify-between items-center">
+                <button id="prevLessonStepBtn" class="button-secondary" disabled><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+                <span id="lessonStepCounter" class="text-gray-400 text-sm">Step 1 of 1</span>
                 <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
             </div>
+
             <button id="completeLessonBtn" class="button-primary mt-6 w-full" style="display: none;">Complete Lesson</button>
             <p id="lessonCompletionMessage" class="text-green-400 text-center mt-4 text-lg font-semibold" style="display: none;"></p>
         </div>
 
-        <!-- AI Chat Interface -->
-        <div id="aiChatWindow" class="ai-chat-window hidden">
-            <div class="chat-header">
-                <h3 class="text-lg font-semibold text-white">Jarvis AI Tutor</h3>
-                <button id="closeChatBtn" class="close-button">&times;</button>
-            </div>
-            <div id="chatMessages" class="chat-messages">
-                <!-- Chat messages will appear here -->
-            </div>
-            <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Ask Jarvis a question..." class="input-field flex-grow">
-                <button id="sendChatBtn" class="button-primary ml-2"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </div>
-
-        <!-- Lesson History Section -->
-        <div id="lessonHistorySection" class="section-container hidden">
+        <!-- Lesson History Section (Initially hidden) -->
+        <div id="lessonHistorySection" class="history-page-container hidden">
             <h2 class="text-2xl font-bold text-gradient mb-4 text-center">Lesson History</h2>
             <div id="historyLoadingSpinner" class="spinner mx-auto my-4" style="display: none;"></div>
             <p id="noLessonsMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No lessons recorded yet. Start a new lesson!</p>
@@ -155,10 +112,13 @@
                 <!-- Lesson history items will be dynamically loaded here -->
             </ul>
         </div>
-
-        <!-- Toast Container -->
-        <div id="toast-container" class="toast-container"></div>
+        
+        <!-- Global Loading Spinner -->
+        <div id="globalLoadingSpinner" class="spinner mx-auto my-4 hidden"></div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
     <!-- Link to external JavaScript file for lessons -->
     <script type="module" src="lessons.js"></script>

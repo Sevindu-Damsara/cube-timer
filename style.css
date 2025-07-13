@@ -30,446 +30,496 @@ body {
     --button-bg-hover: #475569;
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --glass-bg: rgba(30, 41, 59, 0.7); /* Slightly transparent secondary background */
-    --glass-border: rgba(51, 65, 85, 0.5); /* Slightly transparent border */
-    --gradient-start: #6366f1; /* Indigo 500 */
-    --gradient-end: #3b82f6; /* Blue 500 */
+
+    /* NEW Theme variables for light and vibrant */
+    --button-secondary-bg: #475569;
+    --button-secondary-text: #e2e8f0;
+    --button-secondary-hover-bg: #64748b;
+    --card-bg: #334155;
+    --timer-color: #818cf8;
+    --scramble-color: #a78bfa;
+    --stats-value-color: #67e8f9;
+    --solve-time-color: #a78bfa;
+
+    /* ADDED for consistency across themes for input fields */
+    --input-bg: #1e293b;
+    --input-text: #e2e8f0;
+    --input-border: #475569;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #0f172a;
 }
 
-/* Light Theme */
+/* Light theme - Fully upgraded for a pristine, modern look */
 body.theme-light {
-    --bg-color-primary: #f1f5f9; /* Light gray background */
-    --bg-color-secondary: #ffffff; /* White cards */
-    --text-color-primary: #1e293b; /* Dark text */
-    --text-color-secondary: #64748b; /* Medium gray text */
-    --accent-color-blue: #1d4ed8; /* Darker blue */
-    --accent-color-green: #15803d; /* Darker green */
-    --accent-color-red: #b91c1c; /* Darker red */
-    --button-bg-hover: #e2e8f0; /* Lighter gray hover */
-    --border-color: #cbd5e1; /* Light border */
-    --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(203, 213, 225, 0.5);
-    --gradient-start: #4f46e5; /* Indigo 600 */
-    --gradient-end: #2563eb; /* Blue 600 */
+    --bg-color-primary: #f8f9fa; /* Very light, almost white background */
+    --text-color-primary: #343a40; /* Soft dark gray for primary text */
+    --bg-color-secondary: #ffffff; /* Pure white for the main container */
+    --button-secondary-bg: #e9ecef; /* Very light gray for secondary buttons */
+    --button-secondary-text: #495057; /* Medium dark gray for secondary button text */
+    --button-secondary-hover-bg: #dee2e6; /* Slightly darker light gray for secondary button hover */
+    --card-bg: #ffffff; /* White cards for a clean feel */
+    --timer-color: #007bff; /* Vibrant blue for the timer */
+    --scramble-color: #0056b3; /* Deep blue for scramble text */
+    --stats-value-color: #17a2b8; /* Clear cyan for stats values */
+    --solve-time-color: #0056b3; /* Deep blue for solve times */
+    --border-color: #f1f3f5; /* Extremely subtle light gray border */
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
+    --input-bg: #ffffff;
+    --input-text: #1a202c;
+    --input-border: #cbd5e1;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #f8fafc;
 }
 
-/* Vibrant Theme */
+/* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
 body.theme-vibrant {
-    --bg-color-primary: #1a0a2a; /* Deep purple */
-    --bg-color-secondary: #2c1640; /* Darker purple */
-    --text-color-primary: #f0e6fa; /* Light purple text */
-    --text-color-secondary: #d4b8f5; /* Muted purple text */
-    --accent-color-blue: #8b5cf6; /* Violet */
-    --accent-color-green: #a78bfa; /* Light violet */
-    --accent-color-red: #ec4899; /* Pink */
-    --button-bg-hover: #4a2b6a; /* Darker purple hover */
-    --border-color: #5c3a8e; /* Purple border */
-    --box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-    --glass-bg: rgba(44, 22, 64, 0.7);
-    --glass-border: rgba(92, 58, 142, 0.5);
-    --gradient-start: #a855f7; /* Purple 500 */
-    --gradient-end: #d946b9; /* Fuchsia 500 */
+    --bg-color-primary: #120724; /* Deeper, luxurious dark purple background */
+    --text-color-primary: #f8f9fa; /* Slightly warmer off-white text */
+    --bg-color-secondary: #2c0a52; /* Rich, dark sapphire/amethyst for the main container */
+    --button-secondary-bg: #7b2cbf; /* Vibrant, but not neon, purple for secondary buttons */
+    --button-secondary-text: #f8f9fa; /* Light text for secondary buttons */
+    --button-secondary-hover-bg: #9c36f0; /* Lighter, more saturated purple for secondary button hover */
+    --card-bg: #3a0e6c; /* Medium-dark, rich purple for cards */
+    --timer-color: #c084fc; /* Bright, almost electric lavender for the timer */
+    --scramble-color: #e0f7fa; /* Very light, cool tone for scramble text */
+    --stats-value-color: #20c997; /* Vibrant, slightly deeper teal for stats values */
+    --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
+    --border-color: #4a148c; /* More distinct, yet harmonious purple border */
+    --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
+    --input-bg: #3a0c6a;
+    --input-text: #e0f2fe;
+    --input-border: #7b2cbf;
+    --input-focus-border: #8b5cf6;
+    --chat-bg: #220844;
 }
 
-
-/* Main Layout */
+/* NEW: Main Layout for Sidebar and Content */
 .main-layout {
     display: flex;
     width: 100%;
-    max-width: 1400px; /* Max width for desktop content */
-    border-radius: 1rem;
-    overflow: hidden;
-    box-shadow: var(--box-shadow);
-    background-color: var(--bg-color-secondary); /* Apply secondary background to layout */
+    min-height: 100vh; /* Ensure it takes full height */
+    padding: 0; /* Remove body padding, handled by layout */
+    margin: 0;
 }
 
-/* Sidebar */
+/* NEW: Sidebar Styling */
 .sidebar {
-    width: 250px;
+    width: 80px; /* Retracted width */
     background-color: var(--bg-color-secondary);
-    padding: 20px;
-    box-shadow: var(--box-shadow);
-    transition: transform 0.3s ease-in-out;
-    flex-shrink: 0; /* Prevent shrinking */
+    padding: 1.5rem 0.5rem; /* Adjusted padding for retracted state */
     border-right: 1px solid var(--border-color);
-}
-
-.sidebar.retracted {
-    transform: translateX(-100%);
-    position: absolute;
-    height: 100%;
-    z-index: 50;
-}
-
-.sidebar-toggle {
-    position: absolute;
-    top: 20px;
-    left: calc(250px + 10px); /* Adjust based on sidebar width */
-    z-index: 60;
-    background-color: var(--accent-color-blue);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 9999px;
-    cursor: pointer;
-    transition: left 0.3s ease-in-out;
-}
-
-.sidebar.retracted + .sidebar-toggle {
-    left: 20px; /* When retracted, button is on the left edge */
-}
-
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    border-radius: 0.75rem;
-    color: var(--text-color-secondary);
-    font-weight: 500;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.nav-item i {
-    margin-right: 10px;
-    font-size: 1.2rem;
-}
-
-.nav-item:hover {
-    background-color: var(--button-bg-hover);
-    color: var(--text-color-primary);
-}
-
-.nav-item.active {
-    background-color: var(--accent-color-blue);
-    color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Main Content Area */
-.main-content {
-    flex-grow: 1;
-    padding: 20px;
+    box-shadow: var(--box-shadow);
     display: flex;
     flex-direction: column;
+    align-items: center; /* Center items when retracted */
+    gap: 1.5rem;
+    overflow-y: auto;
+    flex-shrink: 0;
+    transition: width 0.3s ease-in-out; /* Smooth transition for width */
+    border-radius: 0 1rem 1rem 0; /* Rounded corners on the right side */
+    min-height: 100vh; /* Ensure it matches the height of the main layout */
+}
+
+.sidebar:hover {
+    width: 200px; /* Expanded width on hover */
+    align-items: flex-start; /* Align items to start when expanded */
+    padding: 1.5rem; /* Restore full padding */
+}
+
+.sidebar .nav-item {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 80vh; /* Ensure it takes up vertical space */
-}
-
-/* Timer Display */
-.timer-display {
-    font-size: 4rem;
-    font-weight: bold;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
     color: var(--text-color-primary);
-    margin-bottom: 20px;
-    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); /* Subtle glow */
+    text-decoration: none;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 
-/* Scramble Display */
-.scramble-display {
-    background-color: var(--bg-color-secondary);
-    padding: 15px 20px;
-    border-radius: 0.75rem;
-    margin-bottom: 20px;
-    font-size: 1.2rem;
-    color: var(--text-color-secondary);
-    text-align: center;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    word-break: break-all; /* Ensure long scrambles wrap */
+.sidebar .nav-item:hover {
+    background-color: var(--button-secondary-hover-bg);
 }
 
-/* 3D Cube Viewer Container */
-.cube-viewer-container {
-    width: 100%;
-    max-width: 400px; /* Max width for the cube */
-    height: 300px; /* Fixed height for consistency */
-    background-color: var(--bg-color-primary);
-    border-radius: 0.75rem;
-    overflow: hidden;
-    margin-bottom: 20px;
-    box-shadow: var(--box-shadow);
-    position: relative; /* For cube controls */
-}
-
-.cube-viewer-container twisty-player {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-/* Buttons */
-.button-primary {
-    background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
+.sidebar .nav-item.active {
+    background-color: var(--accent-color-blue);
     color: white;
-    padding: 10px 20px;
+}
+
+.sidebar .nav-icon {
+    font-size: 1.5rem;
+    margin-right: 0; /* No margin when retracted */
+    transition: margin-right 0.3s ease-in-out;
+}
+
+.sidebar:hover .nav-icon {
+    margin-right: 1rem; /* Add margin when expanded */
+}
+
+.sidebar .nav-text {
+    display: none; /* Hidden by default */
+    font-weight: 600;
+    white-space: nowrap; /* Prevent text wrapping */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.sidebar:hover .nav-text {
+    display: block; /* Show on hover */
+    opacity: 1;
+}
+
+/* NEW: Content Area Styling */
+.content-area {
+    flex-grow: 1; /* Take remaining space */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; /* Padding for the main content timer */
+    overflow-y: auto; /* Allow scrolling for main content */
+}
+
+.container {
+    background-color: var(--bg-color-secondary);
+    border-radius: 1.5rem;
+    /* Large rounded corners */
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+    max-width: 900px; /* Adjusted max-width for main content */
+    width: 90%;
+    /* Desktop relative width */
+    padding: 2.5rem;
+    /* Desktop padding */
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    /* Desktop gap */
+    position: relative;
+    /* For absolute positioning of elements like modals */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* Authentication buttons in the corner */
+.auth-corner-buttons {
+    position: absolute;
+    top: 1.5rem;
+    right: 2.5rem;
+    z-index: 50;
+    /* Ensure they are above other content */
+}
+
+.timer-display {
+    font-size: 6rem;
+    /* Desktop font size for timer */
+    font-weight: 700;
+    color: var(--timer-color);
+    text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
+    letter-spacing: -0.05em;
+    margin-bottom: 1rem;
+}
+
+.timer-display.inspection {
+    color: #fbbf24;
+    /* Amber for inspection */
+}
+
+.timer-display.ready {
+    color: #22c55e;
+    /* Green when ready */
+}
+
+.button-primary {
+    background: linear-gradient(145deg, #6366f1, #818cf8);
+    /* Gradient button */
+    color: white;
+    padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
     border: none;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    /* Base for desktop */
 }
 
 .button-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-    filter: brightness(1.1);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
 }
 
 .button-primary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
 }
 
 .button-secondary {
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-primary);
-    padding: 10px 20px;
+    background-color: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
+    padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3); /* This shadow might need to be theme-aware too */
+    border: none;
     cursor: pointer;
+    font-size: 1rem;
+    /* Base for desktop */
 }
 
 .button-secondary:hover {
-    background-color: var(--button-bg-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    background-color: var(--button-secondary-hover-bg);
+    transform: translateY(-1px);
 }
 
 .button-secondary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
-.button-icon {
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-primary);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+/* NEW: Styling for preview control buttons to make them colorful */
+.button-preview-control {
+    background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
+    color: white;
+    padding: 0.5rem; /* Smaller padding */
+    border-radius: 50%; /* Circular */
+    width: 40px; /* Fixed size */
+    height: 40px; /* Fixed size */
+    font-size: 1.2rem; /* Icon size */
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    transition: all 0.2s ease;
+    border: none;
     cursor: pointer;
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
+    transition: all 0.2s ease-in-out;
 }
 
-.button-icon:hover {
-    background-color: var(--button-bg-hover);
-    transform: scale(1.05);
+.button-preview-control:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(34, 197, 94, 0.6);
 }
 
-.button-icon:active {
-    transform: scale(0.95);
+.button-preview-control:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(34, 197, 94, 0.3);
 }
 
-/* Stats Cards */
+/* Specific colors for play/pause/restart if needed, otherwise rely on general .button-preview-control */
+/* Example:
+#playPreviewBtn { background: linear-gradient(145deg, #3b82f6, #60a5fa); }
+#pausePreviewBtn { background: linear-gradient(145deg, #fbbf24, #fcd34d); }
+#restartPreviewBtn { background: linear-gradient(145deg, #ef4444, #f87171); }
+*/
+
+
+.scramble-display {
+    background-color: var(--card-bg);
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.2rem;
+    /* Desktop font size */
+    font-weight: 500;
+    color: var(--scramble-color);
+    text-align: center;
+    word-break: break-all;
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* 3D Cube Container Styling */
+#cube3DContainer {
+    background-color: var(--bg-color-primary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    /* Desktop height */
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* Twisty player needs a height */
+#scramble3DViewer {
+    height: calc(100% - 60px);
+    width: 100%;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-    width: 100%;
-    max-width: 800px;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    /* Desktop grid layout */
+    gap: 1rem;
 }
 
 .stat-card {
-    background-color: var(--bg-color-secondary);
-    padding: 20px;
+    background-color: var(--card-bg);
+    padding: 1rem;
     border-radius: 0.75rem;
-    box-shadow: var(--box-shadow);
     text-align: center;
-    border: 1px solid var(--border-color);
-}
-
-.stat-card .label {
-    font-size: 0.9rem;
-    color: var(--text-color-secondary);
-    margin-bottom: 5px;
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 .stat-card .value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--text-color-primary);
-}
-
-/* Toast Notifications */
-.toast-container {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none; /* Allow clicks to pass through */
-}
-
-.toast {
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-primary);
-    padding: 12px 20px;
-    border-radius: 0.75rem;
-    margin-bottom: 10px;
-    box-shadow: var(--box-shadow);
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-    pointer-events: auto; /* Re-enable pointer events for the toast itself */
-    min-width: 200px;
-    text-align: center;
-    border: 1px solid var(--border-color);
-}
-
-.toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.toast-success {
-    border-left: 5px solid var(--accent-color-green);
-}
-
-.toast-error {
-    border-left: 5px solid var(--accent-color-red);
-}
-
-.toast-info {
-    border-left: 5px solid var(--accent-color-blue);
-}
-
-
-/* Solve History Page */
-.history-page-container, .settings-page-container, .lessons-page-container {
-    background-color: var(--bg-color-primary);
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    max-width: 900px;
-    width: 100%;
-    margin: 20px auto;
-    color: var(--text-color-primary);
-    position: relative; /* For modal positioning */
-}
-
-.solve-history-list {
-    list-style: none;
-    padding: 0;
-}
-
-.solve-history-item {
-    background-color: var(--bg-color-secondary);
-    padding: 1rem;
-    border-radius: 0.75rem;
-    margin-bottom: 1rem;
-    box-shadow: var(--box-shadow);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    border: 1px solid var(--border-color);
-}
-
-.solve-history-item .time {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--accent-color-blue);
-}
-
-.solve-history-item .details {
-    font-size: 0.9rem;
-    color: var(--text-color-secondary);
-}
-
-.solve-history-item .actions {
-    display: flex;
-    gap: 0.5rem;
+    font-size: 1.8rem;
+    /* Desktop font size */
+    font-weight: 700;
+    color: var(--stats-value-color);
+    /* Cyan */
     margin-top: 0.5rem;
 }
 
-.solve-history-item .penalty-buttons button {
-    background-color: var(--button-bg-hover);
-    color: var(--text-color-primary);
-    padding: 6px 10px;
+.solve-history-item {
+    background-color: var(--card-bg);
+    padding: 0.75rem 1.25rem;
     border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    /* Default to row for desktop */
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease-in-out;
+    flex-wrap: nowrap;
+    /* Prevent wrapping on desktop */
+    gap: 1rem;
+    /* Desktop gap */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+.solve-history-item:hover {
+    transform: translateX(5px);
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+}
+
+.solve-history-item .time {
+    font-size: 1.2rem;
+    /* Desktop font size */
+    font-weight: 600;
+    color: var(--solve-time-color);
+}
+
+.solve-history-item .penalty-buttons {
+    display: flex;
+    gap: 0.5rem;
+    /* Space between penalty buttons */
+    flex-wrap: nowrap;
+    /* Prevent wrapping on desktop */
+    justify-content: flex-end;
+    flex-grow: 1;
+}
+
+.solve-history-item .penalty-buttons button {
+    background-color: #f87171;
+    /* Red for DNF */
+    color: white;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.375rem;
     font-size: 0.8rem;
     cursor: pointer;
-    border: 1px solid var(--border-color);
+    border: none;
     transition: background-color 0.2s;
 }
 
-.solve-history-item .penalty-buttons button:hover {
-    background-color: var(--accent-color-blue);
+.solve-history-item .penalty-buttons button.plus2 {
+    background-color: #fbbf24;
+    /* Amber for +2 */
 }
 
-.solve-history-item .penalty-buttons button.active {
-    background-color: var(--accent-color-green);
-    color: white;
+.solve-history-item .penalty-buttons button.clear-penalty {
+    background-color: #60a5fa;
+    /* Blue for clear */
 }
 
-.solve-history-item .delete-button {
-    background-color: var(--accent-color-red);
+.solve-history-item .penalty-buttons button.delete {
+    background-color: #dc2626;
+    /* Strong red for delete */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.solve-history-item .penalty-buttons button.insight-button {
+    background-color: #4CAF50;
+    /* Green for Insight */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+}
+
+.solve-history-item .penalty-buttons button.insight-button:hover {
+    background-color: #45a049;
+}
+
+/* Voice Command Button Styling (fixed position) */
+#voiceCommandBtn, #openChatBtn {
+    background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
     color: white;
-    padding: 6px 10px;
-    border-radius: 0.5rem;
-    font-size: 0.8rem;
+    border-radius: 50%; /* Circular */
+    width: 56px; /* Larger touch target */
+    height: 56px; /* Larger touch target */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem; /* Icon size */
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Shadow from primary color */
     cursor: pointer;
-    border: none;
-    transition: opacity 0.2s;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    z-index: 100; /* Ensure it's above other content */
+    border: none; /* No border */
 }
 
-.solve-history-item .delete-button:hover {
-    opacity: 0.8;
+#voiceCommandBtn:hover, #openChatBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
 }
 
-.solve-history-item .insight-button {
-    background-color: var(--accent-color-blue);
-    color: white;
-    padding: 6px 10px;
-    border-radius: 0.5rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    border: none;
-    transition: opacity 0.2s;
+#voiceCommandBtn:active, #openChatBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
 }
 
-.solve-history-item .insight-button:hover {
-    opacity: 0.8;
+#voiceCommandBtn.active {
+    background-color: #dc3545; /* Red when active */
+    animation: pulse-red 1s infinite;
 }
 
-/* AI Insight Modal */
-.modal-overlay {
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+.modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 100;
+    z-index: 1000;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.modal-overlay.open {
+.modal.open {
     opacity: 1;
     visibility: visible;
 }
@@ -477,36 +527,768 @@ body.theme-vibrant {
 .modal-content {
     background-color: var(--bg-color-secondary);
     padding: 2rem;
+    /* Desktop padding */
     border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    max-width: 600px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     width: 90%;
+    /* Desktop width */
+    max-width: 500px;
+    /* Desktop max-width */
     position: relative;
-    transform: translateY(-20px);
+    color: var(--text-color-primary);
+    max-height: 90vh;
+    /* Prevent content from overflowing screen vertically */
+    overflow-y: auto;
+    /* Allow scrolling within modal if content is too long */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* Specifically for AI Insight Modal to take more width on desktop */
+#aiInsightModal .modal-content {
+    max-width: 700px;
+    color: var(--text-color-primary); /* Ensure text color is theme-aware */
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    /* Default background, overridden by theme-specific rules below */
+    background-color: var(--card-bg);
+}
+
+/* AI Insight Modal specific styling for Light Theme */
+body.theme-light #aiInsightModal .modal-content {
+    background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
+    color: var(--text-color-primary); /* Ensure text is dark */
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+/* AI Insight Modal specific styling for Vibrant Theme */
+body.theme-vibrant #aiInsightModal .modal-content {
+    background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
+    color: var(--text-color-primary); /* Ensure text is light */
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+
+.modal-close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-color-primary);
+    cursor: pointer;
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* NEW: Voice Feedback Display Styling - Moved to bottom center */
+.voice-feedback-display {
+    position: fixed;
+    bottom: 5%; /* Position from the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust for true horizontal centering */
+    background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque background */
+    backdrop-filter: blur(8px); /* Subtle blur effect */
+    -webkit-backdrop-filter: blur(8px); /* For Safari */
+    color: white;
+    padding: 20px 30px; /* More padding */
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Stronger shadow */
+    font-size: 1.3rem; /* Larger font */
+    font-weight: 600;
+    z-index: 1002; /* Above modals */
     opacity: 0;
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    visibility: hidden;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out; /* Smooth transitions */
+    display: flex;
+    flex-direction: column; /* Stack text and indicator */
+    align-items: center;
+    gap: 10px; /* Space between text and indicator */
+    min-width: 280px; /* Minimum width for the popup */
+    text-align: center;
+    pointer-events: none; /* Allow clicks to pass through when hidden */
+}
+
+.voice-feedback-display.listening-active {
+    opacity: 1;
+    visibility: visible;
+    /* No Y-transform on activation, only X for centering */
+    transform: translateX(-50%);
+    pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
+}
+
+/* Listening Indicator Dots */
+.listening-indicator {
+    display: flex;
+    gap: 8px; /* Larger gap between dots */
+}
+
+.listening-indicator .dot {
+    width: 10px; /* Larger dots */
+    height: 10px; /* Larger dots */
+    background-color: var(--accent-color-green);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.listening-indicator .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+.listening-indicator .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+.listening-indicator .dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.3;
+    }
+    40% {
+    transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
+.voice-feedback-display.speaking .listening-indicator .dot {
+    background-color: var(--accent-color-blue); /* Different color when speaking */
+    animation: pulse-dot 1s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+}
+
+/* NEW: Chat Modal Styling */
+#chatModal .modal-content {
+    max-width: 450px; /* Slightly wider for chat */
+    max-height: 80vh; /* Controlled height */
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for chat */
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+}
+
+#chatHistory {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #1a202c; /* Darker background for chat history */
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    scroll-behavior: smooth; /* Smooth scrolling for new messages */
+    border: 1px solid #2d3748;
+}
+
+.chat-message {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    max-width: 85%; /* Limit width for messages */
+    word-wrap: break-word; /* Ensure long words break */
+}
+
+.user-message {
+    text-align: right;
+    color: #e2e8f0; /* Light text for user */
+    background-color: #3b82f6; /* Blue background for user messages */
+    margin-left: auto; /* Push to right */
+    border-bottom-right-radius: 0; /* Flat corner on sender side */
+}
+
+.jarvis-message {
+    text-align: left;
+    color: #cbd5e1; /* Slightly darker text for Jarvis */
+    background-color: #475569; /* Slate background for Jarvis messages */
+    margin-right: auto; /* Push to left */
+    border-bottom-left-radius: 0; /* Flat corner on sender side */
+}
+
+.chat-message .font-bold {
+    font-weight: 700;
+}
+
+.chat-message .text-indigo-400 {
+    color: #818cf8; /* Jarvis's name color */
+}
+
+.chat-message .text-green-400 {
+    color: #d1fae5; /* Lighter green for user's name on blue background */
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end; /* Align input and button at the bottom */
+}
+
+/* Corrected .input-field styling for general use */
+.input-field {
+    flex-grow: 1;
+    min-height: 40px; /* Minimum height for consistency */
+    padding: 0.75rem;
+    border-radius: 0.75rem; /* More rounded corners for beauty */
+    background-color: var(--input-bg); /* Use theme variable */
+    border: 1px solid var(--input-border); /* Use theme variable */
+    color: var(--input-text); /* Use theme variable */
+    font-size: 1rem;
+    resize: vertical; /* Allow vertical resizing for textareas */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--input-focus-border); /* Use theme variable */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Blue glow on focus */
+}
+
+
+#chatInput { /* Specific overrides for chat input if needed, but .input-field should handle most */
+    max-height: 120px; /* Max height before scrolling */
+}
+
+#chatSendBtn {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem; /* Consistent with input-field */
+    font-size: 1rem;
+}
+
+/* Custom Scrollbar for chat history */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #2d3748; /* Darker track */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4a5568; /* Scrollbar thumb color */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* Darker on hover */
+}
+
+/* NEW: Lessons Page/Modal Styling */
+.lessons-page-container {
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 800px; /* Wider for lessons */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem; /* User's preferred radius */
+    margin: 20px auto; /* Center the container on the page */
+    color: var(--text-color-primary);
+    display: flex; /* Ensure flex for internal layout */
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center children horizontally */
+}
+
+.lessons-page-container .button-secondary {
+    align-self: flex-start; /* Align back button to start */
+}
+
+.lesson-input-section, .lesson-chat-container, .lesson-display-area {
+    width: 100%;
+    max-width: 700px; /* Max width for these sections */
+    margin-bottom: 1.5rem; /* Consistent margin-bottom */
+    background-color: var(--card-bg); /* Use card background for these sections */
+    padding: 1.5rem; /* Consistent padding */
+    border-radius: 0.75rem; /* User's preferred radius */
+    box-shadow: var(--box-shadow);
     border: 1px solid var(--border-color);
 }
 
-.modal-overlay.open .modal-content {
-    transform: translateY(0);
-    opacity: 1;
+
+.lesson-step-card {
+    background-color: #2d3748; /* Darker card background */
+    padding: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #4a5568;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
-.modal-content .close-button {
+.twisty-player-lesson-container {
+    background-color: #0f172a; /* Dark background for player */
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #334155;
+    position: relative; /* Needed for absolute positioning of controls */
+    width: 100%;
+    padding-bottom: 75%; /* 4:3 Aspect Ratio (height is 75% of width) */
+    height: 0; /* Important for aspect ratio to work */
+}
+
+.twisty-player-lesson-container twisty-player {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 1.8rem;
-    color: var(--text-color-secondary);
-    cursor: pointer;
-    transition: color 0.2s;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
-.modal-content .close-button:hover {
+.twisty-player-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 8px 15px;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(5px); /* Frosted glass effect */
+    -webkit-backdrop-filter: blur(5px); /* For Safari */
+}
+
+.twisty-player-controls .button-icon {
+    font-size: 1.1rem;
+    padding: 6px;
+    border-radius: 6px;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.twisty-player-controls .button-icon:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--accent-color-blue);
+}
+
+
+.lesson-navigation button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+}
+
+/* NEW: Style for completed button */
+.button-completed {
+    background-color: #10b981; /* Emerald green */
+    color: white;
+    cursor: not-allowed;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
+.button-completed:hover {
+    transform: none;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
+
+/* NEW: History Page Styling */
+.history-page-container {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 900px; /* Wider for history */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin: 20px auto;
     color: var(--text-color-primary);
+}
+
+/* History page specific solve item adjustments */
+.history-page-container .solve-history-item {
+    flex-direction: row; /* Ensure row layout for desktop history page */
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap; /* Allow wrapping if content is too long */
+    gap: 0.75rem;
+}
+
+.history-page-container .solve-history-item .time {
+    flex-shrink: 0; /* Prevent time from shrinking */
+}
+
+.history-page-container .solve-history-item .scramble-text {
+    flex-grow: 1; /* Allow scramble text to take available space */
+    text-align: left;
+    margin-left: 1rem; /* Space between time and scramble */
+    margin-right: 1rem;
+}
+
+.history-page-container .solve-history-item .penalty-buttons {
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+    justify-content: flex-end; /* Align buttons to the right */
+}
+
+/* NEW: Settings Page Styling */
+.settings-page-container {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    max-width: 600px; /* Appropriate width for settings */
+    width: 90%;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin: 20px auto;
+    color: var(--text-color-primary);
+}
+
+.settings-page-container .setting-section {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem; /* Space between sections */
+}
+
+.settings-page-container .setting-section:last-child {
+    margin-bottom: 0; /* No margin after the last section */
+}
+
+/* Toggle switch styling (copied from previous modal styling) */
+.toggle-switch {
+    /* Hide default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 40px;
+    height: 20px;
+    background-color: #475569; /* Off state background */
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.2s;
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background-color: #e2e8f0; /* Handle color */
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.toggle-switch:checked {
+    background-color: #3b82f6; /* On state background */
+}
+
+.toggle-switch:checked::before {
+    transform: translateX(20px);
+}
+
+
+/* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
+/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
+@media (max-width: 767px) {
+    body {
+        padding: 16px;
+        /* Reduced padding for mobile */
+    }
+
+    .main-layout {
+        flex-direction: column; /* Stack sidebar and content vertically */
+        padding: 0; /* Handled by child elements */
+    }
+
+    .sidebar {
+        width: 100%; /* Full width on mobile */
+        padding: 1rem 0.5rem; /* Adjusted padding for mobile */
+        border-right: none;
+        border-bottom: 1px solid var(--border-color); /* Separator */
+        box-shadow: none; /* Remove sidebar shadow on mobile */
+        gap: 1rem;
+        flex-direction: row; /* Horizontal layout for mobile nav */
+        justify-content: space-around; /* Distribute items evenly */
+        align-items: center;
+        border-radius: 0; /* No rounded corners on mobile for full width */
+        min-height: auto; /* Allow height to adjust to content */
+        height: auto;
+    }
+
+    .sidebar:hover {
+        width: 100%; /* No width change on hover for mobile */
+        padding: 1rem 0.5rem;
+        align-items: center;
+    }
+
+    .sidebar .nav-item {
+        flex-direction: column; /* Stack icon and text vertically */
+        padding: 0.5rem;
+        font-size: 0.8rem; /* Smaller font for mobile nav text */
+    }
+
+    .sidebar .nav-icon {
+        margin-right: 0 !important; /* No margin on mobile */
+        margin-bottom: 0.25rem; /* Space between icon and text */
+        font-size: 1.2rem; /* Smaller icon size for mobile */
+    }
+
+    .sidebar .nav-text {
+        display: block; /* Always show text on mobile */
+        opacity: 1;
+        font-size: 0.7rem; /* Even smaller for text */
+    }
+
+    .sidebar:hover .nav-text {
+        display: block; /* Still show on hover, but no change */
+        opacity: 1;
+    }
+
+    .content-area {
+        padding: 16px; /* Padding for main content on mobile */
+    }
+
+    .container {
+        padding: 1.5rem;
+        /* Reduced padding for mobile */
+        gap: 1.5rem;
+        /* Reduced gap for mobile */
+        max-width: 100%;
+        /* Take full width on mobile */
+        width: 100%;
+    }
+
+    .auth-corner-buttons {
+        /* On mobile, stack buttons vertically and align to the right, inside the container flow */
+        flex-direction: column;
+        align-items: flex-end;
+        margin-top: 0.5rem;
+        /* Adjust to fit content well */
+        margin-bottom: 0.5rem;
+        position: static; /* Remove absolute positioning on mobile */
+    }
+
+    .auth-corner-buttons button {
+        padding: 0.5rem 1rem;
+        /* Slightly larger touch targets */
+        font-size: 0.875rem;
+        /* Slightly larger font for readability */
+        width: auto;
+        /* Allow buttons to size to content */
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        /* Smaller heading for mobile */
+        margin-bottom: 1rem;
+        /* Adjusted margin */
+    }
+
+    .timer-display {
+        font-size: 4rem;
+        /* Smaller timer font for mobile */
+        margin-bottom: 0.5rem;
+    }
+
+    .scramble-display {
+        font-size: 1rem;
+        /* Smaller scramble font for mobile */
+        padding: 0.8rem 1rem;
+        /* Adjusted padding */
+    }
+
+    #cube3DContainer {
+        height: 250px;
+        /* Adjusted height for mobile */
+    }
+
+    /* Control buttons flex-direction is already column for sm: (which is 640px)
+        but we can specify here for max-width just to be explicit if needed */
+    .flex-col.sm\:flex-row {
+        /* Targeting the control buttons div */
+        flex-direction: column;
+        gap: 0.75rem;
+        /* Adjusted gap */
+    }
+
+    .button-primary,
+    .button-secondary {
+        padding: 0.7rem 1.2rem;
+        /* Ensure good touch target */
+        font-size: 0.95rem;
+        /* Slightly smaller font */
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        /* 2 columns on mobile, adjusts */
+        gap: 0.8rem;
+        /* Smaller gap for stats */
+    }
+
+    .stat-card {
+        padding: 0.7rem;
+        /* Adjusted padding */
+    }
+
+    .stat-card .value {
+        font-size: 1.5rem;
+        /* Smaller stat value font */
+    }
+
+    .solve-history-item {
+        flex-direction: column;
+        /* Stack time and buttons */
+        align-items: flex-start;
+        /* Align contents to start */
+        gap: 0.5rem;
+        /* Gap between time and buttons block */
+        padding: 0.6rem 1rem;
+        /* Smaller padding */
+    }
+
+    .solve-history-item .time {
+        font-size: 1.0rem;
+    }
+
+    .solve-history-item .penalty-buttons {
+        flex-direction: row; /* Ensure buttons stay in a row on mobile */
+        flex-wrap: wrap; /* Allow wrapping if many buttons */
+        justify-content: flex-start; /* Align to start on mobile */
+        width: 100%; /* Take full width to align buttons */
+        margin-left: 0; /* Remove left margin */
+    }
+
+    .solve-history-item .penalty-buttons button {
+        padding: 0.3rem 0.6rem; /* Smaller padding for mobile buttons */
+        font-size: 0.75rem; /* Smaller font for mobile buttons */
+    }
+
+    /* Adjustments for voice feedback and chat on mobile */
+    .voice-feedback-display, .chat-container {
+        bottom: 10px; /* Closer to bottom edge on mobile */
+        left: 10px; /* Adjust left position */
+        right: 10px; /* Adjust right position */
+        transform: none; /* Remove transform for fixed positioning */
+        width: auto; /* Allow width to be determined by left/right */
+        max-width: calc(100% - 20px); /* Max width for mobile */
+        padding: 15px 20px; /* Adjusted padding */
+        font-size: 1rem; /* Smaller font */
+        border-radius: 10px; /* Smaller border radius */
+    }
+
+    .chat-container {
+        height: 60vh; /* Adjust height for mobile chat */
+    }
+
+    #voiceCommandBtn, #openChatBtn {
+        width: 48px; /* Smaller buttons on mobile */
+        height: 48px;
+        font-size: 1.5rem; /* Smaller icon */
+        bottom: 10px; /* Adjust position */
+        right: 10px;
+        left: auto; /* Ensure right alignment */
+    }
+
+    #openChatBtn {
+        left: 10px; /* Align chat button to left */
+        right: auto;
+    }
+
+    /* Lessons page specific mobile adjustments */
+    .lessons-page-container {
+        padding: 1rem;
+        border-radius: 0;
+    }
+
+    .lesson-input-section, .lesson-chat-container, .lesson-display-area {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .lesson-chat-container .chat-history-box {
+        height: 180px; /* Further adjust chat history height for very small screens */
+    }
+
+    .lesson-step-card {
+        padding: 0.8rem;
+        border-radius: 0.5rem;
+    }
+
+    .twisty-player-lesson-container {
+        border-radius: 0.4rem;
+    }
+
+    .twisty-player-controls {
+        padding: 6px 10px;
+        border-radius: 10px;
+        gap: 6px;
+    }
+
+    .twisty-player-controls .button-icon {
+        font-size: 1rem;
+        padding: 5px;
+    }
+
+    .lesson-navigation button {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Further adjustments for very small screens (e.g., iPhone SE) */
+@media (max-width: 479px) {
+    .timer-display {
+        font-size: 3rem;
+        /* Even smaller timer font for very small screens */
+    }
+
+    h1 {
+        font-size: 2rem;
+        /* Even smaller heading for very small screens */
+    }
+
+    .scramble-display {
+        font-size: 0.9rem;
+        /* Even smaller scramble font */
+    }
+
+    .stat-card .value {
+        font-size: 1.3rem;
+        /* Even smaller stat value font */
+    }
+
+    .button-primary,
+    .button-secondary {
+        font-size: 0.9rem;
+        /* Slightly smaller button font */
+        padding: 0.6rem 1rem;
+        /* Reduced padding */
+    }
+
+    .solve-history-item .penalty-buttons button {
+        font-size: 0.7rem;
+        /* Smallest penalty button font */
+    }
 }
 
 /* Spinner for loading states */
@@ -524,580 +1306,33 @@ body.theme-vibrant {
     100% { transform: rotate(360deg); }
 }
 
-/* Settings Page */
-.setting-section {
-    background-color: var(--bg-color-secondary);
-    padding: 1.5rem;
-    border-radius: 0.75rem;
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-}
-
-.input-field, .select-field, .textarea-field {
-    width: 100%;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    background-color: var(--bg-color-primary); /* Darker input background */
-    border: 1px solid var(--border-color);
-    color: var(--text-color-primary);
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.input-field:focus, .select-field:focus, .textarea-field:focus {
-    border-color: var(--accent-color-blue);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-.toggle-switch {
-    /* Hide default checkbox */
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    width: 40px;
-    height: 20px;
-    background-color: var(--border-color);
-    border-radius: 9999px;
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.toggle-switch::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform 0.3s;
-}
-
-.toggle-switch:checked {
-    background-color: var(--accent-color-green);
-}
-
-.toggle-switch:checked::before {
-    transform: translateX(20px);
-}
-
-/* Text Gradient */
-.text-gradient {
-    background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent; /* Fallback for non-webkit browsers */
-}
-
-/* Voice Feedback Display (Orb) */
-.voice-feedback-display {
-    position: fixed;
-    bottom: 80px; /* Above the voice button */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--bg-color-secondary);
-    padding: 10px 20px;
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    color: var(--text-color-primary);
-    text-align: center;
-    z-index: 40;
-    min-width: 250px;
-    border: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.voice-feedback-display.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.listening-indicator {
-    display: flex;
-    gap: 5px;
-    margin-top: 5px;
-}
-
-.listening-indicator .dot {
-    width: 8px;
-    height: 8px;
-    background-color: var(--accent-color-blue);
-    border-radius: 50%;
-    opacity: 0.3;
-    animation: pulse 1.5s infinite ease-in-out;
-}
-
-.listening-indicator .dot:nth-child(2) {
-    animation-delay: 0.5s;
-}
-
-.listening-indicator .dot:nth-child(3) {
-    animation-delay: 1s;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* Chat Window */
-.ai-chat-window {
+/* TOAST NOTIFICATIONS */
+.toast-container {
     position: fixed;
     bottom: 20px;
-    right: 20px;
-    width: 350px;
-    height: 500px;
-    background-color: var(--bg-color-secondary);
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    display: flex;
-    flex-direction: column;
-    z-index: 90;
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-    transform: scale(0.95);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-}
-
-.ai-chat-window.hidden {
-    transform: scale(0.95);
-    opacity: 0;
-    visibility: hidden;
-}
-
-.ai-chat-window:not(.hidden) {
-    transform: scale(1);
-    opacity: 1;
-    visibility: visible;
-}
-
-
-.chat-header {
-    background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-    padding: 1rem;
-    color: white;
-    border-top-left-radius: 1rem;
-    border-top-right-radius: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-}
-
-.chat-header .close-button {
-    position: static; /* Override modal close button position */
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: white;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.chat-header .close-button:hover {
-    opacity: 0.7;
-}
-
-.chat-messages {
-    flex-grow: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    background-color: var(--bg-color-primary); /* Chat background */
-}
-
-.chat-message {
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    max-width: 85%;
-    word-wrap: break-word;
-    font-size: 0.9rem;
-}
-
-.user-message {
-    background-color: var(--accent-color-blue);
-    color: white;
-    align-self: flex-end;
-    border-bottom-right-radius: 0;
-}
-
-.ai-message {
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-primary);
-    align-self: flex-start;
-    border: 1px solid var(--border-color);
-    border-bottom-left-radius: 0;
-}
-
-.chat-input-area {
-    display: flex;
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-color-secondary);
-}
-
-/* Lessons Page Specific Styles */
-.lessons-page-container {
-    padding: 2rem;
-    max-width: 1200px; /* Wider for courses/lessons */
-    margin: 20px auto;
-    background-color: var(--bg-color-primary); /* Use primary background for the main container */
-    border-radius: 1.5rem; /* More rounded */
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); /* Deeper shadow */
-    position: relative;
-}
-
-.section-container {
-    background-color: var(--bg-color-secondary); /* Secondary background for sections */
-    padding: 2rem;
-    border-radius: 1.25rem; /* Slightly less rounded than main container */
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-    margin-bottom: 2rem;
-}
-
-.course-card {
-    background-color: var(--bg-color-secondary);
-    padding: 1.5rem;
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    cursor: pointer;
-}
-
-.course-card:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-}
-
-.module-card {
-    background-color: var(--glass-bg); /* Glassmorphism effect */
-    backdrop-filter: blur(10px); /* Blur effect */
-    -webkit-backdrop-filter: blur(10px); /* Safari support */
-    border: 1px solid var(--glass-border);
-    padding: 1.5rem;
-    border-radius: 1rem;
-    box-shadow: var(--box-shadow);
-    margin-bottom: 1.5rem;
-}
-
-.lesson-item {
-    background-color: rgba(0, 0, 0, 0.2); /* Slightly transparent background for list items */
-    border-radius: 0.75rem;
-    padding: 0.8rem 1.2rem;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.lesson-item:hover {
-    background-color: rgba(0, 0, 0, 0.3);
-    transform: translateX(5px);
-}
-
-.lesson-content-area {
-    background-color: var(--bg-color-secondary);
-    padding: 2rem;
-    border-radius: 1.25rem;
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-}
-
-.markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4 {
-    color: var(--text-color-primary);
-    font-weight: bold;
-    margin-top: 1.5em;
-    margin-bottom: 0.8em;
-}
-.markdown-content h1 { font-size: 2.2em; }
-.markdown-content h2 { font-size: 1.8em; }
-.markdown-content h3 { font-size: 1.5em; }
-.markdown-content h4 { font-size: 1.2em; }
-
-.markdown-content p {
-    margin-bottom: 1em;
-    line-height: 1.6;
-    color: var(--text-color-secondary);
-}
-
-.markdown-content ul, .markdown-content ol {
-    margin-bottom: 1em;
-    padding-left: 1.5em;
-    color: var(--text-color-secondary);
-}
-
-.markdown-content li {
-    margin-bottom: 0.5em;
-}
-
-.markdown-content code {
-    background-color: rgba(0, 0, 0, 0.3);
-    padding: 0.2em 0.4em;
-    border-radius: 0.3em;
-    font-family: 'Fira Code', 'Cascadia Code', monospace;
-    color: #a78bfa; /* Vibrant code color */
-}
-
-.markdown-content pre {
-    background-color: rgba(0, 0, 0, 0.4);
-    padding: 1em;
-    border-radius: 0.75rem;
-    overflow-x: auto;
-    margin-bottom: 1em;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.markdown-content pre code {
-    background-color: transparent;
-    padding: 0;
-    border-radius: 0;
-    color: #c5e1ff; /* Lighter code color for blocks */
-}
-
-.markdown-content a {
-    color: var(--accent-color-blue);
-    text-decoration: underline;
-}
-
-.markdown-content blockquote {
-    border-left: 4px solid var(--accent-color-green);
-    padding-left: 1em;
-    margin-left: 0;
-    font-style: italic;
-    color: var(--text-color-secondary);
-}
-
-/* Quiz Section Styles */
-.quiz-section {
-    background-color: var(--bg-color-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.2); /* Inner glow */
-}
-
-.quiz-options label {
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.quiz-options label:hover {
-    color: var(--accent-color-blue);
-}
-
-.form-radio {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border-color);
-    border-radius: 50%;
-    outline: none;
-    cursor: pointer;
-    position: relative;
-    display: inline-block;
-    vertical-align: middle;
-    margin-right: 0.5rem;
-}
-
-.form-radio:checked {
-    background-color: var(--accent-color-blue);
-    border-color: var(--accent-color-blue);
-}
-
-.form-radio:checked::before {
-    content: '';
-    display: block;
-    width: 8px;
-    height: 8px;
-    background-color: white;
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
-/* Progress Bar */
-.progress-bar-container {
-    width: 100%;
-    height: 8px;
-    background-color: var(--border-color);
-    border-radius: 4px;
-    overflow: hidden;
+.toast {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    transform: translateY(20px);
+    min-width: 200px;
+    text-align: center;
 }
 
-.progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-color-green), var(--accent-color-blue));
-    border-radius: 4px;
-    transition: width 0.5s ease-in-out;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-
-    .main-layout {
-        flex-direction: column;
-        border-radius: 0; /* No border radius on small screens */
-        box-shadow: none;
-    }
-
-    .sidebar {
-        width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        padding: 15px;
-        transform: translateX(0) !important; /* Override retraction on mobile */
-        position: static;
-    }
-
-    .sidebar-toggle {
-        display: none; /* Hide toggle button on mobile */
-    }
-
-    .main-content {
-        padding: 15px;
-    }
-
-    .timer-display {
-        font-size: 3rem;
-    }
-
-    .scramble-display {
-        font-size: 1rem;
-        padding: 10px 15px;
-    }
-
-    .cube-viewer-container {
-        height: 250px;
-    }
-
-    .button-primary, .button-secondary {
-        padding: 8px 15px;
-        font-size: 0.9rem;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .stat-card .value {
-        font-size: 1.8rem;
-    }
-
-    .history-page-container, .settings-page-container, .lessons-page-container {
-        padding: 1.5rem;
-        border-radius: 0;
-        box-shadow: none;
-        margin: 0;
-    }
-
-    .solve-history-item .time {
-        font-size: 1.2rem;
-    }
-
-    .solve-history-item .details {
-        font-size: 0.8rem;
-    }
-
-    .modal-content {
-        padding: 1.5rem;
-        width: 95%;
-    }
-
-    .ai-chat-window {
-        width: 90%;
-        height: 400px;
-        bottom: 10px;
-        right: 5%;
-        left: 5%;
-        transform: translateX(0);
-    }
-
-    .course-card, .module-card, .lesson-content-area {
-        padding: 1.25rem;
-        border-radius: 1rem;
-    }
-
-    .markdown-content h1 { font-size: 1.8em; }
-    .markdown-content h2 { font-size: 1.5em; }
-    .markdown-content h3 { font-size: 1.3em; }
-    .markdown-content h4 { font-size: 1.1em; }
-}
-
-@media (max-width: 480px) {
-    .timer-display {
-        font-size: 2.5rem;
-    }
-
-    .scramble-display {
-        font-size: 0.85rem;
-        padding: 8px 12px;
-    }
-
-    .cube-viewer-container {
-        height: 200px;
-    }
-
-    .button-primary, .button-secondary {
-        padding: 6px 12px;
-        font-size: 0.8rem;
-    }
-
-    .button-icon {
-        width: 35px;
-        height: 35px;
-        font-size: 0.9rem;
-    }
-
-    .stat-card .value {
-        font-size: 1.5rem;
-    }
-
-    .solve-history-item .time {
-        font-size: 1rem;
-    }
-
-    .solve-history-item .penalty-buttons button, .solve-history-item .delete-button, .solve-history-item .insight-button {
-        font-size: 0.7rem;
-        padding: 4px 8px;
-    }
-
-    .ai-chat-window {
-        width: 95%;
-        height: 350px;
-    }
-
-    .chat-message {
-        font-size: 0.8rem;
-    }
-
-    .input-field, .select-field, .textarea-field {
-        padding: 0.6rem;
-    }
-
-    .markdown-content h1 { font-size: 1.6em; }
-    .markdown-content h2 { font-size: 1.3em; }
-    .markdown-content h3 { font-size: 1.1em; }
-    .markdown-content h4 { font-size: 1em; }
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
 }
