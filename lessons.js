@@ -20,8 +20,9 @@ const firebaseConfig = {
     appId: "1:467118524389:web:d3455f5be5747be2cb910c", // Specific appId from script.js config
     measurementId: "G-YOUR_MEASUREMENT_ID" // Placeholder, if needed, or remove if not in script.js
 };
-// The __initial_auth_token is still provided by the Canvas environment for session sync.
-const initialAuthToken = __initial_auth_token; 
+// The __initial_auth_token is provided by the Canvas environment for session sync.
+// We must check if it's defined to prevent ReferenceErrors.
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
 
 let app;
 let db;
@@ -907,7 +908,8 @@ async function saveUserProgress() {
             progress: currentCourse.progress // Save updated progress percentage
         });
         console.log("[DEBUG] User progress saved.");
-    } catch (error) {
+    }
+    catch (error) {
         console.error("[ERROR] Failed to save user progress:", error);
         showToast("Failed to save progress, Sir Sevindu.", "error");
     }
