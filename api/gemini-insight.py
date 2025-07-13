@@ -97,22 +97,23 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # System instruction for conversational turn - now embedded in user part
+            # System instruction for conversational turn - now more detailed for better chat quality
             system_instruction_text = (
-                "<instruction>You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson. "
-                "Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational and respectful. "
-                "Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
+                "<instruction>You are Jarvis, an advanced AI cubing instructor and assistant. Your core function is to engage in a sophisticated, multi-turn dialogue with Sir Sevindu to meticulously gather precise information required to generate an exceptionally personalized and highly actionable multi-step cubing lesson. "
+                "Your Primary Directive: DO NOT generate the full lesson at this stage. Your singular focus is on information elicitation. "
+                "ONLY ask clarifying, probing questions or provide brief, encouraging, and context-building remarks. Your responses MUST be conversational, respectful, and reflective of your persona as Jarvis. "
+                "Mandatory Questioning Protocol: You MUST ask a minimum of 3 to 5 distinct, highly relevant, and probing clarifying questions before you even consider signaling readiness for lesson generation. These questions must build upon the previous turn and demonstrate a deep understanding of cubing pedagogy. "
+                "Questioning Categories: Focus on Scope (foundational vs. specific cases), Current Understanding (familiar concepts, difficulties, current method), Learning Preferences (conceptual, visual, hands-on), and Desired Outcome (speed, consistency, deeper understanding). "
+                "Readiness Signal: ONLY when you are unequivocally confident that you possess sufficient, granular detail, end your message with: `[LESSON_PLAN_PROPOSAL_READY]` followed by a confirmation question. "
+                "Example Readiness: \"I believe I have gathered all necessary information to construct a highly personalized lesson on [Specific Topic]. Shall I proceed, Sir Sevindu? [LESSON_PLAN_PROPOSAL_READY]\""
                 "</instruction>\n\n"
             )
 
             # Prepare contents for API call
             contents_for_api = []
             if chat_history:
-                # Prepend system instruction to the first user message
-                # Create a deep copy to avoid modifying the original chat_history if it's reused elsewhere
                 modified_chat_history = json.loads(json.dumps(chat_history))
                 
-                # Find the first user message and prepend the system instruction
                 first_user_message_found = False
                 for turn in modified_chat_history:
                     if turn.get("role") == "user" and turn.get("parts") and turn["parts"][0].get("text"):
@@ -121,18 +122,11 @@ def gemini_insight_handler():
                         break
                 
                 if not first_user_message_found:
-                    # Fallback: If no user message found (shouldn't happen with proper client logic),
-                    # create a new first user message with system instruction.
-                    # This scenario implies the very first turn is not a user message, which is unusual.
                     contents_for_api.append({"role": "user", "parts": [{"text": system_instruction_text}]})
                     contents_for_api.extend(modified_chat_history)
                 else:
                     contents_for_api = modified_chat_history
             else:
-                # If chat_history is empty, this is the very first turn.
-                # The user's initial query will be appended by the client, so we just add the system instruction.
-                # However, the client sends the first user message in chat_history, so this branch might not be hit.
-                # For robustness, if it is hit, we create the first user turn with just the instruction.
                 contents_for_api.append({"role": "user", "parts": [{"text": system_instruction_text}]})
 
 
@@ -175,17 +169,17 @@ def gemini_insight_handler():
 
         elif request_type == "generate_final_lesson":
             print("DEBUG: Handling generate_final_lesson request.")
-            # System instruction for final lesson generation - now embedded in user part
+            # System instruction for final lesson generation - now more detailed
             system_instruction_text = (
-                "<instruction>You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level. "
-                "The lesson must strictly adhere to the provided JSON schema."
+                "<instruction>You are Jarvis, a world-class Rubik's Cube instructor and AI assistant. Your task is to generate an exceptionally personalized, highly actionable, and pedagogically sound multi-step cubing lesson based on the preceding conversation, cube type, and user level. "
+                "The lesson must strictly adhere to the provided JSON schema. Ensure all required fields are present and data types match. "
+                "Focus on providing accurate scrambles and algorithms in standard notation, and comprehensive explanations for each step."
                 "</instruction>\n\n"
             )
 
             # Prepare contents for API call
             contents_for_api = []
             if chat_history:
-                # Prepend system instruction to the first user message
                 modified_chat_history = json.loads(json.dumps(chat_history))
                 
                 first_user_message_found = False
@@ -196,13 +190,11 @@ def gemini_insight_handler():
                         break
                 
                 if not first_user_message_found:
-                    # Fallback: Should not happen for generate_final_lesson as chat_history is expected
                     contents_for_api.append({"role": "user", "parts": [{"text": system_instruction_text}]})
                     contents_for_api.extend(modified_chat_history)
                 else:
                     contents_for_api = modified_chat_history
             else:
-                # This scenario should ideally not be hit for generate_final_lesson
                 return jsonify({"error": "Chat history is empty for final lesson generation, which is unexpected."}), 400
 
 
