@@ -62,9 +62,7 @@ def gemini_insight_handler():
             "required": ["message"]
         }
 
-        # TEMPORARILY SIMPLIFIED SCHEMA FOR DIAGNOSTIC PURPOSES
-        # If this works, the complexity of the original schema is the issue.
-        # If it still fails, the problem is elsewhere (e.g., API key, environment).
+        # Original, detailed schema for the final structured lesson
         FINAL_LESSON_RESPONSE_SCHEMA = {
             "type": "OBJECT",
             "properties": {
@@ -72,9 +70,25 @@ def gemini_insight_handler():
                     "type": "OBJECT",
                     "properties": {
                         "id": {"type": "STRING", "description": "Unique UUID for the lesson."},
-                        "lessonTitle": {"type": "STRING", "description": "Descriptive title for the lesson."}
+                        "lessonTitle": {"type": "STRING", "description": "Descriptive title for the lesson."},
+                        "steps": {
+                            "type": "ARRAY",
+                            "items": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "title": {"type": "STRING", "description": "Concise title for this step."},
+                                    "description": {"type": "STRING", "description": "Detailed explanation of the step's concept."},
+                                    "scramble": {"type": "STRING", "nullable": True, "description": "Optional: A scramble leading to the state for this step."},
+                                    "algorithm": {"type": "STRING", "nullable": True, "description": "Optional: The algorithm for this step in standard notation."},
+                                    "explanation": {"type": "STRING", "description": "Further tips, common mistakes, or strategic advice for this step."}
+                                },
+                                "required": ["title", "description", "explanation"]
+                            },
+                            "minItems": 3, # Ensure at least 3 steps for a meaningful lesson
+                            "maxItems": 10 # Limit to 10 steps for manageability
+                        }
                     },
-                    "required": ["id", "lessonTitle"]
+                    "required": ["id", "lessonTitle", "steps"]
                 }
             },
             "required": ["lessonData"]
@@ -83,17 +97,47 @@ def gemini_insight_handler():
 
         if request_type == "lesson_chat":
             print("DEBUG: Handling lesson_chat request.")
-            # System instruction for conversational turn - ABSOLUTELY MINIMAL
-            system_instruction = "You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson. Do NOT generate the lesson yet. Ask clarifying questions. Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
+            # System instruction for conversational turn - now embedded in user part
+            system_instruction_text = (
+                "<instruction>You are Jarvis, an advanced AI cubing instructor. Your goal is to gather information to create a personalized multi-step cubing lesson. "
+                "Do NOT generate the lesson yet. Ask clarifying questions. Your responses must be conversational and respectful. "
+                "Signal readiness with: `[LESSON_PLAN_PROPOSAL_READY]` at the end of your final message."
+                "</instruction>\n\n"
+            )
 
-            # Construct the full contents array for the Gemini API call
-            contents = [
-                {"role": "system", "parts": [{"text": system_instruction}]},
-                *chat_history # Unpack existing chat history (user/model turns)
-            ]
+            # Prepare contents for API call
+            contents_for_api = []
+            if chat_history:
+                # Prepend system instruction to the first user message
+                # Create a deep copy to avoid modifying the original chat_history if it's reused elsewhere
+                modified_chat_history = json.loads(json.dumps(chat_history))
+                
+                # Find the first user message and prepend the system instruction
+                first_user_message_found = False
+                for turn in modified_chat_history:
+                    if turn.get("role") == "user" and turn.get("parts") and turn["parts"][0].get("text"):
+                        turn["parts"][0]["text"] = system_instruction_text + turn["parts"][0]["text"]
+                        first_user_message_found = True
+                        break
+                
+                if not first_user_message_found:
+                    # Fallback: If no user message found (shouldn't happen with proper client logic),
+                    # create a new first user message with system instruction.
+                    # This scenario implies the very first turn is not a user message, which is unusual.
+                    contents_for_api.append({"role": "user", "parts": [{"text": system_instruction_text}]})
+                    contents_for_api.extend(modified_chat_history)
+                else:
+                    contents_for_api = modified_chat_history
+            else:
+                # If chat_history is empty, this is the very first turn.
+                # The user's initial query will be appended by the client, so we just add the system instruction.
+                # However, the client sends the first user message in chat_history, so this branch might not be hit.
+                # For robustness, if it is hit, we create the first user turn with just the instruction.
+                contents_for_api.append({"role": "user", "parts": [{"text": system_instruction_text}]})
+
 
             payload = {
-                "contents": contents,
+                "contents": contents_for_api, # Use the modified contents
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "responseSchema": LESSON_CHAT_RESPONSE_SCHEMA
@@ -131,20 +175,42 @@ def gemini_insight_handler():
 
         elif request_type == "generate_final_lesson":
             print("DEBUG: Handling generate_final_lesson request.")
-            # System instruction for final lesson generation - ABSOLUTELY MINIMAL
-            system_instruction = "You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level."
+            # System instruction for final lesson generation - now embedded in user part
+            system_instruction_text = (
+                "<instruction>You are Jarvis, a world-class Rubik's Cube instructor. Generate a personalized, actionable, multi-step cubing lesson based on the preceding conversation, cube type, and user level. "
+                "The lesson must strictly adhere to the provided JSON schema."
+                "</instruction>\n\n"
+            )
 
-            # Construct the full contents array for the Gemini API call
-            contents = [
-                {"role": "system", "parts": [{"text": system_instruction}]},
-                *chat_history # Unpack existing chat history (user/model turns)
-            ]
+            # Prepare contents for API call
+            contents_for_api = []
+            if chat_history:
+                # Prepend system instruction to the first user message
+                modified_chat_history = json.loads(json.dumps(chat_history))
+                
+                first_user_message_found = False
+                for turn in modified_chat_history:
+                    if turn.get("role") == "user" and turn.get("parts") and turn["parts"][0].get("text"):
+                        turn["parts"][0]["text"] = system_instruction_text + turn["parts"][0]["text"]
+                        first_user_message_found = True
+                        break
+                
+                if not first_user_message_found:
+                    # Fallback: Should not happen for generate_final_lesson as chat_history is expected
+                    contents_for_api.append({"role": "user", "parts": [{"text": system_instruction_text}]})
+                    contents_for_api.extend(modified_chat_history)
+                else:
+                    contents_for_api = modified_chat_history
+            else:
+                # This scenario should ideally not be hit for generate_final_lesson
+                return jsonify({"error": "Chat history is empty for final lesson generation, which is unexpected."}), 400
+
 
             payload = {
-                "contents": contents,
+                "contents": contents_for_api, # Use the modified contents
                 "generationConfig": {
                     "responseMimeType": "application/json",
-                    "responseSchema": FINAL_LESSON_RESPONSE_SCHEMA # Using the simplified schema
+                    "responseSchema": FINAL_LESSON_RESPONSE_SCHEMA # Using the original, detailed schema
                 }
             }
             print(f"DEBUG: Payload for generate_final_lesson: {json.dumps(payload, indent=2)}") # Log the full payload
@@ -167,8 +233,10 @@ def gemini_insight_handler():
                     lesson_data = json.loads(lesson_data_json_str)
 
                     # Validate the generated lesson data against the simplified schema
-                    if not all(k in lesson_data.get('lessonData', {}) for k in ['id', 'lessonTitle']):
-                        raise ValueError("Generated lesson data is missing required fields from simplified schema.")
+                    if not all(k in lesson_data.get('lessonData', {}) for k in ['id', 'lessonTitle', 'steps']):
+                        raise ValueError("Generated lesson data is missing required fields from schema.")
+                    if not isinstance(lesson_data['lessonData']['steps'], list) or not (3 <= len(lesson_data['lessonData']['steps']) <= 10):
+                        raise ValueError("Generated lesson steps array is invalid or out of bounds (3-10 steps required).")
                     
                     # Ensure lessonId is a UUID
                     if not lesson_data['lessonData']['id']:
