@@ -355,7 +355,7 @@ async function loadCourseList() {
  * @param {Object} course - The course data.
  */
 function renderCourseCard(course) {
-    console.log("[DEBUG] Rendering course card for:", course); // Diagnostic log
+    console.log("[DEBUG] Rendering course card for:", course); // Diagnostic log: This will show the full course object
     const card = document.createElement('div');
     card.className = 'course-card glass-panel p-6 rounded-xl shadow-lg border border-gray-700';
     card.innerHTML = `
