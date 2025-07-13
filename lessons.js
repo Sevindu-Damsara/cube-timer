@@ -8,8 +8,7 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
-// Declare __initial_auth_token before firebaseConfig
-const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+// __initial_auth_token is provided globally by Canvas, no need to redeclare with const here.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Global app ID
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
     apiKey: "YOUR_FIREBASE_API_KEY", // Placeholder, will be replaced by Canvas
@@ -217,7 +216,8 @@ async function initializeFirebaseAndAuth() {
             } else {
                 // Sign in anonymously if no user is logged in
                 try {
-                    if (__initial_auth_token) {
+                    // Access __initial_auth_token directly as it's globally provided
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                         console.log("[DEBUG] Signed in with custom token.");
                     } else {
