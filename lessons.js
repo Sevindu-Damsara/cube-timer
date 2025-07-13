@@ -8,6 +8,7 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
+// Ensure these are correctly parsed from the global Canvas environment variables
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Global app ID
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
     apiKey: "YOUR_FIREBASE_API_KEY", // Placeholder, will be replaced by Canvas
@@ -88,8 +89,10 @@ async function initializeFirebaseAndAuth() {
                     console.log(`[DEBUG] Re-signed in anonymously. User ID: ${userId}`);
                 } catch (error) {
                     console.error("[ERROR] Failed to sign in anonymously:", error);
-                    userId = `guest-${crypto.randomUUID()}`; // Fallback to a random ID
+                    // Fallback to a random ID if anonymous sign-in truly fails (e.g., API key invalid)
+                    userId = `guest-${crypto.randomUUID()}`;
                     isUserAuthenticated = false;
+                    showToast("Authentication failed. Course saving/loading may not work.", "error");
                 }
             }
             isAuthReady = true;
@@ -105,7 +108,7 @@ async function initializeFirebaseAndAuth() {
                 console.log("[DEBUG] Attempted sign in with custom token.");
             } catch (error) {
                 console.error("[ERROR] Firebase Auth: Custom token sign-in failed:", error);
-                // onAuthStateChanged will handle the anonymous/guest state
+                // onAuthStateChanged will handle the anonymous/guest state if custom token fails
             }
         }
     } catch (e) {
@@ -149,6 +152,7 @@ async function loadUserSettings() {
                 settingsLoaded = true;
             } else {
                 console.log("[INFO] No user settings found in Firestore. Using defaults and saving.");
+                // Only attempt to save if authenticated, otherwise it will fail for anonymous users
                 await setDoc(settingsDocRef, { cubeType: currentCubeType, theme: currentTheme, show3DCubeView: show3DCubeView }, { merge: true });
                 settingsLoaded = true; // Defaults are now effectively loaded/saved
             }
