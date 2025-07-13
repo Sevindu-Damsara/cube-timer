@@ -46,14 +46,15 @@
                     <i class="fas fa-plus-circle mr-2"></i> Create New Course
                 </button>
                 <div class="flex space-x-2 w-full md:w-auto">
-                    <select id="courseTypeFilter" class="form-select flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <!-- Corrected styling for select elements -->
+                    <select id="courseTypeFilter" class="form-select flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         <option value="all">All Cube Types</option>
                         <option value="3x3">3x3</option>
                         <option value="2x2">2x2</option>
                         <option value="4x4">4x4</option>
                         <option value="pyraminx">Pyraminx</option>
                     </select>
-                    <select id="courseLevelFilter" class="form-select flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <select id="courseLevelFilter" class="form-select flex-grow p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         <option value="all">All Levels</option>
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
@@ -82,6 +83,7 @@
                         <!-- Chat messages will be appended here -->
                     </div>
                     <div class="flex items-center">
+                        <!-- Corrected styling for input text box -->
                         <input type="text" id="courseChatInput" placeholder="Type your course preferences..."
                                class="flex-grow p-3 rounded-l-md bg-gray-900 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         <button id="sendCourseChatBtn" class="button-primary p-3 rounded-r-md flex items-center justify-center">
@@ -123,6 +125,7 @@
 
                 <!-- Lesson Editor (Markdown Input) -->
                 <div id="lessonEditorContainer" class="flex-grow flex flex-col hidden mb-6">
+                    <!-- Corrected styling for textarea -->
                     <textarea id="lessonMarkdownEditor" class="w-full h-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"></textarea>
                     <div class="flex justify-end space-x-3 mt-4">
                         <button id="cancelEditLessonBtn" class="button-secondary">Cancel</button>
@@ -182,6 +185,7 @@
                     <!-- In-lesson chat messages -->
                 </div>
                 <div class="flex items-center">
+                    <!-- Corrected styling for in-lesson chat input -->
                     <input type="text" id="inLessonChatInput" placeholder="Ask Jarvis about this lesson..."
                            class="flex-grow p-3 rounded-l-md bg-gray-900 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                     <button id="sendInLessonChatBtn" class="button-primary p-3 rounded-r-md flex items-center justify-center">

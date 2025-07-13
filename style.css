@@ -6,8 +6,7 @@ body {
     /* Dark blue-gray background */
     color: var(--text-color-primary, #e2e8f0);
     /* Light text color */
-    display: flex;
-    /* Changed to flex for main-layout */
+    display: flex; /* Changed to flex for main-layout */
     justify-content: center;
     align-items: center;
     min-height: 100vh;
@@ -31,9 +30,6 @@ body {
     --button-bg-hover: #475569;
     --border-color: #334155;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --gradient-start: #3b82f6;
-    --gradient-end: #8b5cf6;
-    /* Purple accent */
 
     /* NEW Theme variables for light and vibrant */
     --button-secondary-bg: #475569;
@@ -51,181 +47,83 @@ body {
     --input-border: #475569;
     --input-focus-border: #3b82f6;
     --chat-bg: #0f172a;
-
-    /* RGB values for gradients and shadows - derived from hex codes */
-    --gradient-start-rgb: 59, 130, 246; /* #3b82f6 */
-    --gradient-end-rgb: 139, 92, 246;   /* #8b5cf6 */
-    --bg-color-secondary-rgb: 30, 41, 59; /* #1e293b */
-    --bg-color-primary-rgb: 15, 23, 42; /* #0f172a */
-    --border-color-rgb: 51, 65, 85; /* #334155 */
-    --accent-color-blue-rgb: 59, 130, 246; /* #3b82f6 */
 }
 
-/* Theme specific overrides */
+/* Light theme - Fully upgraded for a pristine, modern look */
 body.theme-light {
-    --bg-color-primary: #f8f9fa;
-    /* Very light, almost white background */
-    --text-color-primary: #343a40;
-    /* Soft dark gray for primary text */
-    --bg-color-secondary: #ffffff;
-    /* Pure white for the main container */
-    --accent-color-blue: #007bff;
-    /* Vibrant blue */
-    --accent-color-green: #28a745;
-    /* Success green */
-    --accent-color-red: #dc3545;
-    /* Danger red */
-    --button-bg-hover: #e9ecef;
-    /* Very light gray for hover */
-    --border-color: #f1f3f5;
-    /* Extremely subtle light gray border */
-    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02);
-    /* Softer, more diffused shadow */
-    --gradient-start: #007bff;
-    --gradient-end: #6610f2;
-    /* Purple accent for light theme */
-
-    --button-secondary-bg: #e9ecef;
-    /* Very light gray for secondary buttons */
-    --button-secondary-text: #495057;
-    /* Medium dark gray for secondary button text */
-    --button-secondary-hover-bg: #dee2e6;
-    /* Slightly darker light gray for secondary button hover */
-    --card-bg: #ffffff;
-    /* White cards for a clean feel */
-    --timer-color: #007bff;
-    /* Vibrant blue for the timer */
-    --scramble-color: #0056b3;
-    /* Deep blue for scramble text */
-    --stats-value-color: #17a2b8;
-    /* Clear cyan for stats values */
-    --solve-time-color: #0056b3;
-    /* Deep blue for solve times */
-
+    --bg-color-primary: #f8f9fa; /* Very light, almost white background */
+    --text-color-primary: #343a40; /* Soft dark gray for primary text */
+    --bg-color-secondary: #ffffff; /* Pure white for the main container */
+    --button-secondary-bg: #e9ecef; /* Very light gray for secondary buttons */
+    --button-secondary-text: #495057; /* Medium dark gray for secondary button text */
+    --button-secondary-hover-bg: #dee2e6; /* Slightly darker light gray for secondary button hover */
+    --card-bg: #ffffff; /* White cards for a clean feel */
+    --timer-color: #007bff; /* Vibrant blue for the timer */
+    --scramble-color: #0056b3; /* Deep blue for scramble text */
+    --stats-value-color: #17a2b8; /* Clear cyan for stats values */
+    --solve-time-color: #0056b3; /* Deep blue for solve times */
+    --border-color: #f1f3f5; /* Extremely subtle light gray border */
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
     --input-bg: #ffffff;
     --input-text: #1a202c;
     --input-border: #cbd5e1;
     --input-focus-border: #3b82f6;
     --chat-bg: #f8fafc;
-
-    /* RGB values for light theme */
-    --gradient-start-rgb: 0, 123, 255;
-    /* #007bff */
-    --gradient-end-rgb: 102, 16, 242;
-    /* #6610f2 */
-    --bg-color-secondary-rgb: 255, 255, 255;
-    /* #ffffff */
-    --bg-color-primary-rgb: 248, 249, 250;
-    /* #f8f9fa */
-    --border-color-rgb: 241, 243, 245;
-    /* #f1f3f5 */
-    --accent-color-blue-rgb: 0, 123, 255;
-    /* #007bff */
 }
 
+/* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
 body.theme-vibrant {
-    --bg-color-primary: #120724;
-    /* Deeper, luxurious dark purple background */
-    --text-color-primary: #f8f9fa;
-    /* Slightly warmer off-white text */
-    --bg-color-secondary: #2c0a52;
-    /* Rich, dark sapphire/amethyst for the main container */
-    --accent-color-blue: #00f2fe;
-    /* Neon blue */
-    --accent-color-green: #00ff7f;
-    /* Neon green */
-    --accent-color-red: #ff007f;
-    /* Neon pink */
-    --button-bg-hover: #4a007f;
-    /* Darker purple for hover */
-    --border-color: #5a009f;
-    /* More distinct purple border */
-    --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4);
-    /* Stronger, more dramatic shadow */
-    --gradient-start: #00f2fe;
-    --gradient-end: #f800ff;
-    /* Neon purple */
-
-    --button-secondary-bg: #7b2cbf;
-    /* Vibrant, but not neon, purple for secondary buttons */
-    --button-secondary-text: #f8f9fa;
-    /* Light text for secondary buttons */
-    --button-secondary-hover-bg: #9c36f0;
-    /* Lighter, more saturated purple for secondary button hover */
-    --card-bg: #3a0e6c;
-    /* Medium-dark, rich purple for cards */
-    --timer-color: #c084fc;
-    /* Bright, almost electric lavender for the timer */
-    --scramble-color: #e0f7fa;
-    /* Very light, cool tone for scramble text */
-    --stats-value-color: #20c997;
-    /* Vibrant, slightly deeper teal for stats values */
-    --solve-time-color: #e0f7fa;
-    /* Very light, cool tone for solve times */
-
+    --bg-color-primary: #120724; /* Deeper, luxurious dark purple background */
+    --text-color-primary: #f8f9fa; /* Slightly warmer off-white text */
+    --bg-color-secondary: #2c0a52; /* Rich, dark sapphire/amethyst for the main container */
+    --button-secondary-bg: #7b2cbf; /* Vibrant, but not neon, purple for secondary buttons */
+    --button-secondary-text: #f8f9fa; /* Light text for secondary buttons */
+    --button-secondary-hover-bg: #9c36f0; /* Lighter, more saturated purple for secondary button hover */
+    --card-bg: #3a0e6c; /* Medium-dark, rich purple for cards */
+    --timer-color: #c084fc; /* Bright, almost electric lavender for the timer */
+    --scramble-color: #e0f7fa; /* Very light, cool tone for scramble text */
+    --stats-value-color: #20c997; /* Vibrant, slightly deeper teal for stats values */
+    --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
+    --border-color: #4a148c; /* More distinct, yet harmonious purple border */
+    --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
     --input-bg: #3a0c6a;
     --input-text: #e0f2fe;
     --input-border: #7b2cbf;
     --input-focus-border: #8b5cf6;
     --chat-bg: #220844;
-
-    /* RGB values for vibrant theme */
-    --gradient-start-rgb: 0, 242, 254;
-    /* #00f2fe */
-    --gradient-end-rgb: 248, 0, 255;
-    /* #f800ff */
-    --bg-color-secondary-rgb: 44, 10, 82;
-    /* #2c0a52 */
-    --bg-color-primary-rgb: 18, 7, 36;
-    /* #120724 */
-    --border-color-rgb: 90, 0, 159;
-    /* #5a009f */
-    --accent-color-blue-rgb: 0, 242, 254;
-    /* #00f2fe */
 }
 
-/* General Layouts */
+/* NEW: Main Layout for Sidebar and Content */
 .main-layout {
     display: flex;
     width: 100%;
-    min-height: 100vh;
-    /* Ensure it takes full height */
-    padding: 0;
-    /* Remove body padding, handled by layout */
+    min-height: 100vh; /* Ensure it takes full height */
+    padding: 0; /* Remove body padding, handled by layout */
     margin: 0;
 }
 
-/* Sidebar Styling */
+/* NEW: Sidebar Styling */
 .sidebar {
-    width: 80px;
-    /* Retracted width */
+    width: 80px; /* Retracted width */
     background-color: var(--bg-color-secondary);
-    padding: 1.5rem 0.5rem;
-    /* Adjusted padding for retracted state */
+    padding: 1.5rem 0.5rem; /* Adjusted padding for retracted state */
     border-right: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    /* Center items when retracted */
+    align-items: center; /* Center items when retracted */
     gap: 1.5rem;
     overflow-y: auto;
     flex-shrink: 0;
-    transition: width 0.3s ease-in-out;
-    /* Smooth transition for width */
-    border-radius: 0 1rem 1rem 0;
-    /* Rounded corners on the right side */
-    min-height: 100vh;
-    /* Ensure it matches the height of the main layout */
+    transition: width 0.3s ease-in-out; /* Smooth transition for width */
+    border-radius: 0 1rem 1rem 0; /* Rounded corners on the right side */
+    min-height: 100vh; /* Ensure it matches the height of the main layout */
 }
 
 .sidebar:hover {
-    width: 200px;
-    /* Expanded width on hover */
-    align-items: flex-start;
-    /* Align items to start when expanded */
-    padding: 1.5rem;
-    /* Restore full padding */
+    width: 200px; /* Expanded width on hover */
+    align-items: flex-start; /* Align items to start when expanded */
+    padding: 1.5rem; /* Restore full padding */
 }
 
 .sidebar .nav-item {
@@ -250,53 +148,43 @@ body.theme-vibrant {
 
 .sidebar .nav-icon {
     font-size: 1.5rem;
-    margin-right: 0;
-    /* No margin when retracted */
+    margin-right: 0; /* No margin when retracted */
     transition: margin-right 0.3s ease-in-out;
 }
 
 .sidebar:hover .nav-icon {
-    margin-right: 1rem;
-    /* Add margin when expanded */
+    margin-right: 1rem; /* Add margin when expanded */
 }
 
 .sidebar .nav-text {
-    display: none;
-    /* Hidden by default */
+    display: none; /* Hidden by default */
     font-weight: 600;
-    white-space: nowrap;
-    /* Prevent text wrapping */
+    white-space: nowrap; /* Prevent text wrapping */
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
 }
 
 .sidebar:hover .nav-text {
-    display: block;
-    /* Show on hover */
+    display: block; /* Show on hover */
     opacity: 1;
 }
 
-/* Content Area Styling */
+/* NEW: Content Area Styling */
 .content-area {
-    flex-grow: 1;
-    /* Take remaining space */
+    flex-grow: 1; /* Take remaining space */
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
-    /* Padding for the main content timer */
-    overflow-y: auto;
-    /* Allow scrolling for main content */
+    padding: 20px; /* Padding for the main content timer */
+    overflow-y: auto; /* Allow scrolling for main content */
 }
 
 .container {
     background-color: var(--bg-color-secondary);
     border-radius: 1.5rem;
     /* Large rounded corners */
-    box-shadow: var(--box-shadow);
-    /* Use theme-defined box-shadow */
-    max-width: 900px;
-    /* Adjusted max-width for main content */
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+    max-width: 900px; /* Adjusted max-width for main content */
     width: 90%;
     /* Desktop relative width */
     padding: 2.5rem;
@@ -307,8 +195,7 @@ body.theme-vibrant {
     /* Desktop gap */
     position: relative;
     /* For absolute positioning of elements like modals */
-    border: 1px solid var(--border-color);
-    /* Added border for definition */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 /* Authentication buttons in the corner */
@@ -341,8 +228,7 @@ body.theme-vibrant {
 }
 
 .button-primary {
-    background: linear-gradient(145deg, #6366f1, #818cf8);
-    /* Gradient button */
+    background: linear-gradient(145deg, #6366f1, #818cf8) !important; /* Gradient button with !important */
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
@@ -375,8 +261,7 @@ body.theme-vibrant {
     border-radius: 0.75rem;
     font-weight: 600;
     transition: all 0.2s ease-in-out;
-    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3);
-    /* This shadow might need to be theme-aware too */
+    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3); /* This shadow might need to be theme-aware too */
     border: none;
     cursor: pointer;
     font-size: 1rem;
@@ -393,21 +278,15 @@ body.theme-vibrant {
     box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
 }
 
-/* Styling for preview control buttons to make them colorful */
+/* NEW: Styling for preview control buttons to make them colorful */
 .button-preview-control {
-    background: linear-gradient(145deg, #22c55e, #34d399);
-    /* Green gradient */
+    background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
     color: white;
-    padding: 0.5rem;
-    /* Smaller padding */
-    border-radius: 50%;
-    /* Circular */
-    width: 40px;
-    /* Fixed size */
-    height: 40px;
-    /* Fixed size */
-    font-size: 1.2rem;
-    /* Icon size */
+    padding: 0.5rem; /* Smaller padding */
+    border-radius: 50%; /* Circular */
+    width: 40px; /* Fixed size */
+    height: 40px; /* Fixed size */
+    font-size: 1.2rem; /* Icon size */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -445,8 +324,7 @@ body.theme-vibrant {
     color: var(--scramble-color);
     text-align: center;
     word-break: break-all;
-    border: 1px solid var(--border-color);
-    /* Added border for definition */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 /* 3D Cube Container Styling */
@@ -463,8 +341,7 @@ body.theme-vibrant {
     width: 100%;
     overflow: hidden;
     position: relative;
-    border: 1px solid var(--border-color);
-    /* Added border for definition */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 /* Twisty player needs a height */
@@ -485,16 +362,8 @@ body.theme-vibrant {
     padding: 1rem;
     border-radius: 0.75rem;
     text-align: center;
-    box-shadow: var(--box-shadow);
-    /* Use theme-defined box-shadow */
-    border: 1px solid var(--border-color);
-    /* Added border for definition */
-}
-
-.stat-card .label {
-    font-size: 0.9rem;
-    color: var(--text-color-secondary);
-    margin-bottom: 0.5rem;
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 .stat-card .value {
@@ -520,14 +389,12 @@ body.theme-vibrant {
     /* Prevent wrapping on desktop */
     gap: 1rem;
     /* Desktop gap */
-    border: 1px solid var(--border-color);
-    /* Added border for definition */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 .solve-history-item:hover {
     transform: translateX(5px);
-    box-shadow: var(--box-shadow);
-    /* Use theme-defined box-shadow */
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
 }
 
 .solve-history-item .time {
@@ -589,47 +456,35 @@ body.theme-vibrant {
 }
 
 /* Voice Command Button Styling (fixed position) */
-#voiceCommandBtn,
-#openChatBtn {
-    background: linear-gradient(145deg, #6366f1, #818cf8);
-    /* Primary button gradient */
+#voiceCommandBtn, #openChatBtn {
+    background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
     color: white;
-    border-radius: 50%;
-    /* Circular */
-    width: 56px;
-    /* Larger touch target */
-    height: 56px;
-    /* Larger touch target */
+    border-radius: 50%; /* Circular */
+    width: 56px; /* Larger touch target */
+    height: 56px; /* Larger touch target */
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.8rem;
-    /* Icon size */
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
-    /* Shadow from primary color */
+    font-size: 1.8rem; /* Icon size */
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Shadow from primary color */
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    z-index: 100;
-    /* Ensure it's above other content */
-    border: none;
-    /* No border */
+    z-index: 100; /* Ensure it's above other content */
+    border: none; /* No border */
 }
 
-#voiceCommandBtn:hover,
-#openChatBtn:hover {
+#voiceCommandBtn:hover, #openChatBtn:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
 }
 
-#voiceCommandBtn:active,
-#openChatBtn:active {
+#voiceCommandBtn:active, #openChatBtn:active {
     transform: translateY(0);
     box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
 }
 
 #voiceCommandBtn.active {
-    background-color: #dc3545;
-    /* Red when active */
+    background-color: #dc3545; /* Red when active */
     animation: pulse-red 1s infinite;
 }
 
@@ -684,15 +539,13 @@ body.theme-vibrant {
     /* Prevent content from overflowing screen vertically */
     overflow-y: auto;
     /* Allow scrolling within modal if content is too long */
-    border: 1px solid var(--border-color);
-    /* Added border for definition */
+    border: 1px solid var(--border-color); /* Added border for definition */
 }
 
 /* Specifically for AI Insight Modal to take more width on desktop */
 #aiInsightModal .modal-content {
     max-width: 700px;
-    color: var(--text-color-primary);
-    /* Ensure text color is theme-aware */
+    color: var(--text-color-primary); /* Ensure text color is theme-aware */
     border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
     /* Default background, overridden by theme-specific rules below */
@@ -701,20 +554,16 @@ body.theme-vibrant {
 
 /* AI Insight Modal specific styling for Light Theme */
 body.theme-light #aiInsightModal .modal-content {
-    background: linear-gradient(135deg, var(--card-bg), #f0f0f0);
-    /* White to very light gray gradient */
-    color: var(--text-color-primary);
-    /* Ensure text is dark */
+    background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
+    color: var(--text-color-primary); /* Ensure text is dark */
     border-color: var(--border-color);
     box-shadow: var(--box-shadow);
 }
 
 /* AI Insight Modal specific styling for Vibrant Theme */
 body.theme-vibrant #aiInsightModal .modal-content {
-    background: linear-gradient(135deg, var(--card-bg), #2a0b4d);
-    /* Dark purple to slightly darker purple */
-    color: var(--text-color-primary);
-    /* Ensure text is light */
+    background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
+    color: var(--text-color-primary); /* Ensure text is light */
     border-color: var(--border-color);
     box-shadow: var(--box-shadow);
 }
@@ -732,54 +581,37 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 .text-gradient {
-    background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
-    /* Use theme variables for text gradients */
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-/* Voice Feedback Display Styling - Moved to bottom center */
+/* NEW: Voice Feedback Display Styling - Moved to bottom center */
 .voice-feedback-display {
     position: fixed;
-    bottom: 5%;
-    /* Position from the bottom */
-    left: 50%;
-    /* Center horizontally */
-    transform: translateX(-50%);
-    /* Adjust for true horizontal centering */
-    background-color: rgba(0, 0, 0, 0.9);
-    /* Darker, more opaque background */
-    backdrop-filter: blur(8px);
-    /* Subtle blur effect */
-    -webkit-backdrop-filter: blur(8px);
-    /* For Safari */
+    bottom: 5%; /* Position from the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust for true horizontal centering */
+    background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque background */
+    backdrop-filter: blur(8px); /* Subtle blur effect */
+    -webkit-backdrop-filter: blur(8px); /* For Safari */
     color: white;
-    padding: 20px 30px;
-    /* More padding */
-    border-radius: 15px;
-    /* More rounded corners */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    /* Stronger shadow */
-    font-size: 1.3rem;
-    /* Larger font */
+    padding: 20px 30px; /* More padding */
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Stronger shadow */
+    font-size: 1.3rem; /* Larger font */
     font-weight: 600;
-    z-index: 1002;
-    /* Above modals */
+    z-index: 1002; /* Above modals */
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-    /* Smooth transitions */
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out; /* Smooth transitions */
     display: flex;
-    flex-direction: column;
-    /* Stack text and indicator */
+    flex-direction: column; /* Stack text and indicator */
     align-items: center;
-    gap: 10px;
-    /* Space between text and indicator */
-    min-width: 280px;
-    /* Minimum width for the popup */
+    gap: 10px; /* Space between text and indicator */
+    min-width: 280px; /* Minimum width for the popup */
     text-align: center;
-    pointer-events: none;
-    /* Allow clicks to pass through when hidden */
+    pointer-events: none; /* Allow clicks to pass through when hidden */
 }
 
 .voice-feedback-display.listening-active {
@@ -787,22 +619,18 @@ body.theme-vibrant #aiInsightModal .modal-content {
     visibility: visible;
     /* No Y-transform on activation, only X for centering */
     transform: translateX(-50%);
-    pointer-events: auto;
-    /* Allow interaction when visible if needed, though usually just for display */
+    pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
 }
 
 /* Listening Indicator Dots */
 .listening-indicator {
     display: flex;
-    gap: 8px;
-    /* Larger gap between dots */
+    gap: 8px; /* Larger gap between dots */
 }
 
 .listening-indicator .dot {
-    width: 10px;
-    /* Larger dots */
-    height: 10px;
-    /* Larger dots */
+    width: 10px; /* Larger dots */
+    height: 10px; /* Larger dots */
     background-color: var(--accent-color-green);
     border-radius: 50%;
     opacity: 0.3;
@@ -812,33 +640,27 @@ body.theme-vibrant #aiInsightModal .modal-content {
 .listening-indicator .dot:nth-child(1) {
     animation-delay: -0.32s;
 }
-
 .listening-indicator .dot:nth-child(2) {
     animation-delay: -0.16s;
 }
-
 .listening-indicator .dot:nth-child(3) {
     animation-delay: 0s;
 }
 
 @keyframes bounce {
-    0%,
-    80%,
-    100% {
+    0%, 80%, 100% {
         transform: scale(0);
         opacity: 0.3;
     }
-
     40% {
-        transform: scale(1);
+    transform: scale(1);
         opacity: 1;
     }
 }
 
-/* Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
 .voice-feedback-display.speaking .listening-indicator .dot {
-    background-color: var(--accent-color-blue);
-    /* Different color when speaking */
+    background-color: var(--accent-color-blue); /* Different color when speaking */
     animation: pulse-dot 1s infinite ease-in-out;
 }
 
@@ -847,29 +669,24 @@ body.theme-vibrant #aiInsightModal .modal-content {
         transform: scale(0.8);
         opacity: 0.7;
     }
-
     50% {
         transform: scale(1.2);
         opacity: 1;
     }
-
     100% {
         transform: scale(0.8);
         opacity: 0.7;
     }
 }
 
-/* Chat Modal Styling */
+/* NEW: Chat Modal Styling */
 #chatModal .modal-content {
-    max-width: 450px;
-    /* Slightly wider for chat */
-    max-height: 80vh;
-    /* Controlled height */
+    max-width: 450px; /* Slightly wider for chat */
+    max-height: 80vh; /* Controlled height */
     display: flex;
     flex-direction: column;
-    background: linear-gradient(135deg, var(--bg-color-secondary), var(--bg-color-primary));
-    /* Darker gradient for chat */
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for chat */
+    border: 1px solid #334155;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -877,13 +694,11 @@ body.theme-vibrant #aiInsightModal .modal-content {
     flex-grow: 1;
     overflow-y: auto;
     padding: 1rem;
-    background-color: var(--chat-bg);
-    /* Darker background for chat history */
+    background-color: #1a202c; /* Darker background for chat history */
     border-radius: 0.5rem;
     margin-bottom: 1rem;
-    scroll-behavior: smooth;
-    /* Smooth scrolling for new messages */
-    border: 1px solid var(--border-color);
+    scroll-behavior: smooth; /* Smooth scrolling for new messages */
+    border: 1px solid #2d3748;
 }
 
 .chat-message {
@@ -891,34 +706,24 @@ body.theme-vibrant #aiInsightModal .modal-content {
     line-height: 1.4;
     padding: 0.5rem 0.75rem;
     border-radius: 0.75rem;
-    max-width: 85%;
-    /* Limit width for messages */
-    word-wrap: break-word;
-    /* Ensure long words break */
+    max-width: 85%; /* Limit width for messages */
+    word-wrap: break-word; /* Ensure long words break */
 }
 
 .user-message {
     text-align: right;
-    color: var(--text-color-primary);
-    /* Light text for user */
-    background-color: var(--accent-color-blue);
-    /* Blue background for user messages */
-    margin-left: auto;
-    /* Push to right */
-    border-bottom-right-radius: 0;
-    /* Flat corner on sender side */
+    color: #e2e8f0; /* Light text for user */
+    background-color: #3b82f6; /* Blue background for user messages */
+    margin-left: auto; /* Push to right */
+    border-bottom-right-radius: 0; /* Flat corner on sender side */
 }
 
 .jarvis-message {
     text-align: left;
-    color: var(--text-color-secondary);
-    /* Slightly darker text for Jarvis */
-    background-color: var(--button-bg-hover);
-    /* Slate background for Jarvis messages */
-    margin-right: auto;
-    /* Push to left */
-    border-bottom-left-radius: 0;
-    /* Flat corner on sender side */
+    color: #cbd5e1; /* Slightly darker text for Jarvis */
+    background-color: #475569; /* Slate background for Jarvis messages */
+    margin-right: auto; /* Push to left */
+    border-bottom-left-radius: 0; /* Flat corner on sender side */
 }
 
 .chat-message .font-bold {
@@ -926,63 +731,48 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 .chat-message .text-indigo-400 {
-    color: var(--gradient-end);
-    /* Jarvis's name color */
+    color: #818cf8; /* Jarvis's name color */
 }
 
 .chat-message .text-green-400 {
-    color: var(--accent-color-green);
-    /* Lighter green for user's name on blue background */
+    color: #d1fae5; /* Lighter green for user's name on blue background */
 }
 
 .chat-input-container {
     display: flex;
     gap: 0.5rem;
-    align-items: flex-end;
-    /* Align input and button at the bottom */
+    align-items: flex-end; /* Align input and button at the bottom */
 }
 
 /* Corrected .input-field styling for general use */
 .input-field {
     flex-grow: 1;
-    min-height: 40px;
-    /* Minimum height for consistency */
+    min-height: 40px; /* Minimum height for consistency */
     padding: 0.75rem;
-    border-radius: 0.75rem;
-    /* More rounded corners for beauty */
-    background-color: var(--input-bg);
-    /* Use theme variable */
-    border: 1px solid var(--input-border);
-    /* Use theme variable */
-    color: var(--input-text);
-    /* Use theme variable */
+    border-radius: 0.75rem; /* More rounded corners for beauty */
+    background-color: var(--input-bg); /* Use theme variable */
+    border: 1px solid var(--input-border); /* Use theme variable */
+    color: var(--input-text); /* Use theme variable */
     font-size: 1rem;
-    resize: vertical;
-    /* Allow vertical resizing for textareas */
+    resize: vertical; /* Allow vertical resizing for textareas */
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-    /* Subtle inner shadow */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
 }
 
 .input-field:focus {
     outline: none;
-    border-color: var(--input-focus-border);
-    /* Use theme variable */
-    box-shadow: 0 0 0 3px rgba(var(--accent-color-blue-rgb), 0.3);
-    /* Blue glow on focus */
+    border-color: var(--input-focus-border); /* Use theme variable */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Blue glow on focus */
 }
 
 
-#chatInput {
-    /* Specific overrides for chat input if needed, but .input-field should handle most */
-    max-height: 120px;
-    /* Max height before scrolling */
+#chatInput { /* Specific overrides for chat input if needed, but .input-field should handle most */
+    max-height: 120px; /* Max height before scrolling */
 }
 
 #chatSendBtn {
     padding: 0.75rem 1rem;
-    border-radius: 0.75rem;
-    /* Consistent with input-field */
+    border-radius: 0.75rem; /* Consistent with input-field */
     font-size: 1rem;
 }
 
@@ -992,94 +782,68 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--bg-color-secondary);
-    /* Darker track */
+    background: #2d3748; /* Darker track */
     border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--button-bg-hover);
-    /* Scrollbar thumb color */
+    background: #4a5568; /* Scrollbar thumb color */
     border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--text-color-secondary);
-    /* Darker on hover */
+    background: #64748b; /* Darker on hover */
 }
 
-/* Lessons Page/Modal Styling */
+/* NEW: Lessons Page/Modal Styling */
 .lessons-page-container {
-    background: linear-gradient(135deg, var(--bg-color-secondary), var(--bg-color-primary));
-    /* Darker gradient for lessons */
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for lessons */
+    border: 1px solid #334155;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-    max-width: 1400px;
-    /* Wider for courses */
-    width: 100%;
+    max-width: 800px; /* Wider for lessons */
+    width: 90%;
     padding: 2rem;
-    border-radius: 1.5rem;
-    /* User's preferred radius */
-    margin: 20px auto;
-    /* Center the container on the page */
+    border-radius: 1rem; /* User's preferred radius */
+    margin: 20px auto; /* Center the container on the page */
     color: var(--text-color-primary);
-    display: flex;
-    /* Ensure flex for internal layout */
-    flex-direction: column;
-    /* Stack children vertically */
-    align-items: center;
-    /* Center children horizontally */
-    min-height: 80vh;
-    position: relative;
-    /* For absolute positioning of modals */
+    display: flex; /* Ensure flex for internal layout */
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center children horizontally */
 }
 
 .lessons-page-container .button-secondary {
-    align-self: flex-start;
-    /* Align back button to start */
+    align-self: flex-start; /* Align back button to start */
 }
 
-.lesson-input-section,
-.lesson-chat-container,
-.lesson-display-area {
+.lesson-input-section, .lesson-chat-container, .lesson-display-area {
     width: 100%;
-    max-width: 700px;
-    /* Max width for these sections */
-    margin-bottom: 1.5rem;
-    /* Consistent margin-bottom */
-    background-color: var(--card-bg);
-    /* Use card background for these sections */
-    padding: 1.5rem;
-    /* Consistent padding */
-    border-radius: 0.75rem;
-    /* User's preferred radius */
+    max-width: 700px; /* Max width for these sections */
+    margin-bottom: 1.5rem; /* Consistent margin-bottom */
+    background-color: var(--card-bg); /* Use card background for these sections */
+    padding: 1.5rem; /* Consistent padding */
+    border-radius: 0.75rem; /* User's preferred radius */
     box-shadow: var(--box-shadow);
     border: 1px solid var(--border-color);
 }
 
 
 .lesson-step-card {
-    background-color: var(--bg-color-secondary);
-    /* Darker card background */
+    background-color: #2d3748; /* Darker card background */
     padding: 1rem;
     border-radius: 0.75rem;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid #4a5568;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
 .twisty-player-lesson-container {
-    background-color: var(--bg-color-primary);
-    /* Dark background for player */
+    background-color: #0f172a; /* Dark background for player */
     border-radius: 0.5rem;
     overflow: hidden;
-    border: 1px solid var(--border-color);
-    position: relative;
-    /* Needed for absolute positioning of controls */
+    border: 1px solid #334155;
+    position: relative; /* Needed for absolute positioning of controls */
     width: 100%;
-    padding-bottom: 75%;
-    /* 4:3 Aspect Ratio (height is 75% of width) */
-    height: 0;
-    /* Important for aspect ratio to work */
+    padding-bottom: 75%; /* 4:3 Aspect Ratio (height is 75% of width) */
+    height: 0; /* Important for aspect ratio to work */
 }
 
 .twisty-player-lesson-container twisty-player {
@@ -1101,10 +865,8 @@ body.theme-vibrant #aiInsightModal .modal-content {
     padding: 8px 15px;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(5px);
-    /* Frosted glass effect */
-    -webkit-backdrop-filter: blur(5px);
-    /* For Safari */
+    backdrop-filter: blur(5px); /* Frosted glass effect */
+    -webkit-backdrop-filter: blur(5px); /* For Safari */
 }
 
 .twisty-player-controls .button-icon {
@@ -1127,28 +889,26 @@ body.theme-vibrant #aiInsightModal .modal-content {
     font-weight: 600;
 }
 
-/* Style for completed button */
+/* NEW: Style for completed button */
 .button-completed {
-    background-color: var(--accent-color-green);
-    /* Emerald green */
+    background-color: #10b981; /* Emerald green */
     color: white;
     cursor: not-allowed;
-    box-shadow: 0 3px 10px rgba(var(--accent-color-green-rgb), 0.4);
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
 }
 
 .button-completed:hover {
     transform: none;
-    box-shadow: 0 3px 10px rgba(var(--accent-color-green-rgb), 0.4);
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
 }
 
 
-/* History Page Styling */
+/* NEW: History Page Styling */
 .history-page-container {
-    background: linear-gradient(135deg, var(--bg-color-secondary), var(--bg-color-primary));
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-    max-width: 900px;
-    /* Wider for history */
+    max-width: 900px; /* Wider for history */
     width: 90%;
     padding: 2rem;
     border-radius: 1rem;
@@ -1158,43 +918,35 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
 /* History page specific solve item adjustments */
 .history-page-container .solve-history-item {
-    flex-direction: row;
-    /* Ensure row layout for desktop history page */
+    flex-direction: row; /* Ensure row layout for desktop history page */
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    /* Allow wrapping if content is too long */
+    flex-wrap: wrap; /* Allow wrapping if content is too long */
     gap: 0.75rem;
 }
 
 .history-page-container .solve-history-item .time {
-    flex-shrink: 0;
-    /* Prevent time from shrinking */
+    flex-shrink: 0; /* Prevent time from shrinking */
 }
 
 .history-page-container .solve-history-item .scramble-text {
-    flex-grow: 1;
-    /* Allow scramble text to take available space */
+    flex-grow: 1; /* Allow scramble text to take available space */
     text-align: left;
-    margin-left: 1rem;
-    /* Space between time and scramble */
+    margin-left: 1rem; /* Space between time and scramble */
     margin-right: 1rem;
 }
 
 .history-page-container .solve-history-item .penalty-buttons {
-    flex-shrink: 0;
-    /* Prevent buttons from shrinking */
-    justify-content: flex-end;
-    /* Align buttons to the right */
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+    justify-content: flex-end; /* Align buttons to the right */
 }
 
-/* Settings Page Styling */
+/* NEW: Settings Page Styling */
 .settings-page-container {
-    background: linear-gradient(135deg, var(--bg-color-secondary), var(--bg-color-primary));
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-    max-width: 600px;
-    /* Appropriate width for settings */
+    max-width: 600px; /* Appropriate width for settings */
     width: 90%;
     padding: 2rem;
     border-radius: 1rem;
@@ -1208,13 +960,11 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border-radius: 0.75rem;
     border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
-    margin-bottom: 1.5rem;
-    /* Space between sections */
+    margin-bottom: 1.5rem; /* Space between sections */
 }
 
 .settings-page-container .setting-section:last-child {
-    margin-bottom: 0;
-    /* No margin after the last section */
+    margin-bottom: 0; /* No margin after the last section */
 }
 
 /* Toggle switch styling (copied from previous modal styling) */
@@ -1225,8 +975,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     -moz-appearance: none;
     width: 40px;
     height: 20px;
-    background-color: var(--button-bg-hover);
-    /* Off state background */
+    background-color: #475569; /* Off state background */
     border-radius: 10px;
     position: relative;
     cursor: pointer;
@@ -1241,15 +990,13 @@ body.theme-vibrant #aiInsightModal .modal-content {
     left: 2px;
     width: 16px;
     height: 16px;
-    background-color: var(--text-color-primary);
-    /* Handle color */
+    background-color: #e2e8f0; /* Handle color */
     border-radius: 50%;
     transition: transform 0.2s;
 }
 
 .toggle-switch:checked {
-    background-color: var(--accent-color-blue);
-    /* On state background */
+    background-color: #3b82f6; /* On state background */
 }
 
 .toggle-switch:checked::before {
@@ -1266,76 +1013,56 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 
     .main-layout {
-        flex-direction: column;
-        /* Stack sidebar and content vertically */
-        padding: 0;
-        /* Handled by child elements */
+        flex-direction: column; /* Stack sidebar and content vertically */
+        padding: 0; /* Handled by child elements */
     }
 
     .sidebar {
-        width: 100%;
-        /* Full width on mobile */
-        padding: 1rem 0.5rem;
-        /* Adjusted padding for mobile */
+        width: 100%; /* Full width on mobile */
+        padding: 1rem 0.5rem; /* Adjusted padding for mobile */
         border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        /* Separator */
-        box-shadow: none;
-        /* Remove sidebar shadow on mobile */
+        border-bottom: 1px solid var(--border-color); /* Separator */
+        box-shadow: none; /* Remove sidebar shadow on mobile */
         gap: 1rem;
-        flex-direction: row;
-        /* Horizontal layout for mobile nav */
-        justify-content: space-around;
-        /* Distribute items evenly */
+        flex-direction: row; /* Horizontal layout for mobile nav */
+        justify-content: space-around; /* Distribute items evenly */
         align-items: center;
-        border-radius: 0;
-        /* No rounded corners on mobile for full width */
-        min-height: auto;
-        /* Allow height to adjust to content */
+        border-radius: 0; /* No rounded corners on mobile for full width */
+        min-height: auto; /* Allow height to adjust to content */
         height: auto;
     }
 
     .sidebar:hover {
-        width: 100%;
-        /* No width change on hover for mobile */
+        width: 100%; /* No width change on hover for mobile */
         padding: 1rem 0.5rem;
         align-items: center;
     }
 
     .sidebar .nav-item {
-        flex-direction: column;
-        /* Stack icon and text vertically */
+        flex-direction: column; /* Stack icon and text vertically */
         padding: 0.5rem;
-        font-size: 0.8rem;
-        /* Smaller font for mobile nav text */
+        font-size: 0.8rem; /* Smaller font for mobile nav text */
     }
 
     .sidebar .nav-icon {
-        margin-right: 0 !important;
-        /* No margin on mobile */
-        margin-bottom: 0.25rem;
-        /* Space between icon and text */
-        font-size: 1.2rem;
-        /* Smaller icon size for mobile */
+        margin-right: 0 !important; /* No margin on mobile */
+        margin-bottom: 0.25rem; /* Space between icon and text */
+        font-size: 1.2rem; /* Smaller icon size for mobile */
     }
 
     .sidebar .nav-text {
-        display: block;
-        /* Always show text on mobile */
+        display: block; /* Always show text on mobile */
         opacity: 1;
-        font-size: 0.7rem;
-        /* Even smaller for text */
+        font-size: 0.7rem; /* Even smaller for text */
     }
 
     .sidebar:hover .nav-text {
-        display: block;
-        /* Still show on hover, but no change */
+        display: block; /* Still show on hover, but no change */
         opacity: 1;
     }
 
     .content-area {
-        padding: 16px;
-        /* Padding for main content on mobile */
+        padding: 16px; /* Padding for main content on mobile */
     }
 
     .container {
@@ -1355,8 +1082,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
         margin-top: 0.5rem;
         /* Adjust to fit content well */
         margin-bottom: 0.5rem;
-        position: static;
-        /* Remove absolute positioning on mobile */
+        position: static; /* Remove absolute positioning on mobile */
     }
 
     .auth-corner-buttons button {
@@ -1443,70 +1169,46 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 
     .solve-history-item .penalty-buttons {
-        flex-direction: row;
-        /* Ensure buttons stay in a row on mobile */
-        flex-wrap: wrap;
-        /* Allow wrapping if many buttons */
-        justify-content: flex-start;
-        /* Align to start on mobile */
-        width: 100%;
-        /* Take full width to align buttons */
-        margin-left: 0;
-        /* Remove left margin */
+        flex-direction: row; /* Ensure buttons stay in a row on mobile */
+        flex-wrap: wrap; /* Allow wrapping if many buttons */
+        justify-content: flex-start; /* Align to start on mobile */
+        width: 100%; /* Take full width to align buttons */
+        margin-left: 0; /* Remove left margin */
     }
 
     .solve-history-item .penalty-buttons button {
-        padding: 0.3rem 0.6rem;
-        /* Smaller padding for mobile buttons */
-        font-size: 0.75rem;
-        /* Smaller font for mobile buttons */
+        padding: 0.3rem 0.6rem; /* Smaller padding for mobile buttons */
+        font-size: 0.75rem; /* Smaller font for mobile buttons */
     }
 
     /* Adjustments for voice feedback and chat on mobile */
-    .voice-feedback-display,
-    .chat-container {
-        bottom: 10px;
-        /* Closer to bottom edge on mobile */
-        left: 10px;
-        /* Adjust left position */
-        right: 10px;
-        /* Adjust right position */
-        transform: none;
-        /* Remove transform for fixed positioning */
-        width: auto;
-        /* Allow width to be determined by left/right */
-        max-width: calc(100% - 20px);
-        /* Max width for mobile */
-        padding: 15px 20px;
-        /* Adjusted padding */
-        font-size: 1rem;
-        /* Smaller font */
-        border-radius: 10px;
-        /* Smaller border radius */
+    .voice-feedback-display, .chat-container {
+        bottom: 10px; /* Closer to bottom edge on mobile */
+        left: 10px; /* Adjust left position */
+        right: 10px; /* Adjust right position */
+        transform: none; /* Remove transform for fixed positioning */
+        width: auto; /* Allow width to be determined by left/right */
+        max-width: calc(100% - 20px); /* Max width for mobile */
+        padding: 15px 20px; /* Adjusted padding */
+        font-size: 1rem; /* Smaller font */
+        border-radius: 10px; /* Smaller border radius */
     }
 
     .chat-container {
-        height: 60vh;
-        /* Adjust height for mobile chat */
+        height: 60vh; /* Adjust height for mobile chat */
     }
 
-    #voiceCommandBtn,
-    #openChatBtn {
-        width: 48px;
-        /* Smaller buttons on mobile */
+    #voiceCommandBtn, #openChatBtn {
+        width: 48px; /* Smaller buttons on mobile */
         height: 48px;
-        font-size: 1.5rem;
-        /* Smaller icon */
-        bottom: 10px;
-        /* Adjust position */
+        font-size: 1.5rem; /* Smaller icon */
+        bottom: 10px; /* Adjust position */
         right: 10px;
-        left: auto;
-        /* Ensure right alignment */
+        left: auto; /* Ensure right alignment */
     }
 
     #openChatBtn {
-        left: 10px;
-        /* Align chat button to left */
+        left: 10px; /* Align chat button to left */
         right: auto;
     }
 
@@ -1516,17 +1218,14 @@ body.theme-vibrant #aiInsightModal .modal-content {
         border-radius: 0;
     }
 
-    .lesson-input-section,
-    .lesson-chat-container,
-    .lesson-display-area {
+    .lesson-input-section, .lesson-chat-container, .lesson-display-area {
         padding: 1rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
     }
 
     .lesson-chat-container .chat-history-box {
-        height: 180px;
-        /* Further adjust chat history height for very small screens */
+        height: 180px; /* Further adjust chat history height for very small screens */
     }
 
     .lesson-step-card {
@@ -1545,7 +1244,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
 
     .twisty-player-controls .button-icon {
-        font-size: 1rem;
+        font-size: 1.1rem;
         padding: 5px;
     }
 
@@ -1579,9 +1278,9 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
     .button-primary,
     .button-secondary {
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         /* Slightly smaller button font */
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1rem;
         /* Reduced padding */
     }
 
@@ -1602,13 +1301,8 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* TOAST NOTIFICATIONS */
