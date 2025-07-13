@@ -1,8 +1,9 @@
 // Firebase imports - These are provided globally by the Canvas environment
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, getDocs, addDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 console.log("[DEBUG] Firebase imports for lessons.js completed.");
+console.log("[DEBUG] Value of getDoc after import:", getDoc); // ADDED DEBUG LOG FOR getDoc
 
 // =====================================================================================================
 // --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
@@ -773,7 +774,7 @@ function renderLessonStep() {
 
     // Show content based on lesson type
     if (lessonType.includes('theory') || lessonType.includes('conceptual')) {
-        lessonContentDisplay.innerHTML = marked.parse(lesson.content || 'No content provided for this lesson.');
+        lessonContentDisplay.innerHTML = window.marked.parse(lesson.content || 'No content provided for this lesson.'); // MODIFIED HERE
         lessonContentDisplay.classList.remove('hidden');
     }
 
@@ -1387,7 +1388,7 @@ function setupEventListeners() {
  */
 async function loadInitialView() {
     // For now, always start at the hub. In a more complex app,
-    // we might check if a lesson was in progress and resume it directly.
+    // we might check if a lesson was in progress and then resume it directly.
     showSection(lessonHub);
     showGlobalLoadingSpinner(false); // Hide global spinner once initial view is set
 }
