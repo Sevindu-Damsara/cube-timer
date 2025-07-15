@@ -275,7 +275,7 @@ async function initializeFirebaseAndAuth() {
                     console.error("[ERROR] Anonymous sign-in failed:", anonError);
                     showToast("Authentication failed. Please try again.", "error");
                     // Fallback to a random UUID if anonymous sign-in fails
-                    userId = `guest-${crypto.randomUUID()}`; // Corrected: Added missing backtick
+                    userId = `guest-${crypto.randomUUID()}`;
                     isUserAuthenticated = false;
                 }
             }
@@ -465,29 +465,27 @@ function displayCourseChatMessage(sender, message) {
 }
 
 /**
- * Sends a message to the Vercel serverless function for course creation.
+ * Sends a message to the Vercel serverless function to process chat input.
+ * It determines whether to continue chat or initiate course generation.
  * @param {string} prompt - The user's prompt.
  */
-async function sendCourseCreationPrompt(prompt) {
+async function processCourseChatInput(prompt) {
     displayCourseChatMessage('user', prompt);
     courseChatInput.value = '';
     courseChatSpinner.classList.remove('hidden');
     sendCourseChatBtn.disabled = true;
 
-    // The chat history to send to the serverless function
-    const chatHistoryToSend = [...courseChatHistory, { role: "user", parts: [{ text: prompt }] }];
+    // Add user's message to history for sending to server
+    courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     try {
         const payload = {
-            type: 'generate_course', // Indicate to the serverless function that this is a course generation request
-            chatHistory: chatHistoryToSend,
-            // You might also want to send current filter values if they influence course generation
+            type: 'lesson_chat', // Always start with a 'lesson_chat' type for conversational input
+            chatHistory: courseChatHistory, // Send the full history for context
             cubeType: courseTypeFilter.value,
             skillLevel: courseLevelFilter.value,
-            // Add other relevant context from the UI if needed for the AI model
         };
 
-        // The client-side makes a request to YOUR Vercel serverless function
         const apiUrl = '/api/gemini-insight'; 
 
         const response = await fetch(apiUrl, {
@@ -497,32 +495,78 @@ async function sendCourseCreationPrompt(prompt) {
         });
 
         const result = await response.json();
-        console.log("[DEBUG] Vercel Serverless Function response (course creation):", result);
+        console.log("[DEBUG] Vercel Serverless Function response (chat processing):", result);
 
-        if (response.ok && result.course) { // Check for successful response from your serverless function
+        if (response.ok && result.message) {
+            displayCourseChatMessage('jarvis', result.message);
+            courseChatHistory.push({ role: "model", parts: [{ text: result.message }] });
+            speakAsJarvis(result.message);
+
+            if (result.action === 'generate_course') {
+                // If the server signals to generate a course, initiate the course generation process
+                await initiateCourseGeneration();
+            }
+        } else {
+            const errorMessage = result.error || "I am unable to process your request, Sir Sevindu. Please try again.";
+            displayCourseChatMessage('jarvis', errorMessage);
+            courseChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
+        }
+    } catch (e) {
+        console.error("Error calling Vercel Serverless Function for chat processing:", e);
+        displayCourseChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later.");
+        courseChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later." }] });
+    } finally {
+        courseChatSpinner.classList.add('hidden');
+        sendCourseChatBtn.disabled = false;
+    }
+}
+
+/**
+ * Initiates the course generation process by sending a specific request to the serverless function.
+ */
+async function initiateCourseGeneration() {
+    displayCourseChatMessage('jarvis', "Understood, Sir Sevindu. I am now generating your personalized cubing course. This may take a moment.");
+    speakAsJarvis("Understood, Sir Sevindu. I am now generating your personalized cubing course. This may take a moment.");
+    courseChatSpinner.classList.remove('hidden');
+    sendCourseChatBtn.disabled = true;
+
+    try {
+        const payload = {
+            type: 'generate_course', // Explicitly request course generation
+            chatHistory: courseChatHistory, // Send the full chat history for context
+            cubeType: courseTypeFilter.value,
+            skillLevel: courseLevelFilter.value,
+            // Add other relevant context from the UI if needed for the AI model
+        };
+
+        const apiUrl = '/api/gemini-insight'; 
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        console.log("[DEBUG] Vercel Serverless Function response (course generation):", result);
+
+        if (response.ok && result.course) {
             const newCourse = result.course;
-            // Add default values for lastAccessed indices if not provided by AI
             newCourse.lastAccessedModuleIndex = 0;
             newCourse.lastAccessedLessonIndex = 0;
             newCourse.lastAccessedStepIndex = 0;
             await saveCourse(newCourse);
-            displayCourseChatMessage('jarvis', `Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.`);
-            speakAsJarvis(`Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.`);
-            // Update client-side chat history only if course generation was successful
-            courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            courseChatHistory.push({ role: "model", parts: [{ text: `Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.` }] });
+            displayCourseChatMessage('jarvis', `Course "${newCourse.title}" created successfully, Sir Sevindu! You may now close this chat and begin your training.`);
+            speakAsJarvis(`Course "${newCourse.title}" created successfully, Sir Sevindu! You may now close this chat and begin your training.`);
         } else {
-            const errorMessage = result.error || "I am unable to generate a course based on your request, Sir Sevindu. Please provide more details about the type of course you would like to create (e.g., 'a beginner 3x3 course').";
+            const errorMessage = result.error || "I encountered an issue generating the course, Sir Sevindu. Please ensure all necessary details were provided or try again.";
             displayCourseChatMessage('jarvis', errorMessage);
-            // Update client-side chat history even if there was an error, to keep context
-            courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            courseChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
+            speakAsJarvis(errorMessage);
         }
     } catch (e) {
-        console.error("Error calling Vercel Serverless Function for course creation:", e);
-        displayCourseChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty and cannot generate the course at this moment. Please check your internet connection or try again later.");
-        courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
-        courseChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty and cannot generate the course at this moment. Please check your internet connection or try again later." }] });
+        console.error("Error calling Vercel Serverless Function for course generation:", e);
+        displayCourseChatMessage('jarvis', "My apologies, Sir Sevindu. A critical error occurred during course generation. Please check your network and try again.");
+        speakAsJarvis("My apologies, Sir Sevindu. A critical error occurred during course generation. Please check your network and try again.");
     } finally {
         courseChatSpinner.classList.add('hidden');
         sendCourseChatBtn.disabled = false;
@@ -1220,10 +1264,10 @@ function setupEventListeners() {
         showSection(lessonHub); // Go back to the hub
         loadCourseList(); // Refresh course list
     });
-    if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => sendCourseCreationPrompt(courseChatInput.value));
+    if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => processCourseChatInput(courseChatInput.value));
     if (courseChatInput) courseChatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && courseChatInput.value.trim() !== '') {
-            sendCourseCreationPrompt(courseChatInput.value);
+            processCourseChatInput(courseChatInput.value);
         }
     });
 
