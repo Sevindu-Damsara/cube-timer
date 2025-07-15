@@ -415,17 +415,30 @@ function renderCourseCard(course) {
     `;
     courseList.appendChild(card);
 
-    card.querySelector('.start-course-btn').addEventListener('click', async () => {
-        await loadCourse(course.id);
-        showSection(lessonViewer);
-    });
+    const startButton = card.querySelector('.start-course-btn');
+    const deleteButton = card.querySelector('.delete-course-btn');
 
-    card.querySelector('.delete-course-btn').addEventListener('click', async (event) => {
-        event.stopPropagation(); // Prevent start-course-btn from being triggered
-        if (confirm("Are you sure you want to delete this course?")) {
-            await deleteCourse(course.id);
-        }
-    });
+    if (startButton) {
+        startButton.addEventListener('click', async () => {
+            console.log(`[DEBUG] Start Course button clicked for ID: ${course.id}`);
+            await loadCourse(course.id);
+            showSection(lessonViewer);
+        });
+    } else {
+        console.error("[ERROR] Start Course button not found for course:", course.id);
+    }
+
+    if (deleteButton) {
+        deleteButton.addEventListener('click', async (event) => {
+            event.stopPropagation(); // Prevent start-course-btn from being triggered
+            console.log(`[DEBUG] Delete Course button clicked for ID: ${course.id}`);
+            if (confirm("Are you sure you want to delete this course?")) {
+                await deleteCourse(course.id);
+            }
+        });
+    } else {
+        console.error("[ERROR] Delete Course button not found for course:", course.id);
+    }
 }
 
 /**
@@ -433,13 +446,15 @@ function renderCourseCard(course) {
  * @param {string} courseId - The ID of the course to delete.
  */
 async function deleteCourse(courseId) {
+    console.log(`[DEBUG] Attempting to delete course with ID: ${courseId}`);
     try {
         const courseDocRef = doc(getUserCollectionRef('courses'), courseId);
         await deleteDoc(courseDocRef);
         showToast("Course deleted successfully!", "success");
+        console.log(`[DEBUG] Course ${courseId} deleted from Firestore.`);
         // No need to reload course list, onSnapshot will handle it
     } catch (e) {
-        console.error("Error deleting course:", e);
+        console.error(`[ERROR] Error deleting course ${courseId}:`, e);
         showToast("Failed to delete course.", "error");
     }
 }
@@ -580,13 +595,28 @@ async function initiateCourseGeneration() {
  * @param {Object} courseData - The course data to save.
  */
 async function saveCourse(courseData) {
+    console.log("[DEBUG] Attempting to save course to Firestore:", courseData);
     try {
         const coursesRef = getUserCollectionRef('courses');
         if (!coursesRef) {
             showToast("Failed to save course: Authentication not ready.", "error");
             return;
         }
-        const docRef = await addDoc(coursesRef, courseData);
+        // Ensure courseData includes necessary top-level fields for Firestore
+        const dataToSave = {
+            id: courseData.id, // Firestore document ID will be auto-generated, but keeping this for consistency if AI provides it
+            title: courseData.title,
+            description: courseData.description,
+            cubeType: courseData.cubeType,
+            level: courseData.level,
+            modules: courseData.modules,
+            lastAccessedModuleIndex: courseData.lastAccessedModuleIndex,
+            lastAccessedLessonIndex: courseData.lastAccessedLessonIndex,
+            lastAccessedStepIndex: courseData.lastAccessedStepIndex,
+            createdAt: new Date().toISOString()
+        };
+
+        const docRef = await addDoc(coursesRef, dataToSave);
         console.log("Course saved with ID:", docRef.id);
         showToast("Course created successfully!", "success");
         // No need to reload course list, onSnapshot will handle it
@@ -605,6 +635,7 @@ async function saveCourse(courseData) {
  * @param {string} courseId - The ID of the course to load.
  */
 async function loadCourse(courseId) {
+    console.log(`[DEBUG] Attempting to load course with ID: ${courseId}`);
     showGlobalLoadingSpinner(true);
     try {
         const courseDocRef = doc(getUserCollectionRef('courses'), courseId);
@@ -624,11 +655,11 @@ async function loadCourse(courseId) {
             currentLessonStepIndex = currentCourse.lastAccessedStepIndex || 0;
 
             // Ensure indices are within bounds
-            if (currentModuleIndex >= currentCourse.modules.length) currentModuleIndex = 0;
-            const currentModule = currentCourse.modules[currentModuleIndex];
-            if (currentModule && currentLessonIndex >= currentModule.lessons.length) currentLessonIndex = 0;
-            const currentLesson = currentModule.lessons[currentLessonIndex];
-            if (currentLesson && currentLessonStepIndex >= currentLesson.steps.length) currentLessonStepIndex = 0;
+            if (currentCourse.modules && currentModuleIndex >= currentCourse.modules.length) currentModuleIndex = 0;
+            const currentModule = currentCourse.modules ? currentCourse.modules[currentModuleIndex] : null;
+            if (currentModule && currentModule.lessons && currentLessonIndex >= currentModule.lessons.length) currentLessonIndex = 0;
+            const currentLesson = currentModule && currentModule.lessons ? currentModule.lessons[currentLessonIndex] : null;
+            if (currentLesson && currentLesson.steps && currentLessonStepIndex >= currentLesson.steps.length) currentLessonStepIndex = 0;
 
             await loadLessonStep(currentModuleIndex, currentLessonIndex, currentLessonStepIndex);
             showSection(lessonViewer);
@@ -651,6 +682,10 @@ async function loadCourse(courseId) {
  */
 function renderModuleList() {
     moduleList.innerHTML = ''; // Clear existing list
+    if (!currentCourse || !currentCourse.modules) {
+        console.warn("[WARN] No modules to render or currentCourse is null.");
+        return;
+    }
     currentCourse.modules.forEach((module, modIndex) => {
         const moduleItem = document.createElement('li');
         moduleItem.className = 'module-item';
@@ -665,21 +700,23 @@ function renderModuleList() {
         const moduleTitleElement = moduleItem.querySelector('.module-title');
         const chevronIcon = moduleItem.querySelector('.fas.fa-chevron-right');
 
-        module.lessons.forEach((lesson, lessonIndex) => {
-            const lessonItem = document.createElement('li');
-            lessonItem.className = 'lesson-item text-gray-400 hover:text-white hover:bg-gray-700 px-3 py-1 rounded-md transition-colors';
-            lessonItem.textContent = lesson.lessonTitle;
-            lessonItem.dataset.modIndex = modIndex;
-            lessonItem.dataset.lessonIndex = lessonIndex;
-            lessonItem.addEventListener('click', async () => {
-                currentModuleIndex = modIndex;
-                currentLessonIndex = lessonIndex;
-                currentLessonStepIndex = 0; // Reset to first step when changing lesson
-                await loadLessonStep(modIndex, lessonIndex, 0);
-                updateCourseProgressInFirestore();
+        if (module.lessons) {
+            module.lessons.forEach((lesson, lessonIndex) => {
+                const lessonItem = document.createElement('li');
+                lessonItem.className = 'lesson-item text-gray-400 hover:text-white hover:bg-gray-700 px-3 py-1 rounded-md transition-colors';
+                lessonItem.textContent = lesson.lessonTitle;
+                lessonItem.dataset.modIndex = modIndex;
+                lessonItem.dataset.lessonIndex = lessonIndex;
+                lessonItem.addEventListener('click', async () => {
+                    currentModuleIndex = modIndex;
+                    currentLessonIndex = lessonIndex;
+                    currentLessonStepIndex = 0; // Reset to first step when changing lesson
+                    await loadLessonStep(modIndex, lessonIndex, 0);
+                    updateCourseProgressInFirestore();
+                });
+                lessonListElement.appendChild(lessonItem);
             });
-            lessonListElement.appendChild(lessonItem);
-        });
+        }
 
         moduleTitleElement.addEventListener('click', () => {
             lessonListElement.classList.toggle('hidden');
@@ -852,7 +889,7 @@ function submitQuiz() {
         const questionElement = quizQuestionsContainer.children[qIndex];
         const options = questionElement.querySelectorAll('.answer-option');
         const userAnswer = currentQuizAnswers[qIndex];
-        const correctAnswers = Array.isArray(q.answer) ? q.answer.map(ans => ans.trim()) : [q.answer.trim()]; // Handle both string and array for correct answers
+        const correctAnswers = Array.isArray(q.answer) ? q.answer.map(ans => ans.trim()) : [String(q.answer).trim()]; // Handle both string and array for correct answers and ensure string conversion
 
         let isQuestionCorrect = false;
 
