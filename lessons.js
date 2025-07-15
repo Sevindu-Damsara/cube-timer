@@ -550,8 +550,9 @@ async function initiateCourseGeneration() {
         const result = await response.json();
         console.log("[DEBUG] Vercel Serverless Function response (course generation):", result);
 
-        if (response.ok && result.course) {
-            const newCourse = result.course;
+        // Corrected: Check for course_id directly in the result object, as the server returns the course object itself.
+        if (response.ok && result.course_id) { 
+            const newCourse = result; // Corrected: Assign the entire result as the newCourse
             newCourse.lastAccessedModuleIndex = 0;
             newCourse.lastAccessedLessonIndex = 0;
             newCourse.lastAccessedStepIndex = 0;
