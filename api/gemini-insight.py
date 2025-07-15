@@ -284,14 +284,16 @@ def handle_generate_course(request_json):
         - `answer`: The correct answer(s) (string for single choice, array of strings for multiple choice).
 
     Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
-    Provide a `course_title` and `course_description`.
+    Provide a `title` (for the course), `description` (for the course), `cubeType` (e.g., "3x3"), and `level` (e.g., "beginner") at the top level of the JSON.
 
     Return the course structure as a single JSON object.
     Example JSON structure:
     {{
         "course_id": "unique-course-uuid",
-        "course_title": "Beginner's Guide to 3x3",
-        "course_description": "Learn the fundamentals of solving the 3x3 Rubik's Cube.",
+        "title": "Beginner's Guide to 3x3",
+        "description": "Learn the fundamentals of solving the 3x3 Rubik's Cube.",
+        "cubeType": "3x3",
+        "level": "beginner",
         "modules": [
             {{
                 "module_id": "unique-module-uuid-1",
@@ -359,8 +361,10 @@ def handle_generate_course(request_json):
                 "type": "OBJECT",
                 "properties": {
                     "course_id": {"type": "STRING"},
-                    "course_title": {"type": "STRING"},
-                    "course_description": {"type": "STRING"},
+                    "title": {"type": "STRING"}, # Changed from course_title
+                    "description": {"type": "STRING"}, # Changed from course_description
+                    "cubeType": {"type": "STRING"}, # Added
+                    "level": {"type": "STRING"}, # Added
                     "modules": {
                         "type": "ARRAY",
                         "items": {
@@ -386,7 +390,7 @@ def handle_generate_course(request_json):
                                                     "properties": {
                                                         "question": {"type": "STRING"},
                                                         "options": {"type": "ARRAY", "items": {"type": "STRING"}},
-                                                        "answer": {"oneOf": [{"type": "STRING"}, {"type": "ARRAY", "items": {"type": "STRING"}}]}
+                                                        "answer": {"oneOf": [{"type": "STRING"}, {"type": "ARRAY", "items": {"type": "STRING"}}]} # Updated to allow array
                                                     },
                                                     "required": ["question", "options", "answer"]
                                                 },
@@ -401,7 +405,7 @@ def handle_generate_course(request_json):
                         }
                     }
                 },
-                "required": ["course_id", "course_title", "course_description", "modules"]
+                "required": ["course_id", "title", "description", "cubeType", "level", "modules"] # Updated required fields
             }
         }
     }
@@ -417,12 +421,15 @@ def handle_generate_course(request_json):
             json_text = response_data['candidates'][0]['content']['parts'][0]['text']
             course_data = json.loads(json_text)
             
-            # Ensure all IDs are unique UUIDs
-            course_data['course_id'] = str(uuid.uuid4())
-            for module in course_data['modules']:
-                module['module_id'] = str(uuid.uuid4())
-                for lesson in module['lessons']:
-                    lesson['lesson_id'] = str(uuid.uuid4())
+            # Ensure all IDs are unique UUIDs and add them if not provided by AI
+            if 'course_id' not in course_data or not course_data['course_id']:
+                course_data['course_id'] = str(uuid.uuid4())
+            for module in course_data.get('modules', []):
+                if 'module_id' not in module or not module['module_id']:
+                    module['module_id'] = str(uuid.uuid4())
+                for lesson in module.get('lessons', []):
+                    if 'lesson_id' not in lesson or not lesson['lesson_id']:
+                        lesson['lesson_id'] = str(uuid.uuid4())
             
             return jsonify(course_data), 200
         else:
@@ -439,4 +446,3 @@ def handle_generate_course(request_json):
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
         return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
-
