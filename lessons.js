@@ -153,10 +153,15 @@ function showGlobalLoadingSpinner(show) {
  */
 function hideAllSections() {
     console.log("[DEBUG] Hiding all sections.");
-    lessonHub.style.display = 'none';
-    lessonViewer.style.display = 'none';
-    lessonHistorySection.style.display = 'none';
-    courseCreationSection.style.display = 'none';
+    const sections = [lessonHub, lessonViewer, lessonHistorySection, courseCreationSection];
+    sections.forEach(section => {
+        if (section) { // Ensure element exists
+            section.style.display = 'none';
+            section.style.visibility = 'hidden';
+            section.style.height = '0px';
+            section.style.overflow = 'hidden';
+        }
+    });
 }
 
 /**
@@ -165,12 +170,19 @@ function hideAllSections() {
  */
 function showSection(sectionElement) {
     console.log(`[DEBUG] Attempting to show section: ${sectionElement.id}`);
-    hideAllSections();
-    // Re-apply correct display type based on section
-    if (sectionElement === lessonViewer) {
-        sectionElement.style.display = 'grid'; // lessonViewer uses grid layout
-    } else {
-        sectionElement.style.display = 'flex'; // Other sections use flex layout
+    hideAllSections(); // Ensure all are hidden first
+
+    if (sectionElement) { // Ensure element exists
+        // Reset aggressive hiding styles when showing a section
+        sectionElement.style.visibility = 'visible';
+        sectionElement.style.height = ''; // Reset height
+        sectionElement.style.overflow = ''; // Reset overflow
+
+        if (sectionElement === lessonViewer) {
+            sectionElement.style.display = 'grid'; // lessonViewer uses grid layout
+        } else {
+            sectionElement.style.display = 'flex'; // Other sections use flex layout
+        }
     }
     console.log(`[DEBUG] Section ${sectionElement.id} display style after show: ${sectionElement.style.display}`);
 }
@@ -508,7 +520,8 @@ async function sendCourseCreationPrompt(prompt) {
             }
         };
 
-        const apiKey = ""; // Canvas will provide this
+        // Correctly access the API key from process.env for Vercel deployment
+        const apiKey = process.env.API_KEY; 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         const response = await fetch(apiUrl, {
@@ -1127,7 +1140,8 @@ async function sendInLessonChatPrompt(prompt) {
             contents: chatPayload,
         };
 
-        const apiKey = ""; // Canvas will provide this
+        // Correctly access the API key from process.env for Vercel deployment
+        const apiKey = process.env.API_KEY; 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         const response = await fetch(apiUrl, {
@@ -1248,12 +1262,14 @@ function setupEventListeners() {
             await Tone.start();
             console.log("[DEBUG] Tone.js AudioContext resumed.");
         }
+        console.log("[DEBUG] Before showing courseCreationSection, lessonViewer display:", lessonViewer.style.display, "visibility:", lessonViewer.style.visibility, "height:", lessonViewer.style.height); // Added debug log
         showSection(courseCreationSection); // Show the new full-screen section
         courseChatHistory = []; // Clear chat history for new course creation
         courseChatMessages.innerHTML = '';
         displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to assist you in designing a new cubing course. Please tell me what type of cube (e.g., 3x3, Pyraminx), what skill level (e.g., beginner, advanced), and any specific topics or methods you would like to include.");
     });
     if (backToCoursesBtn) backToCoursesBtn.addEventListener('click', () => { // Updated button
+        console.log("[DEBUG] Before showing lessonHub, lessonViewer display:", lessonViewer.style.display, "visibility:", lessonViewer.style.visibility, "height:", lessonViewer.style.height); // Added debug log
         showSection(lessonHub); // Go back to the hub
         loadCourseList(); // Refresh course list
     });
