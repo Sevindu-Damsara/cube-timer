@@ -153,10 +153,10 @@ function showGlobalLoadingSpinner(show) {
  */
 function hideAllSections() {
     console.log("[DEBUG] Hiding all sections.");
-    lessonHub.classList.add('hidden');
-    lessonViewer.classList.add('hidden');
-    lessonHistorySection.classList.add('hidden');
-    courseCreationSection.classList.add('hidden'); // Hide the new section
+    lessonHub.style.display = 'none';
+    lessonViewer.style.display = 'none';
+    lessonHistorySection.style.display = 'none';
+    courseCreationSection.style.display = 'none';
 }
 
 /**
@@ -166,9 +166,13 @@ function hideAllSections() {
 function showSection(sectionElement) {
     console.log(`[DEBUG] Attempting to show section: ${sectionElement.id}`);
     hideAllSections();
-    sectionElement.classList.remove('hidden');
-    sectionElement.classList.add('flex'); // Ensure it's flex for its internal layout
-    console.log(`[DEBUG] Section ${sectionElement.id} classes after show: ${sectionElement.className}`);
+    // Re-apply correct display type based on section
+    if (sectionElement === lessonViewer) {
+        sectionElement.style.display = 'grid'; // lessonViewer uses grid layout
+    } else {
+        sectionElement.style.display = 'flex'; // Other sections use flex layout
+    }
+    console.log(`[DEBUG] Section ${sectionElement.id} display style after show: ${sectionElement.style.display}`);
 }
 
 /**
@@ -283,7 +287,7 @@ async function loadCourseList() {
     historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
     courseList.innerHTML = ''; // Clear existing list
-    courseList.classList.add('hidden'); // Explicitly hide courseList at the start
+    courseList.style.display = 'none'; // Explicitly hide courseList at the start
 
     try {
         const coursesRef = getUserCollectionRef('courses');
@@ -319,11 +323,11 @@ async function loadCourseList() {
 
             if (filteredCourses.length === 0) {
                 noCoursesMessage.classList.remove('hidden');
-                courseList.classList.add('hidden'); // Ensure courseList is hidden when empty
+                courseList.style.display = 'none'; // Ensure courseList is hidden when empty
                 console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
             } else {
                 noCoursesMessage.classList.add('hidden');
-                courseList.classList.remove('hidden'); // Show courseList when there are courses
+                courseList.style.display = 'flex'; // Show courseList when there are courses
                 console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
                 filteredCourses.forEach(course => {
                     renderCourseCard(course);
@@ -1328,13 +1332,11 @@ function setupEventListeners() {
 
     // In-lesson chat listeners
     if (openInLessonChatBtn) openInLessonChatBtn.addEventListener('click', () => {
-        inLessonChatContainer.classList.remove('hidden');
-        inLessonChatContainer.classList.add('open');
+        inLessonChatContainer.style.display = 'flex'; // Use style.display for consistency
         inLessonChatMessages.scrollTop = inLessonChatMessages.scrollHeight; // Scroll to bottom on open
     });
     if (closeInLessonChatBtn) closeInLessonChatBtn.addEventListener('click', () => {
-        inLessonChatContainer.classList.remove('open');
-        inLessonChatContainer.classList.add('hidden');
+        inLessonChatContainer.style.display = 'none'; // Use style.display for consistency
     });
     if (sendInLessonChatBtn) sendInLessonChatBtn.addEventListener('click', () => sendInLessonChatPrompt(inLessonChatInput.value));
     if (inLessonChatInput) inLessonChatInput.addEventListener('keypress', (e) => {
