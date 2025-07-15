@@ -149,7 +149,7 @@ function showGlobalLoadingSpinner(show) {
 }
 
 /**
- * Hides all main sections.
+ * Hides all main sections and resets specific elements.
  */
 function hideAllSections() {
     console.log("[DEBUG] Hiding all sections.");
@@ -162,6 +162,25 @@ function hideAllSections() {
             section.style.overflow = 'hidden';
         }
     });
+
+    // Explicitly clear text content and hide buttons for lessonViewer elements
+    // to prevent residual display when lessonViewer is hidden.
+    if (currentCourseTitle) currentCourseTitle.textContent = '';
+    if (lessonTitle) lessonTitle.textContent = '';
+    if (lessonStepCounter) lessonStepCounter.textContent = '';
+    
+    // Hide navigation buttons
+    if (prevLessonStepBtn) prevLessonStepBtn.style.display = 'none';
+    if (editLessonBtn) editLessonBtn.style.display = 'none';
+    if (openInLessonChatBtn) openInLessonChatBtn.style.display = 'none';
+    if (nextLessonStepBtn) nextLessonStepBtn.style.display = 'none';
+    if (completeLessonBtn) completeLessonBtn.style.display = 'none';
+    if (lessonCompletionMessage) lessonCompletionMessage.style.display = 'none';
+    if (scramble3DContainer) scramble3DContainer.style.display = 'none';
+    if (quizArea) quizArea.style.display = 'none';
+
+    // Also hide the in-lesson chat modal if open
+    if (inLessonChatContainer) inLessonChatContainer.style.display = 'none';
 }
 
 /**
@@ -180,6 +199,11 @@ function showSection(sectionElement) {
 
         if (sectionElement === lessonViewer) {
             sectionElement.style.display = 'grid'; // lessonViewer uses grid layout
+            // Ensure buttons are visible when lessonViewer is active
+            if (prevLessonStepBtn) prevLessonStepBtn.style.display = 'inline-flex';
+            if (editLessonBtn) editLessonBtn.style.display = 'inline-flex';
+            if (openInLessonChatBtn) openInLessonChatBtn.style.display = 'inline-flex';
+            if (nextLessonStepBtn) nextLessonStepBtn.style.display = 'inline-flex';
         } else {
             sectionElement.style.display = 'flex'; // Other sections use flex layout
         }
@@ -251,7 +275,7 @@ async function initializeFirebaseAndAuth() {
                     console.error("[ERROR] Anonymous sign-in failed:", anonError);
                     showToast("Authentication failed. Please try again.", "error");
                     // Fallback to a random UUID if anonymous sign-in fails
-                    userId = `guest-${crypto.randomUUID()}`;
+                    userId = `guest-${crypto.randomUUID()}`; // Corrected: Added missing backtick
                     isUserAuthenticated = false;
                 }
             }
@@ -263,7 +287,7 @@ async function initializeFirebaseAndAuth() {
         console.error("[ERROR] Firebase initialization failed:", e);
         showToast("Failed to initialize application services.", "error");
         // Proceed as guest if Firebase init fails
-        userId = `guest-${crypto.randomUUID()`;
+        userId = `guest-${crypto.randomUUID()}`;
         isAuthReady = true;
         isUserAuthenticated = false;
         console.log("[DEBUG] Firebase init failed, proceeding as guest and calling loadInitialView().");
@@ -1093,7 +1117,7 @@ async function sendInLessonChatPrompt(prompt) {
         console.error("Error calling Vercel Serverless Function for in-lesson chat:", e);
         displayInLessonChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later.");
         inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
-        inLessonChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later." }] });
+        inLessonChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty and cannot generate the course at this moment. Please check your internet connection or try again later." }] });
     } finally {
         inLessonChatSpinner.classList.add('hidden');
         sendInLessonChatBtn.disabled = false;
