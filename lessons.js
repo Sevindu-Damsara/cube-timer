@@ -550,9 +550,9 @@ async function initiateCourseGeneration() {
         const result = await response.json();
         console.log("[DEBUG] Vercel Serverless Function response (course generation):", result);
 
-        // Corrected: Check for course_id directly in the result object, as the server returns the course object itself.
-        if (response.ok && result.course_id) { 
-            const newCourse = result; // Corrected: Assign the entire result as the newCourse
+        // Corrected: Check for 'title' directly in the result object, as the server now returns the course object itself with 'title'.
+        if (response.ok && result.title) { 
+            const newCourse = result; // Assign the entire result as the newCourse
             newCourse.lastAccessedModuleIndex = 0;
             newCourse.lastAccessedLessonIndex = 0;
             newCourse.lastAccessedStepIndex = 0;
@@ -814,7 +814,7 @@ function renderQuiz(quizData) {
         q.options.forEach((option, oIndex) => {
             const optionElement = document.createElement('label');
             optionElement.className = 'answer-option flex items-center text-gray-300 cursor-pointer hover:bg-gray-700 p-2 rounded-md';
-            const inputType = q.correctAnswer.includes(',') ? 'checkbox' : 'radio'; // Simple check for multiple correct answers
+            const inputType = q.answer && Array.isArray(q.answer) ? 'checkbox' : 'radio'; // Check if answer is an array for checkbox
             optionElement.innerHTML = `
                 <input type="${inputType}" name="question-${qIndex}" value="${option}" class="mr-2">
                 <span>${option}</span>
@@ -852,7 +852,7 @@ function submitQuiz() {
         const questionElement = quizQuestionsContainer.children[qIndex];
         const options = questionElement.querySelectorAll('.answer-option');
         const userAnswer = currentQuizAnswers[qIndex];
-        const correctAnswers = q.correctAnswer.split(',').map(ans => ans.trim()); // Handle multiple correct answers
+        const correctAnswers = Array.isArray(q.answer) ? q.answer.map(ans => ans.trim()) : [q.answer.trim()]; // Handle both string and array for correct answers
 
         let isQuestionCorrect = false;
 
@@ -860,7 +860,7 @@ function submitQuiz() {
             isQuestionCorrect = userAnswer.length === correctAnswers.length &&
                                 userAnswer.every(ans => correctAnswers.includes(ans));
         } else { // Radio
-            isQuestionCorrect = (userAnswer === q.correctAnswer);
+            isQuestionCorrect = (userAnswer === correctAnswers[0]);
         }
 
         if (isQuestionCorrect) {
