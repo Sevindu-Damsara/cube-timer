@@ -263,7 +263,7 @@ async function initializeFirebaseAndAuth() {
         console.error("[ERROR] Firebase initialization failed:", e);
         showToast("Failed to initialize application services.", "error");
         // Proceed as guest if Firebase init fails
-        userId = `guest-${crypto.randomUUID()}`;
+        userId = `guest-${crypto.randomUUID()`;
         isAuthReady = true;
         isUserAuthenticated = false;
         console.log("[DEBUG] Firebase init failed, proceeding as guest and calling loadInitialView().");
@@ -441,7 +441,7 @@ function displayCourseChatMessage(sender, message) {
 }
 
 /**
- * Sends a message to the Gemini API for course creation.
+ * Sends a message to the Vercel serverless function for course creation.
  * @param {string} prompt - The user's prompt.
  */
 async function sendCourseCreationPrompt(prompt) {
@@ -450,79 +450,21 @@ async function sendCourseCreationPrompt(prompt) {
     courseChatSpinner.classList.remove('hidden');
     sendCourseChatBtn.disabled = true;
 
-    courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+    // The chat history to send to the serverless function
+    const chatHistoryToSend = [...courseChatHistory, { role: "user", parts: [{ text: prompt }] }];
 
     try {
         const payload = {
-            contents: courseChatHistory,
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                        "course": {
-                            type: "OBJECT",
-                            properties: {
-                                "title": { "type": "STRING" },
-                                "description": { "type": "STRING" },
-                                "cubeType": { "type": "STRING", "enum": ["3x3", "2x2", "4x4", "pyraminx"] },
-                                "level": { "type": "STRING", "enum": ["beginner", "intermediate", "advanced", "expert"] },
-                                "modules": {
-                                    "type": "ARRAY",
-                                    "items": {
-                                        "type": "OBJECT",
-                                        "properties": {
-                                            "moduleTitle": { "type": "STRING" },
-                                            "lessons": {
-                                                "type": "ARRAY",
-                                                "items": {
-                                                    "type": "OBJECT",
-                                                    "properties": {
-                                                        "lessonTitle": { "type": "STRING" },
-                                                        "steps": {
-                                                            "type": "ARRAY",
-                                                            "items": {
-                                                                "type": "OBJECT",
-                                                                "properties": {
-                                                                    "stepTitle": { "type": "STRING" },
-                                                                    "content": { "type": "STRING" },
-                                                                    "scramble": { "type": "STRING" },
-                                                                    "algorithm": { "type": "STRING" },
-                                                                    "quiz": {
-                                                                        "type": "ARRAY",
-                                                                        "items": {
-                                                                            "type": "OBJECT",
-                                                                            "properties": {
-                                                                                "question": { "type": "STRING" },
-                                                                                "options": { "type": "ARRAY", "items": { "type": "STRING" } },
-                                                                                "correctAnswer": { "type": "STRING" }
-                                                                            },
-                                                                            "required": ["question", "options", "correctAnswer"]
-                                                                        }
-                                                                    }
-                                                                },
-                                                                "required": ["stepTitle", "content"]
-                                                            }
-                                                        }
-                                                    },
-                                                    "required": ["lessonTitle", "steps"]
-                                                }
-                                            }
-                                        },
-                                        "required": ["moduleTitle", "lessons"]
-                                    }
-                                }
-                            },
-                            "required": ["title", "description", "cubeType", "level", "modules"]
-                        }
-                    }
-                }
-            }
+            type: 'generate_course', // Indicate to the serverless function that this is a course generation request
+            chatHistory: chatHistoryToSend,
+            // You might also want to send current filter values if they influence course generation
+            cubeType: courseTypeFilter.value,
+            skillLevel: courseLevelFilter.value,
+            // Add other relevant context from the UI if needed for the AI model
         };
 
-        // Correctly access the API key from process.env for Vercel deployment
-        const apiKey = process.env.API_KEY; 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        // The client-side makes a request to YOUR Vercel serverless function
+        const apiUrl = '/api/gemini-insight'; 
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -531,48 +473,31 @@ async function sendCourseCreationPrompt(prompt) {
         });
 
         const result = await response.json();
-        console.log("[DEBUG] Gemini API response:", result);
+        console.log("[DEBUG] Vercel Serverless Function response (course creation):", result);
 
-        if (result.candidates && result.candidates.length > 0 &&
-            result.candidates[0].content && result.candidates[0].content.parts &&
-            result.candidates[0].content.parts.length > 0) {
-            const jsonString = result.candidates[0].content.parts[0].text;
-            let parsedJson;
-            try {
-                parsedJson = JSON.parse(jsonString);
-            } catch (jsonParseError) {
-                console.error("JSON parsing error:", jsonParseError, "Raw JSON:", jsonString);
-                displayCourseChatMessage('jarvis', "I apologize, Sir Sevindu, but I encountered an error parsing the generated course. The format was not as expected. Could you please try a different prompt or be more specific?");
-                courseChatHistory.push({ role: "model", parts: [{ text: "I apologize, Sir Sevindu, but I encountered an error parsing the generated course. The format was not as expected. Could you please try a different prompt or be more specific?" }] });
-                return;
-            }
-
-            if (parsedJson.course) {
-                const newCourse = parsedJson.course;
-                // Add default values for lastAccessed indices if not provided by AI
-                newCourse.lastAccessedModuleIndex = 0;
-                newCourse.lastAccessedLessonIndex = 0;
-                newCourse.lastAccessedStepIndex = 0;
-                await saveCourse(newCourse);
-                displayCourseChatMessage('jarvis', `Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.`);
-                speakAsJarvis(`Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.`);
-                courseChatHistory.push({ role: "model", parts: [{ text: `Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.` }] });
-            } else if (result.candidates[0].content.parts[0].text) {
-                // If no structured course, but raw text response, display it as Jarvis's chat
-                const rawText = result.candidates[0].content.parts[0].text;
-                displayCourseChatMessage('jarvis', rawText);
-                courseChatHistory.push({ role: "model", parts: [{ text: rawText }] });
-            } else {
-                displayCourseChatMessage('jarvis', "I am unable to generate a course based on your request, Sir Sevindu. Please provide more details about the type of course you would like to create (e.g., 'a beginner 3x3 course').");
-                courseChatHistory.push({ role: "model", parts: [{ text: "I am unable to generate a course based on your request, Sir Sevindu. Please provide more details about the type of course you would like to create (e.g., 'a beginner 3x3 course')." }] });
-            }
+        if (response.ok && result.course) { // Check for successful response from your serverless function
+            const newCourse = result.course;
+            // Add default values for lastAccessed indices if not provided by AI
+            newCourse.lastAccessedModuleIndex = 0;
+            newCourse.lastAccessedLessonIndex = 0;
+            newCourse.lastAccessedStepIndex = 0;
+            await saveCourse(newCourse);
+            displayCourseChatMessage('jarvis', `Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.`);
+            speakAsJarvis(`Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.`);
+            // Update client-side chat history only if course generation was successful
+            courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            courseChatHistory.push({ role: "model", parts: [{ text: `Excellent, Sir Sevindu! I have designed a new course titled "${newCourse.title}" for ${newCourse.cubeType} at ${newCourse.level} level. You may now close this chat and start the course.` }] });
         } else {
-            displayCourseChatMessage('jarvis', "I encountered an issue generating a response. Please try again.");
-            courseChatHistory.push({ role: "model", parts: [{ text: "I encountered an issue generating a response. Please try again." }] });
+            const errorMessage = result.error || "I am unable to generate a course based on your request, Sir Sevindu. Please provide more details about the type of course you would like to create (e.g., 'a beginner 3x3 course').";
+            displayCourseChatMessage('jarvis', errorMessage);
+            // Update client-side chat history even if there was an error, to keep context
+            courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            courseChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
         }
     } catch (e) {
-        console.error("Error calling Gemini API for course creation:", e);
+        console.error("Error calling Vercel Serverless Function for course creation:", e);
         displayCourseChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty and cannot generate the course at this moment. Please check your internet connection or try again later.");
+        courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
         courseChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty and cannot generate the course at this moment. Please check your internet connection or try again later." }] });
     } finally {
         courseChatSpinner.classList.add('hidden');
@@ -1108,7 +1033,7 @@ function displayInLessonChatMessage(sender, message) {
 }
 
 /**
- * Sends a message to the Gemini API for in-lesson assistance.
+ * Sends a message to the Vercel serverless function for in-lesson assistance.
  * @param {string} prompt - The user's prompt.
  */
 async function sendInLessonChatPrompt(prompt) {
@@ -1118,31 +1043,28 @@ async function sendInLessonChatPrompt(prompt) {
     sendInLessonChatBtn.disabled = true;
 
     // Include current lesson context in the chat history
-    const currentLessonContext = `
-        Current Course: ${currentCourse.title} (${currentCourse.cubeType}, ${currentCourse.level})
-        Current Module: ${currentCourse.modules[currentModuleIndex].moduleTitle}
-        Current Lesson: ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lessonTitle}
-        Current Step: ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].stepTitle}
-        Step Content: ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].content}
-        ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble ? `Scramble: ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble}` : ''}
-        ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].algorithm ? `Algorithm: ${currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].algorithm}` : ''}
-    `;
+    const currentLessonContext = {
+        lessonTitle: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lessonTitle,
+        lessonType: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lesson_type, // Assuming lesson_type exists
+        content: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].content,
+        scramble: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble,
+        algorithm: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].algorithm,
+    };
 
-    const chatPayload = [
-        { role: "user", parts: [{ text: `Here is the context of the current lesson step: ${currentLessonContext}\n\nMy question is: ${prompt}` }] }
-    ];
-
-    // Add previous chat history for continuity
-    chatPayload.unshift(...inLessonChatHistory);
+    // The chat history to send to the serverless function
+    const chatHistoryToSend = [...inLessonChatHistory, { role: "user", parts: [{ text: prompt }] }];
 
     try {
         const payload = {
-            contents: chatPayload,
+            type: 'lesson_chat', // Indicate to the serverless function that this is a lesson chat request
+            chatHistory: chatHistoryToSend,
+            cubeType: currentCourse.cubeType,
+            userLevel: currentCourse.level,
+            currentLessonContext: currentLessonContext,
         };
 
-        // Correctly access the API key from process.env for Vercel deployment
-        const apiKey = process.env.API_KEY; 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        // The client-side makes a request to YOUR Vercel serverless function
+        const apiUrl = '/api/gemini-insight'; 
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1151,23 +1073,24 @@ async function sendInLessonChatPrompt(prompt) {
         });
 
         const result = await response.json();
-        console.log("[DEBUG] Gemini API response (in-lesson chat):", result);
+        console.log("[DEBUG] Vercel Serverless Function response (in-lesson chat):", result);
 
-        if (result.candidates && result.candidates.length > 0 &&
-            result.candidates[0].content && result.candidates[0].content.parts &&
-            result.candidates[0].content.parts.length > 0) {
-            const jarvisResponse = result.candidates[0].content.parts[0].text;
+        if (response.ok && result.message) { // Check for successful response from your serverless function
+            const jarvisResponse = result.message;
             displayInLessonChatMessage('jarvis', jarvisResponse);
-            inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] }); // Add user prompt to history
-            inLessonChatHistory.push({ role: "model", parts: [{ text: jarvisResponse }] }); // Add Jarvis response to history
+            // Update client-side chat history only if response was successful
+            inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            inLessonChatHistory.push({ role: "model", parts: [{ text: jarvisResponse }] });
             speakAsJarvis(jarvisResponse);
         } else {
-            displayInLessonChatMessage('jarvis', "I am unable to provide assistance at this moment, Sir Sevindu. Please try again.");
+            const errorMessage = result.error || "I am unable to provide assistance at this moment, Sir Sevindu. Please try again.";
+            displayInLessonChatMessage('jarvis', errorMessage);
+            // Update client-side chat history even if there was an error, to keep context
             inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            inLessonChatHistory.push({ role: "model", parts: [{ text: "I am unable to provide assistance at this moment, Sir Sevindu. Please try again." }] });
+            inLessonChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
         }
     } catch (e) {
-        console.error("Error calling Gemini API for in-lesson chat:", e);
+        console.error("Error calling Vercel Serverless Function for in-lesson chat:", e);
         displayInLessonChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later.");
         inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
         inLessonChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later." }] });
