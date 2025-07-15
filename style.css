@@ -837,6 +837,10 @@ body.theme-vibrant #aiInsightModal .modal-content {
 #lessonHub h2 {
     font-size: 3.5rem; /* Larger, more impactful title */
     margin-bottom: 2rem;
+    /* Clipping adjustments for #lessonHub h2 */
+    line-height: 1.2; /* Adjust line height to prevent clipping */
+    padding-top: 5px; /* Add a little padding to the top */
+    padding-bottom: 5px; /* Add a little padding to the bottom */
 }
 
 #courseList {
