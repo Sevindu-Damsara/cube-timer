@@ -847,7 +847,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 .course-card {
     background-color: var(--card-bg);
     border-radius: 1.25rem; /* More rounded */
-    padding: 2rem;
+    padding: 2rem; /* Adjusted padding here */
     text-align: left;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border-color);
@@ -887,12 +887,18 @@ body.theme-vibrant #aiInsightModal .modal-content {
     margin-bottom: 0.75rem;
     position: relative;
     z-index: 1;
+    /* Clipping adjustments for .course-card h3 */
+    line-height: 1.3;
+    padding-top: 2px;
+    padding-bottom: 2px;
 }
 
 .course-card p {
     color: var(--text-color-secondary);
     font-size: 0.95rem;
-    line-height: 1.6;
+    line-height: 1.6; /* Clipping adjustments for .course-card p */
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
     position: relative;
     z-index: 1;
 }
@@ -1448,10 +1454,6 @@ main .glass-panel.xl\:col-span-2 h2 {
 
     #lessonHub {
         padding: 1.5rem;
-    }
-
-    #lessonHub h2 {
-        font-size: 2.5rem;
     }
 
     .course-card {
