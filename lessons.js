@@ -9,16 +9,15 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
 // Use Canvas global variables if they are defined, otherwise fall back to hardcoded values.
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedcube-timer';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-    // >>> Sir Sevindu: Please replace these placeholder values with your actual Firebase project credentials. <<<
-    apiKey: "YOUR_FIREBASE_API_KEY", // Replace with your Firebase API Key
-    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN", // Replace with your Firebase Auth Domain
-    projectId: "YOUR_FIREBASE_PROJECT_ID", // Replace with your Firebase Project ID
-    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET", // Replace with your Firebase Storage Bucket
-    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID", // Replace with your Firebase Messaging Sender ID
-    appId: "YOUR_FIREBASE_APP_ID", // Replace with your Firebase App ID
-    measurementId: "YOUR_FIREBASE_MEASUREMENT_ID" // Replace with your Firebase Measurement ID (optional)
+const appId = 'my-production-speedcube-timer'; // A unique ID for your app's data in e.g., 'rubik-timer-prod-v1'
+const firebaseConfig = {
+    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
+    authDomain: "ubically-timer.firebaseapp.com",
+    projectId: "ubically-timer",
+    storageBucket: "ubically-timer.firebaseystorage.app",
+    messagingSenderId: "467118524389",
+    appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+    measurementId: "G-6033SRP9WC"
 };
 // __initial_auth_token is provided globally by Canvas and should NOT be redeclared with 'const' here.
 
