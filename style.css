@@ -98,7 +98,7 @@ body.theme-vibrant {
     display: flex;
     width: 100%;
     min-height: 100vh; /* Ensure it takes full height */
-    padding: 0; /* Remove body padding, handled by layout */
+    padding: 0; /* Remove body padding, handled by child elements */
     margin: 0;
 }
 
@@ -1241,6 +1241,16 @@ main .glass-panel.xl\:col-span-2 h2 {
 #globalLoadingSpinner {
     z-index: 1000; /* Ensure it's on top */
 }
+
+/* Temporary diagnostic CSS to identify overlaying elements */
+* {
+    /* outline: 1px solid rgba(255, 0, 0, 0.2) !important; */ /* Light red outline for all elements */
+}
+
+*:hover {
+    outline: 1px solid red !important; /* Strong red outline on hover */
+}
+
 
 /* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
 /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
