@@ -9,15 +9,16 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // These are duplicated from script.js to ensure lessons.js can function independently.
 // =====================================================================================================
 // Use Canvas global variables if they are defined, otherwise fall back to hardcoded values.
-const appId = 'my-production-speedcube-timer';
-const firebaseConfig = {
-    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M", // This is the key you found in your console.
-    authDomain: "ubically-timer.firebaseapp.com",
-    projectId: "ubically-timer",
-    storageBucket: "ubically-timer.firebaseystorage.app",
-    messagingSenderId: "467118524389",
-    appId: "1:467118524389:web:d3455f5be5747be2cb910c",
-    measurementId: "G-6033SRP9WC"
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedcube-timer';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+    // >>> Sir Sevindu: Please replace these placeholder values with your actual Firebase project credentials. <<<
+    apiKey: "YOUR_FIREBASE_API_KEY", // Replace with your Firebase API Key
+    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN", // Replace with your Firebase Auth Domain
+    projectId: "YOUR_FIREBASE_PROJECT_ID", // Replace with your Firebase Project ID
+    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET", // Replace with your Firebase Storage Bucket
+    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID", // Replace with your Firebase Messaging Sender ID
+    appId: "YOUR_FIREBASE_APP_ID", // Replace with your Firebase App ID
+    measurementId: "YOUR_FIREBASE_MEASUREMENT_ID" // Replace with your Firebase Measurement ID (optional)
 };
 // __initial_auth_token is provided globally by Canvas and should NOT be redeclared with 'const' here.
 
@@ -394,6 +395,7 @@ async function loadCourseList() {
 function renderCourseCard(course) {
     console.log("[DEBUG] Full course object being rendered:", course); // Diagnostic log: This will show the full course object
     const card = document.createElement('div');
+    // Removed 'cursor: pointer' from the card's class list
     card.className = 'course-card glass-panel p-6 rounded-xl shadow-lg border border-gray-700';
     card.innerHTML = `
         <h3 class="text-xl font-bold text-gradient mb-2">${course.title || 'Untitled Course'}</h3>
@@ -420,7 +422,8 @@ function renderCourseCard(course) {
 
     if (startButton) {
         console.log(`[DEBUG] Found Start button for course ID: ${course.id}. Attaching listener.`); // NEW LOG
-        startButton.addEventListener('click', async () => {
+        startButton.addEventListener('click', async (event) => { // Added event parameter
+            event.stopPropagation(); // Prevent click from bubbling up to the card
             console.log(`[DEBUG] Start Course button CLICKED for ID: ${course.id}`); // Renamed for clarity
             await loadCourse(course.id);
             showSection(lessonViewer);
