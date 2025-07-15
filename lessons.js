@@ -11,13 +11,13 @@ console.log("[DEBUG] Firebase imports for lessons.js completed.");
 // Use Canvas global variables if they are defined, otherwise fall back to hardcoded values.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedcube-timer';
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
-    authDomain: "ubically-timer.firebaseapp.com",
-    projectId: "ubically-timer",
-    storageBucket: "ubically-timer.firebaseystorage.app",
-    messagingSenderId: "467118524389",
-    appId: "1:467118524389:web:d3455f5be5747be2cb910c",
-    measurementId: "G-XXXXXXXXXX" // Placeholder, if a specific value is not available.
+    apiKey: "YOUR_FIREBASE_API_KEY", // Placeholder, will be replaced by Canvas
+    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+    projectId: "YOUR_FIREBASE_PROJECT_ID",
+    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+    appId: "YOUR_FIREBASE_APP_ID",
+    measurementId: "YOUR_FIREBASE_MEASUREMENT_ID" // Placeholder, if a specific value is not available.
 };
 // __initial_auth_token is provided globally by Canvas and should NOT be redeclared with 'const' here.
 
@@ -419,25 +419,27 @@ function renderCourseCard(course) {
     const deleteButton = card.querySelector('.delete-course-btn');
 
     if (startButton) {
+        console.log(`[DEBUG] Found Start button for course ID: ${course.id}. Attaching listener.`); // NEW LOG
         startButton.addEventListener('click', async () => {
-            console.log(`[DEBUG] Start Course button clicked for ID: ${course.id}`);
+            console.log(`[DEBUG] Start Course button CLICKED for ID: ${course.id}`); // Renamed for clarity
             await loadCourse(course.id);
             showSection(lessonViewer);
         });
     } else {
-        console.error("[ERROR] Start Course button not found for course:", course.id);
+        console.error("[ERROR] Start Course button element NOT FOUND for course:", course.id);
     }
 
     if (deleteButton) {
+        console.log(`[DEBUG] Found Delete button for course ID: ${course.id}. Attaching listener.`); // NEW LOG
         deleteButton.addEventListener('click', async (event) => {
             event.stopPropagation(); // Prevent start-course-btn from being triggered
-            console.log(`[DEBUG] Delete Course button clicked for ID: ${course.id}`);
+            console.log(`[DEBUG] Delete Course button CLICKED for ID: ${course.id}`); // Renamed for clarity
             if (confirm("Are you sure you want to delete this course?")) {
                 await deleteCourse(course.id);
             }
         });
     } else {
-        console.error("[ERROR] Delete Course button not found for course:", course.id);
+        console.error("[ERROR] Delete Course button element NOT FOUND for course:", course.id);
     }
 }
 
