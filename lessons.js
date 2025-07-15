@@ -283,6 +283,7 @@ async function loadCourseList() {
     historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
     courseList.innerHTML = ''; // Clear existing list
+    courseList.classList.add('hidden'); // Explicitly hide courseList at the start
 
     try {
         const coursesRef = getUserCollectionRef('courses');
@@ -299,14 +300,7 @@ async function loadCourseList() {
         onSnapshot(coursesRef, (snapshot) => {
             console.log("[DEBUG] Course list snapshot received. Number of documents:", snapshot.docs.length);
             courseList.innerHTML = ''; // Clear list on every update
-            if (snapshot.empty) {
-                noCoursesMessage.classList.remove('hidden');
-                historyLoadingSpinner.classList.add('hidden');
-                showGlobalLoadingSpinner(false);
-                console.log("[DEBUG] No courses found, displaying message.");
-                return;
-            }
-
+            
             const courses = [];
             snapshot.forEach(doc => {
                 const courseData = doc.data();
@@ -325,9 +319,11 @@ async function loadCourseList() {
 
             if (filteredCourses.length === 0) {
                 noCoursesMessage.classList.remove('hidden');
+                courseList.classList.add('hidden'); // Ensure courseList is hidden when empty
                 console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
             } else {
                 noCoursesMessage.classList.add('hidden');
+                courseList.classList.remove('hidden'); // Show courseList when there are courses
                 console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
                 filteredCourses.forEach(course => {
                     renderCourseCard(course);
@@ -555,7 +551,7 @@ async function sendCourseCreationPrompt(prompt) {
             }
         } else {
             displayCourseChatMessage('jarvis', "I encountered an issue generating a response. Please try again.");
-            courseChatHistory.push({ role: "model", parts: [{ text: "I encountered an. issue generating a response. Please try again." }] });
+            courseChatHistory.push({ role: "model", parts: [{ text: "I encountered an issue generating a response. Please try again." }] });
         }
     } catch (e) {
         console.error("Error calling Gemini API for course creation:", e);
