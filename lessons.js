@@ -226,12 +226,14 @@ function updateCourseProgressBar() {
 
     currentCourse.modules.forEach(module => {
         module.lessons.forEach(lesson => {
-            lesson.steps.forEach(step => {
-                totalSteps++;
-                if (step.completed) {
-                    completedSteps++;
-                }
-            });
+            if (Array.isArray(lesson.steps)) {
+                lesson.steps.forEach(step => {
+                    totalSteps++;
+                    if (step.completed) {
+                        completedSteps++;
+                    }
+                });
+            }
         });
     });
 
