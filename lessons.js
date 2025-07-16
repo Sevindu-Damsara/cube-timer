@@ -407,10 +407,10 @@ function renderCourseCard(course) {
             <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-book mr-1"></i> ${course.modules ? course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0) : 0} Lessons</span>
         </div>
         <div class="flex justify-end mt-4 space-x-2 course-card-actions">
-            <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn" data-id="${course.id}">
+            <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn cursor-pointer" data-id="${course.id}">
                 <i class="fas fa-trash-alt"></i> Delete
             </button>
-            <button class="button-primary text-sm px-3 py-1.5 rounded-lg start-course-btn" data-id="${course.id}">
+            <button class="button-primary text-sm px-3 py-1.5 rounded-lg start-course-btn cursor-pointer" data-id="${course.id}">
                 <i class="fas fa-play-circle"></i> Start Course
             </button>
         </div>
