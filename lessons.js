@@ -19,6 +19,7 @@ const firebaseConfig = {
     appId: "1:467118524389:web:d3455f5be5747be2cb910c",
     measurementId: "G-6033SRP9WC"
 };
+
 // __initial_auth_token is provided globally by Canvas and should NOT be redeclared with 'const' here.
 
 
@@ -405,7 +406,7 @@ function renderCourseCard(course) {
             <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-layer-group mr-1"></i> ${course.modules ? course.modules.length : 0} Modules</span>
             <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-book mr-1"></i> ${course.modules ? course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0) : 0} Lessons</span>
         </div>
-        <div class="flex justify-end mt-4 space-x-2">
+        <div class="flex justify-end mt-4 space-x-2 course-card-actions">
             <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn" data-id="${course.id}">
                 <i class="fas fa-trash-alt"></i> Delete
             </button>

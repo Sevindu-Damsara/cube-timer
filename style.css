@@ -920,6 +920,12 @@ body.theme-vibrant #aiInsightModal .modal-content {
     z-index: 1;
 }
 
+/* NEW: Style for the container holding the buttons within course-card */
+.course-card .course-card-actions {
+    position: relative; /* Establish a new stacking context */
+    z-index: 1; /* Ensure it's above the ::before pseudo-element */
+}
+
 /* Lesson Viewer Specific Styles */
 #lessonViewer {
     display: grid;
@@ -1369,10 +1375,10 @@ main .glass-panel.xl\:col-span-2 h2 {
 
     .button-primary,
     .button-secondary {
-        padding: 0.7rem 1.2rem;
-        /* Ensure good touch target */
-        font-size: 0.95rem;
-        /* Slightly smaller font */
+        font-size: 0.9rem;
+        /* Slightly smaller button font */
+        padding: 0.6rem 1rem;
+        /* Reduced padding */
     }
 
     .stats-grid {
@@ -1568,7 +1574,7 @@ main .glass-panel.xl\:col-span-2 h2 {
 /* Spinner for loading states */
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid var(--accent-color-blue);
+    border-top: 44px solid var(--accent-color-blue);
     border-radius: 50%;
     width: 40px;
     height: 40px;
