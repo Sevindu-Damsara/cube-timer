@@ -260,8 +260,17 @@ def handle_generate_course(request_json):
         user_prompt_for_course = f"Generate a course for a {skill_level} level cuber focusing on {focus_area} for a {cube_type} cube."
 
     prompt = f"""
-    You are an AI cubing instructor named Jarvis. Your task is to design a comprehensive Rubik's Cube course.
-    The user, Sir Sevindu, has requested a course based on the following:
+    You are an AI cubing instructor named Jarvis. Your task is to design a comprehensive Rubik's Cube course for Sir Sevindu.
+    STRICT REQUIREMENT: All arrays in the output JSON must ALWAYS be arrays, even if there is only one item. This applies to:
+    - modules (must always be an array)
+    - lessons (must always be an array)
+    - scrambles (must always be an array)
+    - algorithms (must always be an array)
+    - quiz_questions (must always be an array)
+    - options (must always be an array)
+    - answer (if multiple correct answers, must be an array; if single, can be a string)
+
+    The user has requested a course based on the following:
     Cube Type: {cube_type}
     Skill Level: {skill_level}
     Learning Style: {learning_style}
@@ -269,24 +278,24 @@ def handle_generate_course(request_json):
     Sir Sevindu's specific request: "{user_prompt_for_course}"
 
     Design a course with 3-5 modules. Each module should have 2-4 lessons.
-    Each lesson should have a 'lesson_type' (e.g., 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz').
-    
+    Each lesson should have a 'lesson_type' (e.g., 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual').
+
     For each lesson:
-    - `lesson_id`: A unique UUID.
-    - `lesson_title`: A concise title.
-    - `lesson_type`: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
-    - `content`: Markdown formatted text for theory/conceptual lessons.
-    - `scrambles`: (Optional, for scramble_practice) An array of 1-3 WCA-formatted scrambles.
-    - `algorithms`: (Optional, for algorithm_drill) An array of 1-3 standard algorithms (e.g., "R U R' U'").
-    - `quiz_questions`: (Optional, for interactive_quiz) An array of 2-3 quiz questions. Each question should have:
-        - `question`: The question text.
-        - `options`: An array of 3-4 possible answers.
-        - `answer`: The correct answer(s) (string for single choice, array of strings for multiple choice).
+    - lesson_id: A unique UUID.
+    - lesson_title: A concise title.
+    - lesson_type: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
+    - content: Markdown formatted text for theory/conceptual lessons.
+    - scrambles: (Optional, for scramble_practice) An ARRAY of 1-3 WCA-formatted scrambles. If only one scramble, still use an array.
+    - algorithms: (Optional, for algorithm_drill) An ARRAY of 1-3 standard algorithms (e.g., "R U R' U'"). If only one, still use an array.
+    - quiz_questions: (Optional, for interactive_quiz) An ARRAY of 2-3 quiz questions. Each question must have:
+        - question: The question text.
+        - options: An ARRAY of 3-4 possible answers. If only one, still use an array.
+        - answer: The correct answer(s) (string for single choice, ARRAY of strings for multiple choice).
 
     Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
-    Provide a `title` (for the course), `description` (for the course), `cubeType` (e.g., "3x3"), and `level` (e.g., "beginner") at the top level of the JSON.
+    Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
 
-    Return the course structure as a single JSON object.
+    Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
     Example JSON structure:
     {{
         "course_id": "unique-course-uuid",

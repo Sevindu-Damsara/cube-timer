@@ -226,14 +226,12 @@ function updateCourseProgressBar() {
 
     currentCourse.modules.forEach(module => {
         module.lessons.forEach(lesson => {
-            if (Array.isArray(lesson.steps)) {
-                lesson.steps.forEach(step => {
-                    totalSteps++;
-                    if (step.completed) {
-                        completedSteps++;
-                    }
-                });
-            }
+            lesson.steps.forEach(step => {
+                totalSteps++;
+                if (step.completed) {
+                    completedSteps++;
+                }
+            });
         });
     });
 
@@ -409,10 +407,10 @@ function renderCourseCard(course) {
             <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-book mr-1"></i> ${course.modules ? course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0) : 0} Lessons</span>
         </div>
         <div class="flex justify-end mt-4 space-x-2 course-card-actions">
-            <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn cursor-pointer" data-id="${course.id}">
+            <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn" data-id="${course.id}">
                 <i class="fas fa-trash-alt"></i> Delete
             </button>
-            <button class="button-primary text-sm px-3 py-1.5 rounded-lg start-course-btn cursor-pointer" data-id="${course.id}">
+            <button class="button-primary text-sm px-3 py-1.5 rounded-lg start-course-btn" data-id="${course.id}">
                 <i class="fas fa-play-circle"></i> Start Course
             </button>
         </div>
@@ -611,7 +609,7 @@ async function saveCourse(courseData) {
         }
         // Ensure courseData includes necessary top-level fields for Firestore
         const dataToSave = {
-            ...(courseData.id !== undefined ? { id: courseData.id } : {}),
+            id: courseData.id, // Firestore document ID will be auto-generated, but keeping this for consistency if AI provides it
             title: courseData.title,
             description: courseData.description,
             cubeType: courseData.cubeType,
@@ -771,15 +769,7 @@ function highlightCurrentLesson() {
  * @param {number} stepIndex - Step index.
  */
 async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
-    if (
-        !currentCourse ||
-        !Array.isArray(currentCourse.modules) ||
-        !currentCourse.modules[modIndex] ||
-        !Array.isArray(currentCourse.modules[modIndex].lessons) ||
-        !currentCourse.modules[modIndex].lessons[lessonIndex] ||
-        !Array.isArray(currentCourse.modules[modIndex].lessons[lessonIndex].steps) ||
-        !currentCourse.modules[modIndex].lessons[lessonIndex].steps[stepIndex]
-    ) {
+    if (!currentCourse || !currentCourse.modules[modIndex] || !currentCourse.modules[modIndex].lessons[lessonIndex] || !currentCourse.modules[modIndex].lessons[lessonIndex].steps[stepIndex]) {
         showToast("Lesson step not found.", "error");
         return;
     }
