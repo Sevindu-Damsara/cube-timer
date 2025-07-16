@@ -609,7 +609,6 @@ async function saveCourse(courseData) {
         }
         // Ensure courseData includes necessary top-level fields for Firestore
         const dataToSave = {
-            id: courseData.id, // Firestore document ID will be auto-generated, but keeping this for consistency if AI provides it
             title: courseData.title,
             description: courseData.description,
             cubeType: courseData.cubeType,
@@ -620,6 +619,10 @@ async function saveCourse(courseData) {
             lastAccessedStepIndex: courseData.lastAccessedStepIndex,
             createdAt: new Date().toISOString()
         };
+        // Remove 'id' field if undefined (Firestore does not allow undefined fields)
+        if (courseData.id !== undefined) {
+            dataToSave.id = courseData.id;
+        }
 
         const docRef = await addDoc(coursesRef, dataToSave);
         console.log("Course saved with ID:", docRef.id);
