@@ -771,7 +771,15 @@ function highlightCurrentLesson() {
  * @param {number} stepIndex - Step index.
  */
 async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
-    if (!currentCourse || !currentCourse.modules[modIndex] || !currentCourse.modules[modIndex].lessons[lessonIndex] || !currentCourse.modules[modIndex].lessons[lessonIndex].steps[stepIndex]) {
+    if (
+        !currentCourse ||
+        !Array.isArray(currentCourse.modules) ||
+        !currentCourse.modules[modIndex] ||
+        !Array.isArray(currentCourse.modules[modIndex].lessons) ||
+        !currentCourse.modules[modIndex].lessons[lessonIndex] ||
+        !Array.isArray(currentCourse.modules[modIndex].lessons[lessonIndex].steps) ||
+        !currentCourse.modules[modIndex].lessons[lessonIndex].steps[stepIndex]
+    ) {
         showToast("Lesson step not found.", "error");
         return;
     }
