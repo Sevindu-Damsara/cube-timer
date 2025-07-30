@@ -261,54 +261,124 @@ def handle_generate_course(request_json):
     cube_type = request_json.get('cubeType', '3x3')
     user_level = request_json.get('skillLevel', 'beginner') # Note: 'skillLevel' from frontend payload
 
-    system_instruction = f"""
-    You are Jarvis, an AI assistant. Your task is to generate a comprehensive, structured Rubik's Cube course tailored for a {user_level} level cuber learning the {cube_type} cube.
-    Based on the preceding chat history and any explicit user requests, generate a complete course structure.
+    # Use the last user message from chat_history as the primary prompt for course generation
+    user_prompt_for_course = ""
+    for msg in reversed(chat_history):
+        if msg['role'] == 'user':
+            user_prompt_for_course = msg['parts'][0]['text']
+            break
     
-    The course should be returned as a single JSON object. Ensure the JSON is valid and can be directly parsed.
-    The JSON structure should adhere to the following:
+    if not user_prompt_for_course:
+        user_prompt_for_course = f"Generate a course for a {user_level} level cuber focusing on general techniques for a {cube_type} cube."
+
+
+    system_instruction = f"""
+    You are Jarvis, an AI assistant. Your task is to generate a comprehensive Rubik's Cube course for Sir Sevindu.
+    The course should be structured as a single, valid JSON object.
+    """
+
+    # The detailed JSON schema is now part of the main prompt text.
+    # This guides the model to produce the desired string output.
+    prompt_text = f"""
+    Based on the following user preferences and chat history, design a complete cubing course.
+    Cube Type: {cube_type}
+    Skill Level: {user_level}
+    Sir Sevindu's specific request: "{user_prompt_for_course}"
+
+    Generate a course with 3-5 modules. Each module should have 2-4 lessons.
+    Each lesson should have a 'lessonType' (e.g., 'text', 'scramble', 'quiz').
+
+    For each lesson:
+    - title: A concise title.
+    - description: A brief description.
+    - lessonType: One of 'text', 'scramble', 'quiz'.
+    - content: Full markdown formatted text for the lesson.
+    - steps: An array of step objects. Each step has:
+        - title: Title of the step.
+        - content: Markdown content for this specific step.
+        - completed: Boolean, default to false.
+
+    For 'scramble' lessons, embed actual WCA-formatted scrambles within the `content` of the relevant steps using the tag `<scramble>R U R' U'</scramble>`.
+    For 'quiz' lessons, embed quiz questions, options, and answers using `<question id='qN'>What is F2L?</question><options><option>First 2 Layers</option><option>Fast 2 Loops</option></options><answer>First 2 Layers</answer>`
+    For multiple-choice answers, use multiple `<answer>` tags: `<answer>Option A</answer><answer>Option B</answer>`.
+
+    Return the entire course structure as a single JSON string. Do NOT include any additional text or formatting outside the JSON string.
+
+    Example JSON structure (ensure all fields are present, even if empty arrays):
     {{
-        "title": "Generated Course Title",
-        "description": "Brief description of the course.",
+        "title": "Beginner's Guide to {cube_type}",
+        "description": "Learn the fundamentals of solving the {cube_type} Rubik's Cube at a {user_level} level.",
         "cubeType": "{cube_type}",
         "level": "{user_level}",
         "modules": [
             {{
-                "title": "Module Title 1",
-                "description": "Description of Module 1.",
+                "title": "Module 1: Getting Started",
+                "description": "Introduction to the cube and basic concepts.",
                 "lessons": [
                     {{
-                        "title": "Lesson Title 1.1",
-                        "description": "Description of Lesson 1.1.",
-                        "lessonType": "text", // Can be 'text', 'scramble', 'quiz'
-                        "content": "Full markdown content for Lesson 1.1, including explanations, examples, and markdown formatting. For scrambles, embed them as <scramble>R U R' U'</scramble>. For quizzes, embed questions as <question id='q1'>What is F2L?</question><options><option>First 2 Layers</option><option>Last Layer</option></options><answer>First 2 Layers</answer>.",
-                        "steps": [ // Break down content into manageable steps
-                            {{
-                                "title": "Step 1.1.1",
-                                "content": "Markdown content for this step. Use <scramble>...</scramble> or <question>...</question> for interactive parts.",
-                                "completed": false // Default to false
-                            }}
+                        "title": "Lesson 1.1: Cube Notation",
+                        "description": "Understanding the moves.",
+                        "lessonType": "text",
+                        "content": "## Cube Notation\\nThis lesson covers basic cube notation...",
+                        "steps": [
+                            {{ "title": "Introduction to Faces", "content": "The cube has 6 faces...", "completed": false }},
+                            {{ "title": "Basic Rotations", "content": "R, U, F, L, D, B moves...", "completed": false }}
+                        ]
+                    }},
+                    {{
+                        "title": "Lesson 1.2: Solving the White Cross",
+                        "description": "First step of the solve.",
+                        "lessonType": "scramble",
+                        "content": "Practice building the white cross. <scramble>F U' B2 L' U' L' F' U' F' L2 D2 L' B2 D2 F2 U' R2 U' L2 F'</scramble>",
+                        "steps": [
+                            {{ "title": "Cross Edges", "content": "Find the white edges...", "completed": false }},
+                            {{ "title": "Aligning Cross", "content": "Align with center colors...", "completed": false }}
+                        ]
+                    }}
+                ]
+            }},
+            {{
+                "title": "Module 2: F2L - First Two Layers",
+                "description": "Efficiently solving the first two layers.",
+                "lessons": [
+                    {{
+                        "title": "Lesson 2.1: F2L Introduction",
+                        "description": "Understanding F2L pairs.",
+                        "lessonType": "text",
+                        "content": "## What is F2L?\\nF2L stands for First Two Layers...",
+                        "steps": [
+                            {{ "title": "Concept of F2L", "content": "Solving corners and edges simultaneously.", "completed": false }}
+                        ]
+                    }},
+                    {{
+                        "title": "Lesson 2.2: F2L Quiz",
+                        "description": "Test your F2L knowledge.",
+                        "lessonType": "quiz",
+                        "content": "<question id='q1'>What does F2L stand for?</question><options><option>First Two Layers</option><option>Fast Two Loops</option><option>Front Two Left</option></options><answer>First Two Layers</answer>",
+                        "steps": [
+                            {{ "title": "Quiz Time", "content": "Answer the following questions...", "completed": false }}
                         ]
                     }}
                 ]
             }}
         ]
     }}
-    
-    Ensure ALL markdown content for lessons and steps is fully included within the `content` field. Do not truncate.
-    Make sure to include appropriate `lessonType` for each lesson (e.g., 'text', 'scramble', 'quiz').
-    For 'scramble' lessons, embed actual scramble strings using the `<scramble>R U R' U'</scramble>` tag within the `content` of the steps.
-    For 'quiz' lessons, embed questions, options, and answers using `<question id='qN'>...</question><options><option>...</option><option>...</option></options><answer>...</answer>` tags within the `content` of the steps.
-    Generate a complete, coherent course. Do not ask for further clarification.
     """
+    
+    # The formatted_chat_history will now only contain the user's chat messages,
+    # and the system instruction is a separate parameter in the API call.
+    # The prompt_text above will be the content of the user's initial message to the model.
+    
+    # Ensure chat_history only contains user/model roles for the 'contents' field
+    # and the system instruction is passed separately.
+    messages_for_api = []
+    # Add the initial prompt as a user message
+    messages_for_api.append({"role": "user", "parts": [{"text": prompt_text}]})
+    
+    # Append the rest of the chat history (user/model turns)
+    for msg in chat_history:
+        messages_for_api.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
 
-    # Prepare chat history for Gemini API, ensuring 'system' role is first
-    formatted_chat_history = [{"role": "system", "parts": [{"text": system_instruction}]}]
-    if chat_history:
-        for msg in chat_history:
-            formatted_chat_history.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
-
-    ai_response_text = None # Initialize to None for error handling
 
     try:
         headers = {
@@ -316,25 +386,25 @@ def handle_generate_course(request_json):
             'x-goog-api-key': GEMINI_API_KEY
         }
         payload = {
-            "contents": formatted_chat_history,
+            "systemInstruction": {"parts": [{"text": system_instruction}]}, # System instruction moved here
+            "contents": messages_for_api, # This now contains the main prompt and chat history
             "generationConfig": {
-                "responseMimeType": "text/plain", # Changed to text/plain
+                "responseMimeType": "text/plain", # Request plain text output
                 "responseSchema": {
-                    "type": "STRING" # Simplified to expect a single string
+                    "type": "STRING" # The model will return a string, which we expect to be JSON
                 }
             }
         }
         
-        # Use a model suitable for complex content generation
-        model_name = "gemini-1.5-flash-latest" # Consider 'gemini-1.5-pro-latest' for more complex generation if needed
+        model_name = "gemini-1.5-flash-latest" 
 
         gemini_response = requests.post(
             f"{GEMINI_API_BASE_URL}/{model_name}:generateContent",
             headers=headers,
             json=payload,
-            timeout=120 # Increased timeout for course generation
+            timeout=120 
         )
-        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        gemini_response.raise_for_status() 
         
         response_data = gemini_response.json()
         print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
@@ -344,7 +414,19 @@ def handle_generate_course(request_json):
             # Attempt to parse the AI's response text as JSON
             generated_course = json.loads(ai_response_text)
             
-            # The frontend expects the course object directly
+            # Add UUIDs if not present (this part is from original code)
+            if 'course_id' not in generated_course or not generated_course['course_id']:
+                generated_course['course_id'] = str(uuid.uuid4())
+            for module in generated_course.get('modules', []):
+                if 'module_id' not in module or not module['module_id']:
+                    module['module_id'] = str(uuid.uuid4())
+                for lesson in module.get('lessons', []):
+                    if 'lesson_id' not in lesson or not lesson['lesson_id']:
+                        lesson['lesson_id'] = str(uuid.uuid4())
+                    for step in lesson.get('steps', []): # Add step_id if needed
+                        if 'step_id' not in step or not step['step_id']:
+                            step['step_id'] = str(uuid.uuid4())
+            
             return jsonify(generated_course), 200
         else:
             print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
@@ -355,7 +437,7 @@ def handle_generate_course(request_json):
         return jsonify({"error": f"Failed to generate course from AI service: {e}"}), 500
     except json.JSONDecodeError as e:
         print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
-        print(f"Raw AI text response that failed parsing: {ai_response_text}") # Log the raw text
+        print(f"Raw AI text response that failed parsing: {ai_response_text}") 
         return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
