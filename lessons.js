@@ -8,7 +8,7 @@ console.log("Jarvis systems online. Initializing lesson protocols.");
 
 // --- Global Configuration & Variables ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cubically-ai-timer';
-// Correctly use the provided __firebase_config global or a valid fallback.
+// CORRECTED: Use the provided __firebase_config global or the valid fallback configuration.
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
     apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
     authDomain: "ubically-timer.firebaseapp.com",
@@ -117,9 +117,10 @@ function assignDomElements() {
  */
 function setupEventListeners() {
     dom.startNewCourseBtn.addEventListener('click', async () => {
-        // Resume AudioContext on user gesture to prevent browser warnings.
+        // CORRECTED: Resume AudioContext on user gesture to prevent browser warnings.
         if (Tone.context.state !== 'running') {
             await Tone.start();
+            console.log("Tone.js AudioContext resumed on user gesture.");
         }
         switchView('courseCreationSection');
     });
@@ -404,18 +405,24 @@ async function processCourseChatInput() {
             body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
-
+        // CORRECTED: Handle non-JSON responses from server errors
         if (!response.ok) {
-            throw new Error(result.error || 'Failed to communicate with AI service.');
+            const errorText = await response.text();
+            throw new Error(`Server responded with status ${response.status}: ${errorText}`);
         }
+        
+        const result = await response.json();
         
         await saveCourse(result);
         displayCourseChatMessage('jarvis', `Excellent, Sir Sevindu. I have constructed the course framework for "${result.title}". You may now return to the hub to begin.`);
 
     } catch (e) {
         console.error("Error processing course chat:", e);
-        displayCourseChatMessage('jarvis', `My apologies, Sir. I encountered an error: ${e.message}`);
+        // Display a more informative error message
+        const errorMessage = e.message.includes("not valid JSON") 
+            ? "My apologies, Sir. The AI service returned an invalid response. This may be a temporary issue."
+            : `My apologies, Sir. I encountered an error: ${e.message}`;
+        displayCourseChatMessage('jarvis', errorMessage);
     } finally {
         dom.courseChatSpinner.classList.add('hidden');
         dom.sendCourseChatBtn.disabled = false;
@@ -887,16 +894,23 @@ async function sendInLessonChatPrompt() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        const result = await response.json();
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+        }
 
-        if (!response.ok) throw new Error(result.error || 'Unknown error');
+        const result = await response.json();
 
         displayInLessonChatMessage('jarvis', result.message);
         state.inLessonChatHistory.push({ role: 'model', parts: [{ text: result.message }] });
 
     } catch (e) {
         console.error("Error with in-lesson chat:", e);
-        displayInLessonChatMessage('jarvis', `My apologies, Sir. I am unable to assist at this moment. ${e.message}`);
+        const errorMessage = e.message.includes("not valid JSON") 
+            ? "My apologies, Sir. The AI service returned an invalid response."
+            : `My apologies, Sir. I am unable to assist at this moment. ${e.message}`;
+        displayInLessonChatMessage('jarvis', errorMessage);
     } finally {
         dom.inLessonChatSpinner.classList.add('hidden');
         dom.sendInLessonChatBtn.disabled = false;
