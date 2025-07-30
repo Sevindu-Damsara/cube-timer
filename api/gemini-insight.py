@@ -1,541 +1,509 @@
-// Firebase imports - These are provided globally by the Canvas environment
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-console.log("[DEBUG] Firebase imports for lessons.js completed.");
+# api/gemini-insight.py inside your Vercel project's 'api' directory
+# This function specifies Python dependencies for your Vercel Cloud Function.
+# This function generates AI insight and now AI lessons using Gemini API.
 
-// =====================================================================================================
-// --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
-// These are duplicated from script.js to ensure lessons.js can function independently.
-// =====================================================================================================
-// Use Canvas global variables if they are defined, otherwise fall back to hardcoded values.
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedcube-timer';
-const firebaseConfig = {
-  apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
-  authDomain: "ubically-timer.firebaseapp.com",
-  databaseURL: "https://ubically-timer-default-rtdb.firebaseio.com",
-  projectId: "ubically-timer",
-  storageBucket: "ubically-timer.firebasestorage.app",
-  messagingSenderId: "103608149129",
-  appId: "1:103608149129:web:545d1d6a364177242e20b3",
-  measurementId: "G-G6J0F9P1QG"
-};
+import os
+import requests
+import json
+import uuid # Import uuid for generating unique lesson IDs
+import re   # Import regex module
+# import time # Removed: time is no longer needed for sleep function
 
-let app;
-let db;
-let auth;
-let userId = "anonymous"; // Default anonymous user ID
-let isAuthReady = false; // Flag to indicate Firebase Auth is ready
+from flask import Flask, request, jsonify
+from flask_cors import CORS # Required for handling CORS in Flask functions
 
-// Initialize Firebase
-async function initializeFirebaseAndAuth() {
-    try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        console.log("[DEBUG] Firebase services initialized.");
+# Initialize the Flask app for Vercel.
+app = Flask(__name__)
+CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
 
-        // Sign in anonymously first, then try custom token if available
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-            console.log("[DEBUG] Signed in with custom token.");
-        } else {
-            await signInAnonymously(auth);
-            console.log("[DEBUG] Signed in anonymously.");
-        }
+# Retrieve Gemini API key from environment variables for security.
+# In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;
-                console.log("Authentication state changed. User is present. UID:", userId);
-            } else {
-                userId = "anonymous";
-                console.log("Authentication state changed. No user is signed in.");
+# Constants for exponential backoff (no longer used for retries, but kept for reference if needed)
+# MAX_RETRIES = 5
+# INITIAL_RETRY_DELAY = 1 # seconds
+
+@app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
+def gemini_insight_handler():
+    """HTTP endpoint that generates AI insight or AI lessons using Gemini API.
+    Handles both preflight (OPTIONS) and actual (POST) requests.
+    """
+    print("DEBUG: === gemini_insight_handler received a request. ===") # Prominent log at entry
+
+    # Handle CORS preflight (OPTIONS) request. Vercel routes these automatically.
+    if request.method == 'OPTIONS':
+        print("DEBUG: Handling OPTIONS (preflight) request.")
+        return '', 204
+
+    try:
+        # Attempt to parse the incoming JSON request body.
+        request_json = request.get_json(silent=True)
+        print(f"DEBUG: Received request JSON: {request_json}")
+
+        if not request_json:
+            print("ERROR: Invalid JSON body.")
+            return jsonify({"error": "Invalid JSON body or empty request."}), 400
+
+        request_type = request_json.get('type')
+
+        if request_type == 'lesson_chat':
+            return handle_lesson_chat(request_json)
+        elif request_type == 'generate_course':
+            return handle_generate_course(request_json)
+        else:
+            # Fallback to existing insight generation if no specific type is provided
+            return generate_insight(request_json)
+
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"ERROR: Connection error during Gemini API call: {conn_err}")
+        return jsonify({"error": "Network error: Could not connect to the AI service. Please check your internet connection or try again later."}), 503
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"ERROR: Timeout error during Gemini API call: {timeout_err}")
+        return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
+    except requests.exceptions.RequestException as req_err:
+        print(f"ERROR: General request error during Gemini API call: {req_err}")
+        # Log the specific error message from the API response body if available
+        # 'response' variable might not be defined in all error paths, so check its existence
+        if 'response' in locals() and response is not None and hasattr(response, 'text') and response.text:
+            print(f"ERROR: API detailed error response: {response.text}")
+        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
+    except json.JSONDecodeError as json_err:
+        raw_body = request.get_data(as_text=True)
+        print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
+        return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
+    except ValueError as val_err:
+        print(f"ERROR: Data validation error: {val_err}")
+        return jsonify({"error": f"Invalid data received or generated: {val_err}"}), 400
+    except Exception as e:
+        import traceback
+        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
+        return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
+
+def generate_insight(request_json):
+    """Generates AI insight based on scramble, time, and user performance."""
+    scramble = request_json.get('scramble')
+    time_ms = request_json.get('time_ms')
+    user_performance_history = request_json.get('userPerformanceHistory', [])
+    cube_type = request_json.get('cubeType', '3x3')
+    user_level = request_json.get('userLevel', 'beginner')
+
+    if not scramble or time_ms is None:
+        print("ERROR: Missing 'scramble' or 'time_ms' for insight generation.")
+        return jsonify({"error": "Missing 'scramble' or 'time_ms' in request for insight generation."}), 400
+
+    prompt = f"""
+    You are an AI cubing coach named Jarvis. Provide a concise, encouraging, and actionable insight for a {user_level} level cuber solving a {cube_type} cube.
+    The scramble was: {scramble}
+    The solve time was: {time_ms / 1000:.2f} seconds.
+    
+    Based on this, provide:
+    1.  **Scramble Analysis:** A very brief analysis of the provided scramble, highlighting any obvious features or challenges (e.g., "easy cross," "tricky F2L pair"). Keep this to one sentence.
+    2.  **Personalized Tip:** A single, actionable tip for improvement based on the solve time and the user's level. Focus on one specific area (e.g., "focus on look-ahead," "practice F2L recognition," "improve finger tricks").
+    3.  **Targeted Practice Focus:** Suggest one specific type of practice or drill.
+
+    Format your response as a JSON object with the keys `scrambleAnalysis`, `personalizedTip`, and `targetedPracticeFocus`.
+    Example:
+    {{
+        "scrambleAnalysis": "This scramble presented a straightforward cross solution.",
+        "personalizedTip": "Consider improving your cross efficiency by planning more moves during inspection.",
+        "targetedPracticeFocus": "Practice cross solutions from various angles without looking."
+    }}
+    """
+
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
+    }
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "OBJECT",
+                "properties": {
+                    "scrambleAnalysis": {"type": "STRING"},
+                    "personalizedTip": {"type": "STRING"},
+                    "targetedPracticeFocus": {"type": "STRING"}
+                },
+                "required": ["scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
             }
-            isAuthReady = true;
-            console.log("Authentication is ready. Loading initial view.");
-            loadInitialView(); // Load UI after auth is ready
-        });
-    } catch (error) {
-        console.error("Error initializing Firebase or authenticating:", error);
-        showToast("Failed to initialize app. Please try again.", "error");
+        }
     }
-}
+    
+    # Clean the base URL before use
+    clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+    clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-console.log("[DEBUG] lessons.js: Jarvis systems online. Initializing lesson protocols.");
-
-// UI Elements
-const lessonHub = document.getElementById('lessonHub');
-const courseCreationSection = document.getElementById('courseCreationSection');
-const chatContainer = document.getElementById('chatContainer');
-const chatMessages = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
-const sendChatButton = document.getElementById('sendChatButton');
-const createNewCourseButton = document.getElementById('createNewCourseButton');
-const courseList = document.getElementById('courseList');
-const globalLoadingSpinner = document.getElementById('globalLoadingSpinner');
-const toastContainer = document.getElementById('toastContainer');
-const backToHubButton = document.getElementById('backToHubButton');
-const currentLessonView = document.getElementById('currentLessonView');
-const lessonTitleElement = document.getElementById('lessonTitle');
-const lessonContentElement = document.getElementById('lessonContent');
-const nextLessonButton = document.getElementById('nextLessonButton');
-const prevLessonButton = document.getElementById('prevLessonButton');
-
-let currentCourse = null;
-let currentModuleIndex = 0;
-let currentLessonIndex = 0;
-let synth = null; // Tone.js Synth instance
-
-// Client-side state for conversational parameters
-let conversationParams = {
-    skill_level: null,
-    focus_area: null,
-    learning_style: null
-};
-
-// Function to show/hide sections
-function showSection(section) {
-    lessonHub.classList.add('hidden');
-    courseCreationSection.classList.add('hidden');
-    currentLessonView.classList.add('hidden');
-
-    section.classList.remove('hidden');
-    console.log("Switching view to:", section.id);
-}
-
-// Show/hide global loading spinner
-function showGlobalLoadingSpinner(show) {
-    if (show) {
-        globalLoadingSpinner.classList.remove('hidden');
-    } else {
-        globalLoadingSpinner.classList.add('hidden');
-    }
-}
-
-// Show toast messages
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 p-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} z-50`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
-
-// Add message to chat display
-function addMessageToChat(message, sender) {
-    const messageElement = document.createElement('div');
-    messageElement.className = `p-2 my-1 rounded-lg max-w-[80%] ${sender === 'user' ? 'bg-blue-500 text-white self-end ml-auto' : 'bg-gray-200 text-gray-800 self-start mr-auto'}`;
-    messageElement.textContent = message;
-    chatMessages.appendChild(messageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to bottom
-}
-
-// Setup event listeners for UI elements
-function setupEventListeners() {
-    console.log("[DEBUG] DOM elements assigned.");
-
-    createNewCourseButton.addEventListener('click', () => {
-        showSection(courseCreationSection);
-        addMessageToChat("Greetings, Sir Sevindu. I am ready to design a new cubing course. Please describe your requirements, including cube type, skill level, and any specific topics of interest.", 'jarvis');
-        // Reset conversation parameters when starting a new course creation
-        conversationParams = { skill_level: null, focus_area: null, learning_style: null };
-        chatMessages.innerHTML = ''; // Clear previous chat
+    try:
+        gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
+        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         
-        // Start Tone.js AudioContext on first user gesture
-        if (Tone.context.state !== 'running') {
-            Tone.start().then(() => {
-                console.log("[DEBUG] Tone.js AudioContext resumed on user gesture.");
-            }).catch(e => {
-                console.warn("Failed to resume AudioContext:", e.message);
-            });
+        response_data = gemini_response.json()
+        print(f"DEBUG: Gemini API response: {response_data}")
+
+        if response_data and response_data.get('candidates'):
+            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            insight = json.loads(json_text)
+            return jsonify(insight), 200
+        else:
+            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+            return jsonify({"error": "AI service did not return a valid insight."}), 500
+
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Request to Gemini API failed: {e}")
+        return jsonify({"error": f"Failed to get insight from AI service: {e}"}), 500
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
+        print(f"Raw response text: {gemini_response.text}")
+        return jsonify({"error": f"AI service returned invalid JSON: {e}"}), 500
+    except Exception as e:
+        print(f"CRITICAL ERROR: Unexpected error in generate_insight: {e}")
+        return jsonify({"error": f"An unexpected error occurred during insight generation: {e}"}), 500
+
+def handle_lesson_chat(request_json):
+    """Handles conversational chat for lesson creation or in-lesson queries."""
+    chat_history = request_json.get('chatHistory', [])
+    cube_type = request_json.get('cubeType', '3x3') # Default, can be refined by chat
+    
+    # Extract the most recent user message to check for explicit commands
+    latest_user_message = ""
+    if chat_history and isinstance(chat_history, list) and len(chat_history) > 0:
+        for msg in reversed(chat_history):
+            if isinstance(msg, dict) and msg.get('role') == 'user' and \
+               isinstance(msg.get('parts'), list) and len(msg['parts']) > 0 and \
+               isinstance(msg['parts'][0], dict) and msg['parts'][0].get('text') is not None:
+                latest_user_message = msg['parts'][0]['text'].lower()
+                break
+
+    # Define explicit generation commands
+    explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
+    should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
+
+    # --- Start: Enhanced Conversational State Management and Parameter Extraction ---
+    current_params = {
+        'skill_level': None,
+        'focus_area': None,
+        'learning_style': None
+    }
+
+    # Iterate through chat history to build up current_params
+    for msg in chat_history:
+        if msg.get('role') == 'user':
+            text = msg.get('parts', [{}])[0].get('text', '').lower()
+
+            # More robust extraction for skill_level using regex for whole words
+            if re.search(r'\bbeginner\b', text):
+                current_params['skill_level'] = "beginner"
+            elif re.search(r'\bintermediate\b', text):
+                current_params['skill_level'] = "intermediate"
+            elif re.search(r'\badvanced\b', text):
+                current_params['skill_level'] = "advanced"
+            
+            # More robust extraction for focus_area using regex for whole words
+            if re.search(r'\bf2l\b', text):
+                current_params['focus_area'] = "F2L"
+            elif re.search(r'\boll\b', text):
+                current_params['focus_area'] = "OLL"
+            elif re.search(r'\bpll\b', text):
+                current_params['focus_area'] = "PLL"
+            elif re.search(r'\bcross\b', text):
+                current_params['focus_area'] = "Cross"
+            
+            # More robust extraction for learning_style using regex for whole words
+            if re.search(r'\btheoretical\b', text):
+                current_params['learning_style'] = "theoretical"
+            elif re.search(r'\bpractice\b|\bhands-on\b', text):
+                current_params['learning_style'] = "hands-on practice"
+            elif re.search(r'\bquiz\b|\bquizzes\b', text):
+                current_params['learning_style'] = "interactive quiz"
+        # Add logic to parse model responses if they confirm parameters
+        elif msg.get('role') == 'model':
+            # This is where we could parse the AI's previous confirmations to update state
+            # For now, relying primarily on user inputs for extraction.
+            pass
+    
+    missing_info = []
+    if current_params['skill_level'] is None:
+        missing_info.append("skill level (e.g., beginner, intermediate, advanced)")
+    if current_params['focus_area'] is None:
+        missing_info.append("specific topic or focus area (e.g., F2L, OLL, PLL)")
+    if current_params['learning_style'] is None:
+        missing_info.append("preferred learning style (e.g., theoretical, hands-on practice, interactive quizzes)")
+
+    print(f"DEBUG: handle_lesson_chat - should_generate_explicitly: {should_generate_explicitly}")
+    print(f"DEBUG: handle_lesson_chat - current_params: {current_params}")
+    print(f"DEBUG: handle_lesson_chat - missing_info: {missing_info}")
+
+    # --- Programmatic Decision Logic for Action and Message ---
+    # This section now entirely controls the 'action' and 'message' based on extracted state.
+    if should_generate_explicitly and not missing_info: # All conditions met for generation
+        response_payload = {
+            'action': "generate_course",
+            # The message here is a confirmation that the generation process is starting
+            'message': f"Excellent, Sir Sevindu. I have gathered all necessary information for a {current_params['skill_level']} {current_params['focus_area']} course with a {current_params['learning_style']} approach. Initiating course framework construction. You may now return to the hub to begin."
+            # Note: The actual course title will be generated by handle_generate_course
         }
-    });
-
-    sendChatButton.addEventListener('click', processCourseChatInput);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            processCourseChatInput();
+        print(f"DEBUG: handle_lesson_chat - Returning forced generate_course: {response_payload}")
+        return jsonify(response_payload), 200
+    else: # Not ready for generation, force continue_chat and ask clarifying questions
+        clarifying_message = "My apologies, Sir Sevindu. To design the most suitable course, I require a few more details."
+        if missing_info:
+            clarifying_message += f" I am still awaiting information on your {', '.join(missing_info)}."
+        clarifying_message += " Once I have all the necessary information, please explicitly state 'generate the course' to proceed."
+        
+        response_payload = {
+            'action': "continue_chat",
+            'message': clarifying_message
         }
-    });
+        print(f"DEBUG: handle_lesson_chat - Returning forced continue_chat: {response_payload}")
+        return jsonify(response_payload), 200
+    # --- End Programmatic Decision Logic ---
 
-    backToHubButton.addEventListener('click', () => {
-        showSection(lessonHub);
-        currentCourse = null; // Clear current course context
-    });
 
-    nextLessonButton.addEventListener('click', showNextLesson);
-    prevLessonButton.addEventListener('click', showPreviousLesson);
+def handle_generate_course(request_json):
+    """Generates a structured cubing course based on user preferences."""
+    print("DEBUG: === handle_generate_course received a request. ===")
 
-    console.log("[DEBUG] Event listeners configured.");
-}
+    chat_history = request_json.get('chatHistory', [])
+    # Parameters should ideally be passed explicitly from frontend after handle_lesson_chat confirms them
+    # For robustness, try to extract them again if not explicitly provided in request_json
+    cube_type = request_json.get('cubeType', '3x3')
+    skill_level = request_json.get('skillLevel')
+    learning_style = request_json.get('learningStyle')
+    focus_area = request_json.get('focusArea')
 
-// Function to process chat input for course creation
-async function processCourseChatInput() {
-    const inputMessage = chatInput.value.trim();
-    if (!inputMessage) return;
+    # Re-extract from chat history as a fallback/confirmation for handle_generate_course
+    # This ensures handle_generate_course has the latest confirmed parameters
+    extracted_skill_level = None
+    extracted_focus_area = None
+    extracted_learning_style = None
 
-    addMessageToChat(inputMessage, 'user');
-    chatInput.value = '';
-    showGlobalLoadingSpinner(true);
+    for msg in chat_history:
+        if msg.get('role') == 'user':
+            text = msg.get('parts', [{}])[0].get('text', '').lower()
+            if re.search(r'\bbeginner\b', text):
+                extracted_skill_level = "beginner"
+            elif re.search(r'\bintermediate\b', text):
+                extracted_skill_level = "intermediate"
+            elif re.search(r'\badvanced\b', text):
+                extracted_skill_level = "advanced"
+            
+            if re.search(r'\bf2l\b', text):
+                extracted_focus_area = "F2L"
+            elif re.search(r'\boll\b', text):
+                extracted_focus_area = "OLL"
+            elif re.search(r'\bpll\b', text):
+                extracted_focus_area = "PLL"
+            elif re.search(r'\bcross\b', text):
+                extracted_focus_area = "Cross"
+            
+            if re.search(r'\btheoretical\b', text):
+                extracted_learning_style = "theoretical"
+            elif re.search(r'\bpractice\b|\bhands-on\b', text):
+                extracted_learning_style = "hands-on practice"
+            elif re.search(r'\bquiz\b|\bquizzes\b', text):
+                extracted_learning_style = "interactive quiz"
 
-    // Update client-side conversation parameters based on user input
-    // This is a simplified extraction; a more complex regex or AI parsing could be used
-    const lowerInput = inputMessage.toLowerCase();
-    if (lowerInput.includes("beginner")) conversationParams.skill_level = "beginner";
-    else if (lowerInput.includes("intermediate")) conversationParams.skill_level = "intermediate";
-    else if (lowerInput.includes("advanced")) conversationParams.skill_level = "advanced";
+    # Use extracted parameters if available, otherwise fall back to defaults or request_json
+    skill_level = skill_level or extracted_skill_level or 'beginner'
+    learning_style = learning_style or extracted_learning_style or 'conceptual'
+    focus_area = focus_area or extracted_focus_area or 'general'
 
-    if (lowerInput.includes("f2l")) conversationParams.focus_area = "F2L";
-    else if (lowerInput.includes("oll")) conversationParams.focus_area = "OLL";
-    else if (lowerInput.includes("pll")) conversationParams.focus_area = "PLL";
-    else if (lowerInput.includes("cross")) conversationParams.focus_area = "Cross";
+    print(f"DEBUG: handle_generate_course - Final parameters for generation: skill_level={skill_level}, focus_area={focus_area}, learning_style={learning_style}, cube_type={cube_type}")
 
-    if (lowerInput.includes("theoretical")) conversationParams.learning_style = "theoretical";
-    else if (lowerInput.includes("practice") || lowerInput.includes("hands-on")) conversationParams.learning_style = "hands-on practice";
-    else if (lowerInput.includes("quiz") || lowerInput.includes("quizzes")) conversationParams.learning_style = "interactive quiz";
+    user_prompt_for_course = f"Generate a course for a {skill_level} level cuber focusing on {focus_area} for a {cube_type} cube with a {learning_style} learning style."
 
-    console.log("[DEBUG] Current conversationParams (client-side):", conversationParams);
 
-    // Prepare chat history for backend (only user messages for context, not internal state)
-    const currentChatHistory = Array.from(chatMessages.children).map(el => {
-        return {
-            role: el.classList.contains('self-end') ? 'user' : 'model',
-            parts: [{ text: el.textContent }]
-        };
-    });
+    system_instruction = f"""
+    You are Jarvis, an AI assistant. Your task is to generate a comprehensive Rubik's Cube course for Sir Sevindu.
+    Your response MUST be a single, complete, and valid JSON object. DO NOT include any text, markdown formatting (like ```json), or conversational elements outside of the JSON object itself.
+    """
 
-    try {
-        // Step 1: Call backend for chat response and action
-        const chatPayload = {
-            type: 'lesson_chat',
-            chatHistory: currentChatHistory,
-            // Pass current parameters for backend to use in its decision logic
-            skillLevel: conversationParams.skill_level,
-            focusArea: conversationParams.focus_area,
-            learningStyle: conversationParams.learning_style
-        };
-        console.log("[DEBUG] Sending chatPayload to backend:", chatPayload);
+    # The detailed JSON schema is now part of the main prompt text.
+    # This guides the model to produce the desired string output.
+    prompt_text = f"""
+    Based on the following user preferences and chat history, design a complete cubing course.
+    Cube Type: {cube_type}
+    Skill Level: {skill_level}
+    Learning Style: {learning_style}
+    Focus Area: {focus_area}
+    Sir Sevindu's specific request: "{user_prompt_for_course}"
 
-        const chatResponse = await fetch('/api/gemini-insight', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(chatPayload)
-        });
+    Generate a course with 3-5 modules. Each module should have 2-4 lessons.
+    Each lesson should have a 'lesson_type' (e.g., 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual').
 
-        if (!chatResponse.ok) {
-            const errorData = await chatResponse.json();
-            throw new Error(`Server responded with status ${chatResponse.status}: ${JSON.stringify(errorData)}`);
-        }
+    For each lesson:
+    - lesson_id: A unique UUID.
+    - lesson_title: A concise title.
+    - lesson_type: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
+    - content: Markdown formatted text for theory/conceptual lessons.
+    - scrambles: (Optional, for scramble_practice) An ARRAY of 1-3 WCA-formatted scrambles. If only one scramble, still use an array.
+    - algorithms: (Optional, for algorithm_drill) An ARRAY of 1-3 standard algorithms (e.g., "R U R' U'"). If only one, still use an array.
+    - quiz_questions: (Optional, for interactive_quiz) An ARRAY of 2-3 quiz questions. Each question must have:
+        - question: The question text.
+        - options: An ARRAY of 3-4 possible answers. If only one, still use an array.
+        - answer: The correct answer(s) (string for single choice, ARRAY of strings for multiple choice).
 
-        const chatData = await chatResponse.json();
-        console.log("[DEBUG] Backend chatData response:", chatData);
+    Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
+    Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
 
-        addMessageToChat(chatData.message, 'jarvis'); // Display Jarvis's message
+    The course title should be descriptive and directly incorporate the focus area and skill level. For example: "{focus_area} {skill_level.capitalize()} Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names or phrases like 'Guide to' in the course title.
 
-        if (chatData.action === 'generate_course') {
-            // Step 2: If backend signals 'generate_course', make a separate call for actual course generation
-            console.log("[DEBUG] Backend requested course generation. Initiating generate_course API call.");
-            await generateNewCourse(conversationParams); // Pass collected parameters
-        } else if (chatData.action === 'continue_chat') {
-            console.log("[DEBUG] Backend requested continued chat. Awaiting next user input.");
-            // No further action needed, just wait for user's next input
-        }
+    Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
+    Example JSON structure:
+    {{
+        "course_id": "unique-course-uuid",
+        "title": "F2L Beginner Course",
+        "description": "Learn the fundamentals of solving the First Two Layers (F2L) for a 3x3 Rubik's Cube.",
+        "cubeType": "3x3",
+        "level": "beginner",
+        "modules": [
+            {{
+                "module_id": "unique-module-uuid-1",
+                "module_title": "Module 1: F2L Introduction",
+                "lessons": [
+                    {{
+                        "lesson_id": "unique-lesson-uuid-1",
+                        "lesson_title": "Understanding F2L Pairs",
+                        "lesson_type": "theory",
+                        "content": "## What is F2L?\\nF2L stands for First Two Layers. It's an intuitive method...",
+                        "scrambles": [],
+                        "algorithms": [],
+                        "quiz_questions": []
+                    }},
+                    {{
+                        "lesson_id": "unique-lesson-uuid-2",
+                        "lesson_title": "Basic F2L Cases: Slotting Pairs",
+                        "lesson_type": "algorithm_drill",
+                        "content": "Practice inserting F2L pairs efficiently.",
+                        "scrambles": [],
+                        "algorithms": ["U R U' R'", "U' L' U L"],
+                        "quiz_questions": []
+                    }}
+                ]
+            }}
+        ]
+    }}
+    """
 
-    } catch (error) {
-        console.error("Error processing course chat:", error);
-        showToast(`My apologies, Sir. I encountered an error: ${error.message}`, 'error');
-    } finally {
-        showGlobalLoadingSpinner(false);
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
     }
-}
-
-// Function to handle the actual course generation API call
-async function generateNewCourse(params) {
-    showGlobalLoadingSpinner(true);
-    try {
-        const generatePayload = {
-            type: 'generate_course',
-            cubeType: '3x3', // Default, can be made dynamic
-            skillLevel: params.skill_level,
-            focusArea: params.focus_area,
-            learningStyle: params.learning_style,
-            // Pass the full chat history for context if backend needs it for deeper understanding
-            chatHistory: Array.from(chatMessages.children).map(el => {
-                return {
-                    role: el.classList.contains('self-end') ? 'user' : 'model',
-                    parts: [{ text: el.textContent }]
-                };
-            })
-        };
-        console.log("[DEBUG] Sending generatePayload to backend:", generatePayload);
-
-        const response = await fetch('/api/gemini-insight', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(generatePayload)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Server responded with status ${response.status}: ${JSON.stringify(errorData)}`);
-        }
-
-        const courseData = await response.json();
-        console.log("[DEBUG] Generated Course Data:", courseData);
-        await saveCourseToFirestore(courseData);
-        showToast("Course generated successfully, Sir Sevindu!", "success");
-        loadCourseList(); // Refresh course list in hub
-        showSection(lessonHub); // Return to hub
-    } catch (error) {
-        console.error("Error generating course:", error);
-        showToast(`Failed to generate course: ${error.message}`, "error");
-    } finally {
-        showGlobalLoadingSpinner(false);
-    }
-}
-
-
-// Firebase Firestore Operations
-async function saveCourseToFirestore(courseData) {
-    if (!db || !userId || !isAuthReady) {
-        console.error("Firestore not initialized or user not authenticated.");
-        showToast("App not ready. Please wait for authentication.", "error");
-        return;
-    }
-
-    try {
-        const courseRef = doc(db, `artifacts/${appId}/users/${userId}/courses`, courseData.course_id);
-        await setDoc(courseRef, courseData);
-        console.log("Course saved to Firestore:", courseData.course_id);
-    } catch (e) {
-        console.error("Error saving course to Firestore:", e);
-        showToast("Error saving course.", "error");
-    }
-}
-
-async function loadCourseList() {
-    if (!db || !userId || !isAuthReady) {
-        console.warn("Firestore not initialized or user not authenticated. Cannot load course list.");
-        return;
-    }
-
-    showGlobalLoadingSpinner(true);
-    try {
-        const coursesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/courses`);
-        const q = query(coursesCollectionRef); // No orderBy to avoid index issues
-
-        const querySnapshot = await getDocs(q);
-        courseList.innerHTML = ''; // Clear existing list
-        let docCount = 0;
-        querySnapshot.forEach((doc) => {
-            docCount++;
-            const course = doc.data();
-            const courseItem = document.createElement('div');
-            courseItem.className = 'bg-white p-4 rounded-lg shadow-md mb-2 cursor-pointer hover:bg-gray-100';
-            courseItem.innerHTML = `
-                <h3 class="font-bold text-lg">${course.title || 'Untitled Course'}</h3>
-                <p class="text-gray-600 text-sm">${course.description || 'No description available.'}</p>
-                <p class="text-gray-500 text-xs mt-1">Level: ${course.level || 'N/A'} | Cube: ${course.cubeType || 'N/A'}</p>
-            `;
-            courseItem.addEventListener('click', () => loadCourse(course));
-            courseList.appendChild(courseItem);
-        });
-        console.log(`Received course snapshot with ${docCount} documents.`);
-        if (docCount === 0) {
-            courseList.innerHTML = '<p class="text-gray-500 text-center py-4">No courses found. Create a new one!</p>';
-        }
-    } catch (e) {
-        console.error("Error loading course list:", e);
-        showToast("Error loading courses.", "error");
-    } finally {
-        showGlobalLoadingSpinner(false);
-    }
-}
-
-function loadCourse(course) {
-    currentCourse = course;
-    currentModuleIndex = 0;
-    currentLessonIndex = 0;
-    showSection(currentLessonView);
-    displayCurrentLesson();
-}
-
-function displayCurrentLesson() {
-    if (!currentCourse || !currentCourse.modules || currentCourse.modules.length === 0) {
-        lessonTitleElement.textContent = "No Lessons Available";
-        lessonContentElement.innerHTML = "<p>This course does not contain any modules or lessons.</p>";
-        nextLessonButton.classList.add('hidden');
-        prevLessonButton.classList.add('hidden');
-        return;
-    }
-
-    const currentModule = currentCourse.modules[currentModuleIndex];
-    if (!currentModule || !currentModule.lessons || currentModule.lessons.length === 0) {
-        lessonTitleElement.textContent = "No Lessons in this Module";
-        lessonContentElement.innerHTML = "<p>This module does not contain any lessons.</p>";
-        nextLessonButton.classList.add('hidden');
-        prevLessonButton.classList.add('hidden');
-        return;
-    }
-
-    const currentLesson = currentModule.lessons[currentLessonIndex];
-    if (!currentLesson) {
-        lessonTitleElement.textContent = "Lesson Not Found";
-        lessonContentElement.innerHTML = "<p>The requested lesson could not be found.</p>";
-        nextLessonButton.classList.add('hidden');
-        prevLessonButton.classList.add('hidden');
-        return;
-    }
-
-    lessonTitleElement.textContent = `${currentModule.module_title}: ${currentLesson.lesson_title}`;
-    let contentHtml = `<div class="prose max-w-none">${marked.parse(currentLesson.content || 'No content provided.')}</div>`;
-
-    // Add specific content based on lesson type
-    if (currentLesson.lesson_type === 'algorithm_drill' && currentLesson.algorithms && currentLesson.algorithms.length > 0) {
-        contentHtml += '<h4 class="font-semibold mt-4">Algorithms:</h4><ul>';
-        currentLesson.algorithms.forEach(algo => {
-            contentHtml += `<li class="font-mono bg-gray-100 p-1 rounded-md my-1">${algo}</li>`;
-        });
-        contentHtml += '</ul>';
-    } else if (currentLesson.lesson_type === 'scramble_practice' && currentLesson.scrambles && currentLesson.scrambles.length > 0) {
-        contentHtml += '<h4 class="font-semibold mt-4">Scrambles:</h4><ul>';
-        currentLesson.scrambles.forEach(scramble => {
-            contentHtml += `<li class="font-mono bg-gray-100 p-1 rounded-md my-1">${scramble}</li>`;
-        });
-        contentHtml += '</ul>';
-    } else if (currentLesson.lesson_type === 'interactive_quiz' && currentLesson.quiz_questions && currentLesson.quiz_questions.length > 0) {
-        contentHtml += '<h4 class="font-semibold mt-4">Quiz:</h4>';
-        currentLesson.quiz_questions.forEach((q, qIndex) => {
-            contentHtml += `<div class="mb-4">
-                <p class="font-medium">Q${qIndex + 1}: ${q.question}</p>
-                <div class="options mt-1">`;
-            q.options.forEach((option, oIndex) => {
-                contentHtml += `<label class="block">
-                    <input type="radio" name="question${qIndex}" value="${option}" class="mr-2">
-                    ${option}
-                </label>`;
-            });
-            contentHtml += `</div>
-                <button class="check-answer-btn bg-blue-500 text-white px-3 py-1 rounded-md mt-2 text-sm" data-q-index="${qIndex}" data-answer="${Array.isArray(q.answer) ? q.answer.join('|') : q.answer}">Check Answer</button>
-                <div class="feedback mt-1 text-sm"></div>
-            </div>`;
-        });
-    }
-
-    lessonContentElement.innerHTML = contentHtml;
-
-    // Add event listeners for quiz buttons
-    document.querySelectorAll('.check-answer-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const qIndex = event.target.dataset.qIndex;
-            const correctAnswer = event.target.dataset.answer;
-            const selectedOption = document.querySelector(`input[name="question${qIndex}"]:checked`);
-            const feedbackElement = event.target.nextElementSibling; // The div.feedback after the button
-
-            if (selectedOption) {
-                const isCorrect = Array.isArray(correctAnswer.split('|')) ? correctAnswer.split('|').includes(selectedOption.value) : selectedOption.value === correctAnswer;
-                if (isCorrect) {
-                    feedbackElement.textContent = "Correct!";
-                    feedbackElement.className = "feedback mt-1 text-sm text-green-600";
-                    playSuccessSound();
-                } else {
-                    feedbackElement.textContent = `Incorrect. The correct answer was: ${correctAnswer.replace(/\|/g, ' or ')}.`;
-                    feedbackElement.className = "feedback mt-1 text-sm text-red-600";
-                    playErrorSound();
-                }
-            } else {
-                feedbackElement.textContent = "Please select an option.";
-                feedbackElement.className = "feedback mt-1 text-sm text-yellow-600";
+    payload = {
+        "systemInstruction": {"parts": [{"text": system_instruction}]}, # System instruction moved here
+        "contents": [{"role": "user", "parts": [{"text": prompt_text}]}], # Only the prompt_text as a single user message
+        "generationConfig": {
+            "responseMimeType": "application/json", # Request application/json output
+            "responseSchema": { # Define the full schema here
+                "type": "OBJECT",
+                "properties": {
+                    "course_id": {"type": "STRING"},
+                    "title": {"type": "STRING"},
+                    "description": {"type": "STRING"},
+                    "cubeType": {"type": "STRING"},
+                    "level": {"type": "STRING"},
+                    "modules": {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "module_id": {"type": "STRING"},
+                                "module_title": {"type": "STRING"},
+                                "lessons": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "lesson_id": {"type": "STRING"},
+                                            "lesson_title": {"type": "STRING"},
+                                            "lesson_type": {"type": "STRING"},
+                                            "content": {"type": "STRING"},
+                                            "scrambles": {"type": "ARRAY", "items": {"type": "STRING"}, "nullable": True},
+                                            "algorithms": {"type": "ARRAY", "items": {"type": "STRING"}, "nullable": True},
+                                            "quiz_questions": {
+                                                "type": "ARRAY",
+                                                "items": {
+                                                    "type": "OBJECT",
+                                                    "properties": {
+                                                        "question": {"type": "STRING"},
+                                                        "options": {"type": "ARRAY", "items": {"type": "STRING"}},
+                                                        "answer": {"oneOf": [{"type": "STRING"}, {"type": "ARRAY", "items": {"type": "STRING"}}]}
+                                                    },
+                                                    "required": ["question", "options", "answer"]
+                                                },
+                                                "nullable": True
+                                            }
+                                        },
+                                        "required": ["lesson_id", "lesson_title", "lesson_type", "content"]
+                                    }
+                                }
+                            },
+                            "required": ["module_id", "module_title", "lessons"]
+                        }
+                    }
+                },
+                "required": ["course_id", "title", "description", "cubeType", "level", "modules"]
             }
-        });
-    });
-
-
-    // Update navigation button visibility
-    const hasNext = (currentLessonIndex < currentModule.lessons.length - 1) || (currentModuleIndex < currentCourse.modules.length - 1);
-    const hasPrev = (currentLessonIndex > 0) || (currentModuleIndex > 0);
-
-    nextLessonButton.classList.toggle('hidden', !hasNext);
-    prevLessonButton.classList.toggle('hidden', !hasPrev);
-}
-
-function showNextLesson() {
-    const currentModule = currentCourse.modules[currentModuleIndex];
-    if (currentLessonIndex < currentModule.lessons.length - 1) {
-        currentLessonIndex++;
-    } else if (currentModuleIndex < currentCourse.modules.length - 1) {
-        currentModuleIndex++;
-        currentLessonIndex = 0; // Reset lesson index for new module
-    } else {
-        showToast("You have completed the course, Sir Sevindu!", "success");
-        return;
+        }
     }
-    displayCurrentLesson();
-}
 
-function showPreviousLesson() {
-    if (currentLessonIndex > 0) {
-        currentLessonIndex--;
-    } else if (currentModuleIndex > 0) {
-        currentModuleIndex--;
-        // Set to last lesson of previous module
-        currentLessonIndex = currentCourse.modules[currentModuleIndex].lessons.length - 1;
-    } else {
-        showToast("You are at the beginning of the course, Sir Sevindu.", "info");
-        return;
-    }
-    displayCurrentLesson();
-}
+    try:
+        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-// Tone.js sound functions
-function playSuccessSound() {
-    if (synth && Tone.context.state === 'running') {
-        synth.triggerAttackRelease("C5", "8n"); // C5 note, 8th note duration
-    }
-}
+        gemini_response = requests.post(
+            f"{clean_base_url}/gemini-1.5-flash-latest:generateContent",
+            headers=headers,
+            json=payload,
+            timeout=120 
+        )
+        gemini_response.raise_for_status() 
+        
+        response_data = gemini_response.json()
+        print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
 
-function playErrorSound() {
-    if (synth && Tone.context.state === 'running') {
-        synth.triggerAttackRelease("C3", "8n"); // C3 note, 8th note duration
-    }
-}
+        if response_data and response_data.get('candidates'):
+            ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            
+            # Since responseMimeType is application/json, expect direct JSON
+            generated_course = json.loads(ai_response_text)
+            
+            # Add UUIDs if not present (this part is from original code)
+            if 'course_id' not in generated_course or not generated_course['course_id']:
+                generated_course['course_id'] = str(uuid.uuid4())
+            for module in generated_course.get('modules', []):
+                if 'module_id' not in module or not module['module_id']:
+                    module['module_id'] = str(uuid.uuid4())
+                for lesson in module.get('lessons', []): 
+                    if 'lesson_id' not in lesson or not lesson['lesson_id']:
+                        lesson['lesson_id'] = str(uuid.uuid4())
+                    # Ensure steps have UUIDs if present
+                    for step in lesson.get('steps', []):
+                        if 'step_id' not in step or not step['step_id']:
+                            step['step_id'] = str(uuid.uuid4())
+            
+            return jsonify(generated_course), 200
+        else:
+            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+            return jsonify({"error": "AI service did not return a valid course structure."}), 500
 
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Request to Gemini API for course generation failed: {e}")
+        return jsonify({"error": f"Failed to generate course from AI service: {e}"}), 500
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
+        print(f"Raw AI text response that failed parsing: {ai_response_text}") 
+        return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
+    except Exception as e:
+        print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
+        return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
 
-/**
- * Loads the initial view based on authentication status.
- */
-async function loadInitialView() {
-    console.log("[DEBUG] loadInitialView() called.");
-    // For now, always start at the hub. In a more complex app,
-    // we might check if a lesson was in progress and resume it directly.
-    showSection(lessonHub);
-    console.log("[DEBUG] Calling loadCourseList() from loadInitialView.");
-    await loadCourseList(); // Load courses for the hub
-    showGlobalLoadingSpinner(false); // Hide global spinner once initial view is set
-    console.log("[DEBUG] loadInitialView() completed.");
-}
-
-
-/**
- * Initializes the lessons page by setting up DOM elements and Firebase.
- */
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log("[DEBUG] lessons.js: DOMContentLoaded triggered. Assigning DOM elements and initializing.");
-    setupEventListeners(); // Assign DOM elements and add listeners
-    await initializeFirebaseAndAuth(); // Initialize Firebase and authentication
-
-    // Tone.js Synth initialization is now handled on first user gesture (e.g., clicking 'Create New Course')
-    // This resolves the "AudioContext was not allowed to start" warning.
-    try {
-        synth = new Tone.Synth().toDestination();
-        // Do NOT call Tone.start() here. It will be called on first user interaction.
-        console.log("[DEBUG] Tone.js Synth initialized (but not yet started).");
-    } catch (e) {
-        console.warn("[WARN] Tone.js initialization failed:", e.message);
-        showToast("Audio playback may not work. Please interact with the page.", "info");
-    }
-});
+if __name__ == '__main__':
+    # This block is for local development and will not run on Vercel.
+    # On Vercel, the 'app' object is directly used by the Vercel server.
+    # It's good practice to keep this for local testing.
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
