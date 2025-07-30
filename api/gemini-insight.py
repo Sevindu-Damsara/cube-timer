@@ -184,8 +184,12 @@ def handle_lesson_chat(request_json):
     Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
     
     When discussing course creation:
-    - If Sir Sevindu provides a general topic (e.g., "F2L", "OLL") or a partial request, **you MUST ask clarifying questions** to gather more details (e.g., "What is your current skill level for F2L?", "Are you interested in a beginner, intermediate, or advanced course?", "Do you have any specific learning styles or areas you'd like to focus on?").
-    - **DO NOT** suggest or initiate course generation until Sir Sevindu explicitly states phrases like "generate course", "create course", "make the course", or similar clear commands, and you have sufficient information.
+    - If Sir Sevindu provides a general topic (e.g., "F2L", "OLL") or a partial request, **you MUST ask clarifying questions** to gather all necessary details.
+      **Specifically, you MUST ask for:**
+      1.  **Skill Level:** "What is your current skill level for this topic (e.g., beginner, intermediate, advanced)?"
+      2.  **Specific Focus (if applicable):** "Are there any particular aspects within F2L you'd like to emphasize (e.g., recognizing cases, efficient insertions, look-ahead)?"
+      3.  **Learning Style Preference:** "Do you prefer a more theoretical approach, hands-on practice with scrambles, or interactive quizzes?"
+      **DO NOT** suggest or initiate course generation until Sir Sevindu explicitly states phrases like "generate course", "create course", "make the course", or similar clear commands, AND you have gathered all the necessary information.
     - If the user explicitly states a command to generate a course after providing details, then you may confirm and set the 'action' to 'generate_course'.
     - If the user asks general questions about cubing or lessons, provide helpful information and keep the 'action' as 'continue_chat'.
 
@@ -328,64 +332,38 @@ def handle_generate_course(request_json):
     Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
     Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
 
-    The course title should be descriptive and general, reflecting the content and target audience, for example: "{focus_area} {skill_level.capitalize()} Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names in the course title.
+    The course title should be descriptive and directly incorporate the focus area and skill level. For example: "{focus_area} {skill_level.capitalize()} Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names or phrases like 'Guide to' in the course title.
 
     Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
     Example JSON structure:
     {{
         "course_id": "unique-course-uuid",
-        "title": "Beginner's Guide to 3x3",
-        "description": "Learn the fundamentals of solving the 3x3 Rubik's Cube.",
+        "title": "F2L Beginner Course",
+        "description": "Learn the fundamentals of solving the First Two Layers (F2L) for a 3x3 Rubik's Cube.",
         "cubeType": "3x3",
         "level": "beginner",
         "modules": [
             {{
                 "module_id": "unique-module-uuid-1",
-                "module_title": "Module 1: The Basics",
+                "module_title": "Module 1: F2L Introduction",
                 "lessons": [
                     {{
                         "lesson_id": "unique-lesson-uuid-1",
-                        "lesson_title": "Introduction to the Cube",
+                        "lesson_title": "Understanding F2L Pairs",
                         "lesson_type": "theory",
-                        "content": "## Cube Notation\\nThis lesson covers basic cube notation..."
+                        "content": "## What is F2L?\\nF2L stands for First Two Layers. It's an intuitive method...",
+                        "scrambles": [],
+                        "algorithms": [],
+                        "quiz_questions": []
                     }},
                     {{
                         "lesson_id": "unique-lesson-uuid-2",
-                        "lesson_title": "Solving the White Cross",
-                        "lesson_type": "scramble_practice",
-                        "content": "Learn to build the white cross efficiently.",
-                        "scrambles": ["F U' B2 L' U' L' F' U' F' L2 D2 L' B2 D2 F2 U' R2 U' L2 F'"]
-                    }}
-                ]
-            }},
-            {{
-                "module_id": "unique-module-uuid-2",
-                "module_title": "Module 2: First Layer & F2L",
-                "lessons": [
-                    {{
-                        "lesson_id": "unique-lesson-uuid-3",
-                        "lesson_title": "F2L Introduction",
-                        "lesson_type": "conceptual",
-                        "content": "## What is F2L?\\nF2L stands for First Two Layers..."
-                    }},
-                    {{
-                        "lesson_id": "unique-lesson-uuid-4",
-                        "lesson_title": "F2L Case 1: Slotting Pairs",
+                        "lesson_title": "Basic F2L Cases: Slotting Pairs",
                         "lesson_type": "algorithm_drill",
-                        "content": "Practice inserting F2L pairs.",
-                        "algorithms": ["U R U' R'", "U' L' U L"]
-                    }},
-                    {{
-                        "lesson_id": "unique-lesson-uuid-5",
-                        "lesson_title": "F2L Quiz",
-                        "lesson_type": "interactive_quiz",
-                        "quiz_questions": [
-                            {{
-                                "question": "What does F2L stand for?",
-                                "options": ["First Two Layers", "Fast Two Loops", "Front Two Left"],
-                                "answer": "First Two Layers"
-                            }}
-                        ]
+                        "content": "Practice inserting F2L pairs efficiently.",
+                        "scrambles": [],
+                        "algorithms": ["U R U' R'", "U' L' U L"],
+                        "quiz_questions": []
                     }}
                 ]
             }}
