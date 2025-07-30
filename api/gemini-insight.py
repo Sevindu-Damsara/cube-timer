@@ -185,6 +185,21 @@ def handle_lesson_chat(request_json):
                 latest_user_message = msg['parts'][0]['text'].lower()
                 break
 
+    # Define explicit generation commands
+    explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
+    should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
+
+    # --- NEW LOGIC FOR ENFORCING CLARIFICATION ---
+    # If no explicit command, force continue_chat and ask for details
+    if not should_generate_explicitly:
+        response_payload = {
+            'action': "continue_chat",
+            'message': "My apologies, Sir Sevindu. To design the most suitable course, I require a few more details. Could you please specify your current skill level for this topic (e.g., beginner, intermediate, advanced), any particular aspects you wish to focus on, and your preferred learning style (e.g., theoretical, hands-on practice, or interactive quizzes)? Once I have this information, please explicitly state 'generate the course' to proceed."
+        }
+        return jsonify(response_payload), 200
+    # --- END NEW LOGIC ---
+
+    # If an explicit generate command IS present, proceed to ask the AI for its response
     # Construct the prompt for the AI
     system_instruction = f"""
     You are Jarvis, an AI assistant for a Rubik's Cube learning application.
@@ -264,19 +279,6 @@ def handle_lesson_chat(request_json):
             if response_data and response_data.get('candidates'):
                 json_text = response_data['candidates'][0]['content']['parts'][0]['text']
                 parsed_response = json.loads(json_text)
-
-                # --- NEW LOGIC FOR ENFORCING CLARIFICATION ---
-                # Check for explicit generation command in the latest user message
-                explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
-                should_generate = any(cmd in latest_user_message for cmd in explicit_generate_commands)
-
-                # If the AI suggested 'generate_course' but no explicit command was found,
-                # or if crucial details are still missing (we'd need more state for this,
-                # but for now, prioritize the explicit command and prompt for details).
-                if parsed_response.get('action') == "generate_course" and not should_generate:
-                    parsed_response['action'] = "continue_chat"
-                    parsed_response['message'] = "My apologies, Sir Sevindu. To generate the most suitable course, I require a bit more clarity. Could you please specify your skill level (e.g., beginner, intermediate, advanced) for F2L, any particular aspects you wish to focus on, and your preferred learning style (e.g., theoretical, practice-based, quiz-focused)? Once I have these details, please explicitly state 'generate the course' to proceed."
-                # --- END NEW LOGIC ---
 
                 return jsonify(parsed_response), 200
             else:
