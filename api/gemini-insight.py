@@ -7,6 +7,7 @@ import requests
 import json
 import uuid # Import uuid for generating unique lesson IDs
 import re   # Import regex module
+import time # Import time for sleep function
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
@@ -19,6 +20,10 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+# Constants for exponential backoff
+MAX_RETRIES = 5
+INITIAL_RETRY_DELAY = 1 # seconds
 
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
@@ -60,7 +65,8 @@ def gemini_insight_handler():
     except requests.exceptions.RequestException as req_err:
         print(f"ERROR: General request error during Gemini API call: {req_err}")
         # Log the specific error message from the API response body if available
-        if 'response' in locals() and response is not None and response.text: # Ensure 'response' exists
+        # 'response' variable might not be defined in all error paths, so check its existence
+        if 'response' in locals() and response is not None and hasattr(response, 'text') and response.text:
             print(f"ERROR: API detailed error response: {response.text}")
         return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
     except json.JSONDecodeError as json_err:
@@ -106,55 +112,63 @@ def generate_insight(request_json):
     }}
     """
 
-    try:
-        headers = {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': GEMINI_API_KEY
-        }
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "scrambleAnalysis": {"type": "STRING"},
-                        "personalizedTip": {"type": "STRING"},
-                        "targetedPracticeFocus": {"type": "STRING"}
-                    },
-                    "required": ["scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
-                }
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
+    }
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "OBJECT",
+                "properties": {
+                    "scrambleAnalysis": {"type": "STRING"},
+                    "personalizedTip": {"type": "STRING"},
+                    "targetedPracticeFocus": {"type": "STRING"}
+                },
+                "required": ["scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
             }
         }
-        
-        # Clean the base URL before use
-        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
-        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
+    }
+    
+    # Clean the base URL before use
+    clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+    clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-        gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
-        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
-        
-        response_data = gemini_response.json()
-        print(f"DEBUG: Gemini API response: {response_data}")
+    retries = 0
+    while retries < MAX_RETRIES:
+        try:
+            gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
+            gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+            
+            response_data = gemini_response.json()
+            print(f"DEBUG: Gemini API response: {response_data}")
 
-        if response_data and response_data.get('candidates'):
-            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            insight = json.loads(json_text)
-            return jsonify(insight), 200
-        else:
-            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
-            return jsonify({"error": "AI service did not return a valid insight."}), 500
+            if response_data and response_data.get('candidates'):
+                json_text = response_data['candidates'][0]['content']['parts'][0]['text']
+                insight = json.loads(json_text)
+                return jsonify(insight), 200
+            else:
+                print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+                return jsonify({"error": "AI service did not return a valid insight."}), 500
 
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API failed: {e}")
-        return jsonify({"error": f"Failed to get insight from AI service: {e}"}), 500
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
-        print(f"Raw response text: {gemini_response.text}")
-        return jsonify({"error": f"AI service returned invalid JSON: {e}"}), 500
-    except Exception as e:
-        print(f"CRITICAL ERROR: Unexpected error in generate_insight: {e}")
-        return jsonify({"error": f"An unexpected error occurred during insight generation: {e}"}), 500
+        except requests.exceptions.RequestException as e:
+            retries += 1
+            if retries < MAX_RETRIES:
+                retry_delay = INITIAL_RETRY_DELAY * (2 ** (retries - 1))
+                print(f"WARNING: Request to Gemini API failed: {e}. Retrying in {retry_delay} seconds (Attempt {retries}/{MAX_RETRIES}).")
+                time.sleep(retry_delay)
+            else:
+                print(f"ERROR: Request to Gemini API failed after {MAX_RETRIES} retries: {e}")
+                return jsonify({"error": f"Failed to get insight from AI service after multiple retries: {e}"}), 500
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
+            print(f"Raw response text: {gemini_response.text}")
+            return jsonify({"error": f"AI service returned invalid JSON: {e}"}), 500
+        except Exception as e:
+            print(f"CRITICAL ERROR: Unexpected error in generate_insight: {e}")
+            return jsonify({"error": f"An unexpected error occurred during insight generation: {e}"}), 500
 
 def handle_lesson_chat(request_json):
     """Handles conversational chat for lesson creation or in-lesson queries."""
@@ -220,35 +234,43 @@ def handle_lesson_chat(request_json):
         }
     }
 
-    try:
-        # Clean the base URL before use
-        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
-        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
+    retries = 0
+    while retries < MAX_RETRIES:
+        try:
+            # Clean the base URL before use
+            clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+            clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-        gemini_response = requests.post(f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", headers=headers, json=payload, timeout=60) # Increased timeout
-        gemini_response.raise_for_status()
-        
-        response_data = gemini_response.json()
-        print(f"DEBUG: Gemini API chat response: {response_data}")
+            gemini_response = requests.post(f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", headers=headers, json=payload, timeout=60) # Increased timeout
+            gemini_response.raise_for_status()
+            
+            response_data = gemini_response.json()
+            print(f"DEBUG: Gemini API chat response: {response_data}")
 
-        if response_data and response_data.get('candidates'):
-            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            parsed_response = json.loads(json_text)
-            return jsonify(parsed_response), 200
-        else:
-            print(f"ERROR: Gemini API chat response missing candidates or content: {response_data}")
-            return jsonify({"error": "AI service did not return a valid chat response."}), 500
+            if response_data and response_data.get('candidates'):
+                json_text = response_data['candidates'][0]['content']['parts'][0]['text']
+                parsed_response = json.loads(json_text)
+                return jsonify(parsed_response), 200
+            else:
+                print(f"ERROR: Gemini API chat response missing candidates or content: {response_data}")
+                return jsonify({"error": "AI service did not return a valid chat response."}), 500
 
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API for chat failed: {e}")
-        return jsonify({"error": f"Failed to get chat response from AI service: {e}"}), 500
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse Gemini API chat response as JSON: {e}")
-        print(f"Raw response text: {gemini_response.text}")
-        return jsonify({"error": f"AI service returned invalid JSON for chat: {e}"}), 500
-    except Exception as e:
-        print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
-        return jsonify({"error": f"An unexpected error occurred during lesson chat: {e}"}), 500
+        except requests.exceptions.RequestException as e:
+            retries += 1
+            if retries < MAX_RETRIES:
+                retry_delay = INITIAL_RETRY_DELAY * (2 ** (retries - 1))
+                print(f"WARNING: Request to Gemini API for chat failed: {e}. Retrying in {retry_delay} seconds (Attempt {retries}/{MAX_RETRIES}).")
+                time.sleep(retry_delay)
+            else:
+                print(f"ERROR: Request to Gemini API for chat failed after {MAX_RETRIES} retries: {e}")
+                return jsonify({"error": f"Failed to get chat response from AI service after multiple retries: {e}"}), 500
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse Gemini API chat response as JSON: {e}")
+            print(f"Raw response text: {gemini_response.text}")
+            return jsonify({"error": f"AI service returned invalid JSON for chat: {e}"}), 500
+        except Exception as e:
+            print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
+            return jsonify({"error": f"An unexpected error occurred during lesson chat: {e}"}), 500
 
 
 def handle_generate_course(request_json):
@@ -433,57 +455,65 @@ def handle_generate_course(request_json):
         }
     }
 
-    try:
-        # Clean the base URL before use
-        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
-        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
+    retries = 0
+    while retries < MAX_RETRIES:
+        try:
+            # Clean the base URL before use
+            clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+            clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-        gemini_response = requests.post(
-            f"{clean_base_url}/gemini-1.5-flash-latest:generateContent",
-            headers=headers,
-            json=payload,
-            timeout=120 
-        )
-        gemini_response.raise_for_status() 
-        
-        response_data = gemini_response.json()
-        print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
+            gemini_response = requests.post(
+                f"{clean_base_url}/gemini-1.5-flash-latest:generateContent",
+                headers=headers,
+                json=payload,
+                timeout=120 
+            )
+            gemini_response.raise_for_status() 
+            
+            response_data = gemini_response.json()
+            print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
 
-        if response_data and response_data.get('candidates'):
-            ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            
-            # Since responseMimeType is application/json, expect direct JSON
-            generated_course = json.loads(ai_response_text)
-            
-            # Add UUIDs if not present (this part is from original code)
-            if 'course_id' not in generated_course or not generated_course['course_id']:
-                generated_course['course_id'] = str(uuid.uuid4())
-            for module in generated_course.get('modules', []):
-                if 'module_id' not in module or not module['module_id']:
-                    module['module_id'] = str(uuid.uuid4())
-                for lesson in module.get('lessons', []):
-                    if 'lesson_id' not in lesson or not lesson['lesson_id']:
-                        lesson['lesson_id'] = str(uuid.uuid4())
-                    # Ensure steps have UUIDs if present
-                    for step in lesson.get('steps', []):
-                        if 'step_id' not in step or not step['step_id']:
-                            step['step_id'] = str(uuid.uuid4())
-            
-            return jsonify(generated_course), 200
-        else:
-            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
-            return jsonify({"error": "AI service did not return a valid course structure."}), 500
+            if response_data and response_data.get('candidates'):
+                ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
+                
+                # Since responseMimeType is application/json, expect direct JSON
+                generated_course = json.loads(ai_response_text)
+                
+                # Add UUIDs if not present (this part is from original code)
+                if 'course_id' not in generated_course or not generated_course['course_id']:
+                    generated_course['course_id'] = str(uuid.uuid4())
+                for module in generated_course.get('modules', []):
+                    if 'module_id' not in module or not module['module_id']:
+                        module['module_id'] = str(uuid.uuid4())
+                    for lesson in module.get('lessons', []):
+                        if 'lesson_id' not in lesson or not lesson['lesson_id']:
+                            lesson['lesson_id'] = str(uuid.uuid4())
+                        # Ensure steps have UUIDs if present
+                        for step in lesson.get('steps', []):
+                            if 'step_id' not in step or not step['step_id']:
+                                step['step_id'] = str(uuid.uuid4())
+                
+                return jsonify(generated_course), 200
+            else:
+                print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+                return jsonify({"error": "AI service did not return a valid course structure."}), 500
 
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API failed: {e}")
-        return jsonify({"error": f"Failed to generate course from AI service: {e}"}), 500
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
-        print(f"Raw AI text response that failed parsing: {ai_response_text}") 
-        return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
-    except Exception as e:
-        print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
-        return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
+        except requests.exceptions.RequestException as e:
+            retries += 1
+            if retries < MAX_RETRIES:
+                retry_delay = INITIAL_RETRY_DELAY * (2 ** (retries - 1))
+                print(f"WARNING: Request to Gemini API for course generation failed: {e}. Retrying in {retry_delay} seconds (Attempt {retries}/{MAX_RETRIES}).")
+                time.sleep(retry_delay)
+            else:
+                print(f"ERROR: Request to Gemini API for course generation failed after {MAX_RETRIES} retries: {e}")
+                return jsonify({"error": f"Failed to generate course from AI service after multiple retries: {e}"}), 500
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
+            print(f"Raw AI text response that failed parsing: {ai_response_text}") 
+            return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
+        except Exception as e:
+            print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
+            return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
 
 if __name__ == '__main__':
     # This block is for local development and will not run on Vercel.
