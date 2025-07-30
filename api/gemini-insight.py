@@ -195,6 +195,7 @@ def handle_lesson_chat(request_json):
     extracted_focus_area = None
     extracted_learning_style = None
 
+    # Parse chat history for parameters
     for msg in chat_history:
         if msg.get('role') == 'user':
             text = msg.get('parts', [{}])[0].get('text', '').lower()
@@ -222,12 +223,9 @@ def handle_lesson_chat(request_json):
                 extracted_learning_style = "interactive quiz"
         # Add logic to parse model responses if they confirm parameters
         elif msg.get('role') == 'model':
-            text = msg.get('parts', [{}])[0].get('text', '').lower()
-            # Example: "Understood, Sir Sevindu. So, a beginner F2L course..."
-            if "beginner" in text and "f2l" in text:
-                extracted_skill_level = extracted_skill_level or "beginner"
-                extracted_focus_area = extracted_focus_area or "F2L"
-            # More complex parsing might be needed here based on actual model output
+            # This is where we could parse the AI's previous confirmations to update state
+            # For now, relying on user inputs for extraction.
+            pass
     
     missing_info = []
     if extracted_skill_level is None:
@@ -238,6 +236,9 @@ def handle_lesson_chat(request_json):
         missing_info.append("preferred learning style (e.g., theoretical, hands-on practice, interactive quizzes)")
 
     print(f"DEBUG: handle_lesson_chat - should_generate_explicitly: {should_generate_explicitly}")
+    print(f"DEBUG: handle_lesson_chat - extracted_skill_level: {extracted_skill_level}")
+    print(f"DEBUG: handle_lesson_chat - extracted_focus_area: {extracted_focus_area}")
+    print(f"DEBUG: handle_lesson_chat - extracted_learning_style: {extracted_learning_style}")
     print(f"DEBUG: handle_lesson_chat - missing_info: {missing_info}")
 
     # Force continue_chat if not all information is gathered OR no explicit command
@@ -265,7 +266,12 @@ def handle_lesson_chat(request_json):
     Your primary function is to converse with Sir Sevindu about creating and understanding cubing lessons.
     Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
     
-    You have successfully gathered all necessary details for course generation.
+    You have successfully gathered all necessary details for course generation:
+    - Cube Type: {cube_type}
+    - Skill Level: {extracted_skill_level if extracted_skill_level else 'N/A'}
+    - Specific Focus: {extracted_focus_area if extracted_focus_area else 'N/A'}
+    - Learning Style: {extracted_learning_style if extracted_learning_style else 'N/A'}
+
     Your response MUST now confirm the course generation and provide a brief, encouraging message.
     The 'action' MUST be "generate_course".
     The 'message' MUST be a confirmation that the course framework has been constructed and that Sir Sevindu can return to the hub.
@@ -279,6 +285,7 @@ def handle_lesson_chat(request_json):
             formatted_chat_history.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
     
     # Add current lesson context if available for in-lesson chat
+    current_lesson_context = request_json.get('currentLessonContext', {}) # Re-fetch just in case
     if current_lesson_context:
         context_text = f"\n\nCurrent Lesson Context:\nTitle: {current_lesson_context.get('lessonTitle')}\nType: {current_lesson_context.get('lessonType')}\nContent Snippet: {current_lesson_context.get('content', '')[:200]}..."
         if formatted_chat_history and formatted_chat_history[-1]['role'] == 'user':
