@@ -174,7 +174,7 @@ body.theme-vibrant {
     flex-grow: 1; /* Take remaining space */
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Align to top */
     padding: 20px; /* Padding for the main content timer */
     overflow-y: auto; /* Allow scrolling for main content */
 }
@@ -238,7 +238,7 @@ body.theme-vibrant {
     box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
     border: none;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 1rem;
@@ -267,6 +267,9 @@ body.theme-vibrant {
     cursor: pointer;
     font-size: 1rem;
     /* Base for desktop */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .button-secondary:hover {
@@ -792,7 +795,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 /* Targeting screens up to 767px wide (typical for most phones and small tablets) */
 @media (max-width: 767px) {
     body {
-        padding: 16px;
+        padding: 0;
         /* Reduced padding for mobile */
     }
 
@@ -1385,9 +1388,6 @@ body.theme-vibrant #aiInsightModal .modal-content {
     }
     .course-card h3 {
         font-size: 1.2rem;
-    }
-    .main-layout .content-area {
-        padding: 1rem; /* Override default content area padding */
     }
     #inLessonChatContainer {
         max-width: 95%;
