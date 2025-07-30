@@ -30,7 +30,7 @@ def gemini_insight_handler():
     """HTTP endpoint that generates AI insight or AI lessons using Gemini API.
     Handles both preflight (OPTIONS) and actual (POST) requests.
     """
-    print("DEBUG: gemini_insight_handler received a request.")
+    print("DEBUG: === gemini_insight_handler received a request. ===") # Prominent log at entry
 
     # Handle CORS preflight (OPTIONS) request. Vercel routes these automatically.
     if request.method == 'OPTIONS':
@@ -173,15 +173,15 @@ def generate_insight(request_json):
 def handle_lesson_chat(request_json):
     """Handles conversational chat for lesson creation or in-lesson queries."""
     chat_history = request_json.get('chatHistory', [])
-    cube_type = request_json.get('cubeType', '3x3')
-    user_level = request_json.get('userLevel', 'beginner') # This is likely a default, not confirmed from chat
-    current_lesson_context = request_json.get('currentLessonContext', {})
-
+    cube_type = request_json.get('cubeType', '3x3') # Default, can be refined by chat
+    
     # Extract the most recent user message to check for explicit commands
     latest_user_message = ""
-    if chat_history:
+    if chat_history and isinstance(chat_history, list) and len(chat_history) > 0:
         for msg in reversed(chat_history):
-            if msg['role'] == 'user':
+            if isinstance(msg, dict) and msg.get('role') == 'user' and \
+               isinstance(msg.get('parts'), list) and len(msg['parts']) > 0 and \
+               isinstance(msg['parts'][0], dict) and msg['parts'][0].get('text') is not None:
                 latest_user_message = msg['parts'][0]['text'].lower()
                 break
 
@@ -189,17 +189,69 @@ def handle_lesson_chat(request_json):
     explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
     should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
 
-    # --- NEW LOGIC FOR ENFORCING CLARIFICATION ---
-    # If no explicit command, force continue_chat and ask for details
-    if not should_generate_explicitly:
+    # --- Start: Enhanced Conversational State Management ---
+    # Attempt to extract parameters from the entire chat history
+    extracted_skill_level = None
+    extracted_focus_area = None
+    extracted_learning_style = None
+
+    for msg in chat_history:
+        if msg.get('role') == 'user':
+            text = msg.get('parts', [{}])[0].get('text', '').lower()
+            if "beginner" in text:
+                extracted_skill_level = "beginner"
+            elif "intermediate" in text:
+                extracted_skill_level = "intermediate"
+            elif "advanced" in text:
+                extracted_skill_level = "advanced"
+            
+            if "f2l" in text:
+                extracted_focus_area = "F2L"
+            elif "oll" in text:
+                extracted_focus_area = "OLL"
+            elif "pll" in text:
+                extracted_focus_area = "PLL"
+            elif "cross" in text:
+                extracted_focus_area = "Cross"
+            
+            if "theoretical" in text:
+                extracted_learning_style = "theoretical"
+            elif "practice" in text or "hands-on" in text:
+                extracted_learning_style = "hands-on practice"
+            elif "quiz" in text or "quizzes" in text:
+                extracted_learning_style = "interactive quiz"
+        # Add logic to parse model responses if they confirm parameters
+        elif msg.get('role') == 'model':
+            text = msg.get('parts', [{}])[0].get('text', '').lower()
+            # Example: "Understood, Sir Sevindu. So, a beginner F2L course..."
+            if "beginner" in text and "f2l" in text:
+                extracted_skill_level = extracted_skill_level or "beginner"
+                extracted_focus_area = extracted_focus_area or "F2L"
+            # More complex parsing might be needed here based on actual model output
+    
+    missing_info = []
+    if extracted_skill_level is None:
+        missing_info.append("skill level (e.g., beginner, intermediate, advanced)")
+    if extracted_focus_area is None:
+        missing_info.append("specific topic or focus area (e.g., F2L, OLL, PLL)")
+    if extracted_learning_style is None:
+        missing_info.append("preferred learning style (e.g., theoretical, hands-on practice, interactive quizzes)")
+
+    # Force continue_chat if not all information is gathered OR no explicit command
+    if not should_generate_explicitly or len(missing_info) > 0:
+        clarifying_message = "My apologies, Sir Sevindu. To design the most suitable course, I require a few more details."
+        if missing_info:
+            clarifying_message += f" I am still awaiting information on your {', '.join(missing_info)}."
+        clarifying_message += " Once I have all the necessary information, please explicitly state 'generate the course' to proceed."
+        
         response_payload = {
             'action': "continue_chat",
-            'message': "My apologies, Sir Sevindu. To design the most suitable course, I require a few more details. Could you please specify your current skill level for this topic (e.g., beginner, intermediate, advanced), any particular aspects you wish to focus on, and your preferred learning style (e.g., theoretical, hands-on practice, or interactive quizzes)? Once I have this information, please explicitly state 'generate the course' to proceed."
+            'message': clarifying_message
         }
         return jsonify(response_payload), 200
-    # --- END NEW LOGIC ---
+    # --- End: Enhanced Conversational State Management ---
 
-    # If an explicit generate command IS present, proceed to ask the AI for its response
+    # If an explicit generate command IS present AND all info is gathered, proceed to ask the AI for its response
     # Construct the prompt for the AI
     system_instruction = f"""
     You are Jarvis, an AI assistant for a Rubik's Cube learning application.
@@ -207,18 +259,11 @@ def handle_lesson_chat(request_json):
     Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
     
     When discussing course creation:
-    - If Sir Sevindu provides a general topic (e.g., "F2L", "OLL") or a partial request, **you MUST ask clarifying questions** to gather all necessary details.
-      **Specifically, you MUST ask for:**
-      1.  **Skill Level:** "What is your current skill level for this topic (e.g., beginner, intermediate, advanced)?"
-      2.  **Specific Focus (if applicable):** "Are there any particular aspects within F2L you'd like to emphasize (e.g., recognizing cases, efficient insertions, look-ahead)?"
-      3.  **Learning Style Preference:** "Do you prefer a more theoretical approach, hands-on practice with scrambles, or interactive quizzes?"
-      **CRITICAL RULE: You MUST NOT return `action: "generate_course"` unless ALL of the following conditions are met:**
-      1.  Sir Sevindu's **MOST RECENT message** contains an explicit command to generate the course (e.g., "generate the course now", "create it", "make the course").
-      2.  You have successfully gathered and confirmed the **Skill Level**, **Specific Focus**, and **Learning Style Preference** during the conversation.
-      3.  You have a clear understanding of the **Cube Type** (defaulting to '3x3' if not specified).
-      **If ANY of these conditions are NOT met, you MUST return `action: "continue_chat"` and your `message` MUST be a clarifying question or a statement indicating what information is still needed.**
+    - You have been explicitly instructed to gather Cube Type, Skill Level, Specific Focus, and Learning Style Preference.
+    - You MUST NOT return `action: "generate_course"` unless Sir Sevindu's MOST RECENT message contains an explicit command to generate the course (e.g., "generate the course now", "create it"), AND you have successfully gathered all necessary details.
+    - If any details are missing or the explicit command is not present, your `action` MUST be `continue_chat` and your `message` MUST be a clarifying question or a statement indicating what information is still needed.
 
-    When discussing an ongoing lesson (if currentLessonContext is provided):
+    When discussing an ongoing lesson (if current_lesson_context is provided):
     - Answer questions related to the lesson content, algorithms, scrambles, or concepts.
     - Do not try to generate a new course or change the lesson. Focus on explaining the current topic.
 
@@ -226,8 +271,6 @@ def handle_lesson_chat(request_json):
     """
 
     # Prepare chat history for Gemini API
-    # Gemini API expects alternating 'user' and 'model' roles.
-    # The first message should always be 'user'.
     formatted_chat_history = []
     if chat_history:
         for msg in chat_history:
@@ -236,7 +279,6 @@ def handle_lesson_chat(request_json):
     # Add current lesson context if available for in-lesson chat
     if current_lesson_context:
         context_text = f"\n\nCurrent Lesson Context:\nTitle: {current_lesson_context.get('lessonTitle')}\nType: {current_lesson_context.get('lessonType')}\nContent Snippet: {current_lesson_context.get('content', '')[:200]}..."
-        # Add context to the last user message or as a new user message
         if formatted_chat_history and formatted_chat_history[-1]['role'] == 'user':
             formatted_chat_history[-1]['parts'][0]['text'] += context_text
         else:
@@ -489,7 +531,7 @@ def handle_generate_course(request_json):
                 for module in generated_course.get('modules', []):
                     if 'module_id' not in module or not module['module_id']:
                         module['module_id'] = str(uuid.uuid4())
-                    for lesson in module.get('lessons', []):
+                    for lesson in generated_course.get('lessons', []): # Corrected from module.get('lessons') to generated_course.get('lessons')
                         if 'lesson_id' not in lesson or not lesson['lesson_id']:
                             lesson['lesson_id'] = str(uuid.uuid4())
                         # Ensure steps have UUIDs if present
