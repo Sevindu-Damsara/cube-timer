@@ -170,8 +170,9 @@ def handle_lesson_chat(request_json):
     Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
     
     When discussing course creation:
-    - If Sir Sevindu provides a general topic (e.g., "F2L", "OLL"), **you MUST ask clarifying questions** about their specific interests, learning style, and desired depth before suggesting to generate a course.
-    - If Sir Sevindu explicitly states "generate course" or "create course" after providing details, then you may confirm and set the 'action' to 'generate_course'.
+    - If Sir Sevindu provides a general topic (e.g., "F2L", "OLL") or a partial request, **you MUST ask clarifying questions** to gather more details (e.g., "What is your current skill level for F2L?", "Are you interested in a beginner, intermediate, or advanced course?", "Do you have any specific learning styles or areas you'd like to focus on?").
+    - **DO NOT** suggest or initiate course generation until Sir Sevindu explicitly states phrases like "generate course", "create course", "make the course", or similar clear commands, and you have sufficient information.
+    - If the user explicitly states a command to generate a course after providing details, then you may confirm and set the 'action' to 'generate_course'.
     - If the user asks general questions about cubing or lessons, provide helpful information and keep the 'action' as 'continue_chat'.
 
     When discussing an ongoing lesson (if currentLessonContext is provided):
@@ -224,7 +225,7 @@ def handle_lesson_chat(request_json):
         clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-        gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=60) # Increased timeout
+        gemini_response = requests.post(f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", headers=headers, json=payload, timeout=60) # Increased timeout
         gemini_response.raise_for_status()
         
         response_data = gemini_response.json()
@@ -305,7 +306,7 @@ def handle_generate_course(request_json):
     Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
     Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
 
-    The course title should be descriptive and general, reflecting the content and target audience, for example: "F2L Beginner's Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names in the course title.
+    The course title should be descriptive and general, reflecting the content and target audience, for example: "{focus_area} {skill_level.capitalize()} Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names in the course title.
 
     Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
     Example JSON structure:
