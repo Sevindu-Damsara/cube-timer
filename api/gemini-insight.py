@@ -18,7 +18,7 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models" # Corrected URL formatting
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
@@ -59,10 +59,9 @@ def gemini_insight_handler():
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
     except requests.exceptions.RequestException as req_err:
         print(f"ERROR: General request error during Gemini API call: {req_err}")
-        # Note: 'response' variable might not be defined in all error paths.
-        # This part assumes 'response' would be from gemini_response.
-        # A more robust solution might pass gemini_response to the exception handler
-        # or capture it higher up. For this fix, assuming typical flow.
+        # Log the specific error message from the API response body if available
+        if 'response' in locals() and response is not None and response.text: # Ensure 'response' exists
+            print(f"ERROR: API detailed error response: {response.text}")
         return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
@@ -128,7 +127,11 @@ def generate_insight(request_json):
             }
         }
         
-        gemini_response = requests.post(f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
+        # Clean the base URL before use
+        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
+
+        gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
         gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         
         response_data = gemini_response.json()
@@ -160,6 +163,7 @@ def handle_lesson_chat(request_json):
     user_level = request_json.get('userLevel', 'beginner')
     current_lesson_context = request_json.get('currentLessonContext', {})
 
+    # Construct the prompt for the AI
     system_instruction = f"""
     You are Jarvis, an AI assistant for a Rubik's Cube learning application.
     Your primary function is to converse with Sir Sevindu about creating and understanding cubing lessons.
@@ -172,95 +176,87 @@ def handle_lesson_chat(request_json):
 
     When discussing an ongoing lesson (if currentLessonContext is provided):
     - Answer questions related to the lesson content, algorithms, scrambles, or concepts.
-    - Do not try to generate a new course or change the lesson. Focus on explaining the current topic. Keep responses concise and directly address Sir Sevindu's query.
+    - Do not try to generate a new course or change the lesson. Focus on explaining the current topic.
+
+    Keep responses concise and directly address Sir Sevindu's query.
     """
-    
-    # Prepare chat history for Gemini API, ensuring 'system' role is first
-    formatted_chat_history = [{"role": "system", "parts": [{"text": system_instruction}]}]
+
+    # Prepare chat history for Gemini API
+    # Gemini API expects alternating 'user' and 'model' roles.
+    # The first message should always be 'user'.
+    formatted_chat_history = []
     if chat_history:
         for msg in chat_history:
             formatted_chat_history.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
+    
+    # Add current lesson context if available for in-lesson chat
+    if current_lesson_context:
+        context_text = f"\n\nCurrent Lesson Context:\nTitle: {current_lesson_context.get('lessonTitle')}\nType: {current_lesson_context.get('lessonType')}\nContent Snippet: {current_lesson_context.get('content', '')[:200]}..."
+        # Add context to the last user message or as a new user message
+        if formatted_chat_history and formatted_chat_history[-1]['role'] == 'user':
+            formatted_chat_history[-1]['parts'][0]['text'] += context_text
+        else:
+            formatted_chat_history.append({"role": "user", "parts": [{"text": context_text}]})
 
-    # Add current lesson context if available. It should be appended to the latest user input.
-    if current_lesson_context and formatted_chat_history and formatted_chat_history[-1]['role'] == 'user':
-        context_text = f"\n\nCurrent Lesson Context:\nTitle: {current_lesson_context.get('lessonTitle', 'N/A')}\nType: {current_lesson_context.get('lessonType', 'N/A')}\nContent Snippet: {current_lesson_context.get('content', '')[:200]}..."
-        formatted_chat_history[-1]['parts'][0]['text'] += context_text
 
-    ai_response_text = None # Initialize to None for error handling
-
-    try:
-        headers = {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': GEMINI_API_KEY
-        }
-        payload = {
-            "contents": formatted_chat_history,
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "message": {"type": "STRING"},
-                        "action": {"type": "STRING"} # The AI is supposed to return this action
-                    },
-                    "required": ["message"]
-                }
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
+    }
+    payload = {
+        "systemInstruction": {"parts": [{"text": system_instruction}]},
+        "contents": formatted_chat_history,
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "OBJECT",
+                "properties": {
+                    "message": {"type": "STRING"},
+                    "action": {"type": "STRING", "enum": ["generate_course", "continue_chat"]}
+                },
+                "required": ["message"]
             }
         }
-        
-        # Use gemini-1.5-flash-latest for conversational chat
-        model_name = "gemini-1.5-flash-latest"
+    }
 
-        gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/{model_name}:generateContent",
-            headers=headers,
-            json=payload,
-            timeout=60 # Increased timeout for potentially longer AI responses
-        )
-        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+    try:
+        # Clean the base URL before use
+        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
+
+        gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=60) # Increased timeout
+        gemini_response.raise_for_status()
         
         response_data = gemini_response.json()
-        print(f"DEBUG: Gemini API raw response for chat: {response_data}")
+        print(f"DEBUG: Gemini API chat response: {response_data}")
 
         if response_data and response_data.get('candidates'):
-            # The AI is supposed to return a JSON string as its text content if responseMimeType is set.
-            ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            # Attempt to parse the AI's response text as JSON
-            ai_response_json = json.loads(ai_response_text)
-            
-            # Extract message and action from the parsed JSON
-            message = ai_response_json.get('message', "No message provided by AI.")
-            action = ai_response_json.get('action') # This will be None if not present
-
-            print(f"DEBUG: Parsed AI response message: {message}, action: {action}")
-            
-            # The frontend expects a JSON object with `message` and `action`.
-            response_payload = {"message": message}
-            if action:
-                response_payload["action"] = action
-
-            return jsonify(response_payload), 200
+            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            parsed_response = json.loads(json_text)
+            return jsonify(parsed_response), 200
         else:
-            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
-            return jsonify({"error": "AI service did not return a valid response."}), 500
+            print(f"ERROR: Gemini API chat response missing candidates or content: {response_data}")
+            return jsonify({"error": "AI service did not return a valid chat response."}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API failed: {e}")
-        return jsonify({"error": f"Failed to get response from AI service: {e}"}), 500
+        print(f"ERROR: Request to Gemini API for chat failed: {e}")
+        return jsonify({"error": f"Failed to get chat response from AI service: {e}"}), 500
     except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
-        print(f"Raw AI text response that failed parsing: {ai_response_text}") # Log the raw text
-        return jsonify({"error": "AI service returned malformed JSON. Please try again or rephrase."}), 500
+        print(f"ERROR: Failed to parse Gemini API chat response as JSON: {e}")
+        print(f"Raw response text: {gemini_response.text}")
+        return jsonify({"error": f"AI service returned invalid JSON for chat: {e}"}), 500
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
-        return jsonify({"error": f"An unexpected error occurred during chat processing: {e}"}), 500
+        return jsonify({"error": f"An unexpected error occurred during lesson chat: {e}"}), 500
 
 
 def handle_generate_course(request_json):
     """Generates a structured cubing course based on user preferences."""
     chat_history = request_json.get('chatHistory', [])
     cube_type = request_json.get('cubeType', '3x3')
-    user_level = request_json.get('skillLevel', 'beginner') # Note: 'skillLevel' from frontend payload
+    skill_level = request_json.get('skillLevel', 'beginner')
+    learning_style = request_json.get('learningStyle', 'conceptual')
+    focus_area = request_json.get('focusArea', 'general')
 
     # Use the last user message from chat_history as the primary prompt for course generation
     user_prompt_for_course = ""
@@ -270,7 +266,7 @@ def handle_generate_course(request_json):
             break
     
     if not user_prompt_for_course:
-        user_prompt_for_course = f"Generate a course for a {user_level} level cuber focusing on general techniques for a {cube_type} cube."
+        user_prompt_for_course = f"Generate a course for a {skill_level} level cuber focusing on {focus_area} for a {cube_type} cube."
 
 
     system_instruction = f"""
@@ -283,79 +279,84 @@ def handle_generate_course(request_json):
     prompt_text = f"""
     Based on the following user preferences and chat history, design a complete cubing course.
     Cube Type: {cube_type}
-    Skill Level: {user_level}
+    Skill Level: {skill_level}
+    Learning Style: {learning_style}
+    Focus Area: {focus_area}
     Sir Sevindu's specific request: "{user_prompt_for_course}"
 
     Generate a course with 3-5 modules. Each module should have 2-4 lessons.
-    Each lesson should have a 'lessonType' (e.g., 'text', 'scramble', 'quiz').
+    Each lesson should have a 'lesson_type' (e.g., 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual').
 
     For each lesson:
-    - title: A concise title.
-    - description: A brief description.
-    - lessonType: One of 'text', 'scramble', 'quiz'.
-    - content: Full markdown formatted text for the lesson.
-    - steps: An array of step objects. Each step has:
-        - title: Title of the step.
-        - content: Markdown content for this specific step.
-        - completed: Boolean, default to false.
+    - lesson_id: A unique UUID.
+    - lesson_title: A concise title.
+    - lesson_type: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
+    - content: Markdown formatted text for theory/conceptual lessons.
+    - scrambles: (Optional, for scramble_practice) An ARRAY of 1-3 WCA-formatted scrambles. If only one scramble, still use an array.
+    - algorithms: (Optional, for algorithm_drill) An ARRAY of 1-3 standard algorithms (e.g., "R U R' U'"). If only one, still use an array.
+    - quiz_questions: (Optional, for interactive_quiz) An ARRAY of 2-3 quiz questions. Each question must have:
+        - question: The question text.
+        - options: An ARRAY of 3-4 possible answers. If only one, still use an array.
+        - answer: The correct answer(s) (string for single choice, ARRAY of strings for multiple choice).
 
-    For 'scramble' lessons, embed actual WCA-formatted scrambles within the `content` of the relevant steps using the tag `<scramble>R U R' U'</scramble>`.
-    For 'quiz' lessons, embed quiz questions, options, and answers using `<question id='qN'>What is F2L?</question><options><option>First 2 Layers</option><option>Fast 2 Loops</option></options><answer>First 2 Layers</answer>`
-    For multiple-choice answers, use multiple `<answer>` tags: `<answer>Option A</answer><answer>Option B</answer>`.
+    Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
+    Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
 
-    Example JSON structure (ensure all fields are present, even if empty arrays):
+    Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
+    Example JSON structure:
     {{
-        "title": "Beginner's Guide to {cube_type}",
-        "description": "Learn the fundamentals of solving the {cube_type} Rubik's Cube at a {user_level} level.",
-        "cubeType": "{cube_type}",
-        "level": "{user_level}",
+        "course_id": "unique-course-uuid",
+        "title": "Beginner's Guide to 3x3",
+        "description": "Learn the fundamentals of solving the 3x3 Rubik's Cube.",
+        "cubeType": "3x3",
+        "level": "beginner",
         "modules": [
             {{
-                "title": "Module 1: Getting Started",
-                "description": "Introduction to the cube and basic concepts.",
+                "module_id": "unique-module-uuid-1",
+                "module_title": "Module 1: The Basics",
                 "lessons": [
                     {{
-                        "title": "Lesson 1.1: Cube Notation",
-                        "description": "Understanding the moves.",
-                        "lessonType": "text",
-                        "content": "## Cube Notation\\nThis lesson covers basic cube notation...",
-                        "steps": [
-                            {{ "title": "Introduction to Faces", "content": "The cube has 6 faces...", "completed": false }},
-                            {{ "title": "Basic Rotations", "content": "R, U, F, L, D, B moves...", "completed": false }}
-                        ]
+                        "lesson_id": "unique-lesson-uuid-1",
+                        "lesson_title": "Introduction to the Cube",
+                        "lesson_type": "theory",
+                        "content": "## Cube Notation\\nThis lesson covers basic cube notation..."
                     }},
                     {{
-                        "title": "Lesson 1.2: Solving the White Cross",
-                        "description": "First step of the solve.",
-                        "lessonType": "scramble",
-                        "content": "Practice building the white cross. <scramble>F U' B2 L' U' L' F' U' F' L2 D2 L' B2 D2 F2 U' R2 U' L2 F'</scramble>",
-                        "steps": [
-                            {{ "title": "Cross Edges", "content": "Find the white edges...", "completed": false }},
-                            {{ "title": "Aligning Cross", "content": "Align with center colors...", "completed": false }}
-                        ]
+                        "lesson_id": "unique-lesson-uuid-2",
+                        "lesson_title": "Solving the White Cross",
+                        "lesson_type": "scramble_practice",
+                        "content": "Learn to build the white cross efficiently.",
+                        "scrambles": ["F U' B2 L' U' L' F' U' F' L2 D2 L' B2 D2 F2 U' R2 U' L2 F'"]
                     }}
                 ]
             }},
             {{
-                "title": "Module 2: F2L - First Two Layers",
-                "description": "Efficiently solving the first two layers.",
+                "module_id": "unique-module-uuid-2",
+                "module_title": "Module 2: First Layer & F2L",
                 "lessons": [
                     {{
-                        "title": "Lesson 2.1: F2L Introduction",
-                        "description": "Understanding F2L pairs.",
-                        "lessonType": "text",
-                        "content": "## What is F2L?\\nF2L stands for First Two Layers...",
-                        "steps": [
-                            {{ "title": "Concept of F2L", "content": "Solving corners and edges simultaneously.", "completed": false }}
-                        ]
+                        "lesson_id": "unique-lesson-uuid-3",
+                        "lesson_title": "F2L Introduction",
+                        "lesson_type": "conceptual",
+                        "content": "## What is F2L?\\nF2L stands for First Two Layers..."
                     }},
                     {{
-                        "title": "Lesson 2.2: F2L Quiz",
-                        "description": "Test your F2L knowledge.",
-                        "lessonType": "quiz",
-                        "content": "<question id='q1'>What does F2L stand for?</question><options><option>First Two Layers</option><option>Fast Two Loops</option><option>Front Two Left</option></options><answer>First Two Layers</answer>",
-                        "steps": [
-                            {{ "title": "Quiz Time", "content": "Answer the following questions...", "completed": false }}
+                        "lesson_id": "unique-lesson-uuid-4",
+                        "lesson_title": "F2L Case 1: Slotting Pairs",
+                        "lesson_type": "algorithm_drill",
+                        "content": "Practice inserting F2L pairs.",
+                        "algorithms": ["U R U' R'", "U' L' U L"]
+                    }},
+                    {{
+                        "lesson_id": "unique-lesson-uuid-5",
+                        "lesson_title": "F2L Quiz",
+                        "lesson_type": "interactive_quiz",
+                        "quiz_questions": [
+                            {{
+                                "question": "What does F2L stand for?",
+                                "options": ["First Two Layers", "Fast Two Loops", "Front Two Left"],
+                                "answer": "First Two Layers"
+                            }}
                         ]
                     }}
                 ]
@@ -363,42 +364,29 @@ def handle_generate_course(request_json):
         ]
     }}
     """
-    
-    # The formatted_chat_history will now only contain the user's chat messages,
-    # and the system instruction is a separate parameter in the API call.
-    # The prompt_text above will be the content of the user's initial message to the model.
-    
-    # Ensure chat_history only contains user/model roles for the 'contents' field
-    # and the system instruction is passed separately.
-    messages_for_api = []
-    # Add the initial prompt as a user message
-    messages_for_api.append({"role": "user", "parts": [{"text": prompt_text}]})
-    
-    # Append the rest of the chat history (user/model turns)
-    for msg in chat_history:
-        messages_for_api.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
 
-
-    try:
-        headers = {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': GEMINI_API_KEY
-        }
-        payload = {
-            "systemInstruction": {"parts": [{"text": system_instruction}]}, # System instruction moved here
-            "contents": messages_for_api, # This now contains the main prompt and chat history
-            "generationConfig": {
-                "responseMimeType": "text/plain", # Request plain text output
-                "responseSchema": {
-                    "type": "STRING" # The model will return a string, which we expect to be JSON
-                }
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
+    }
+    payload = {
+        "systemInstruction": {"parts": [{"text": system_instruction}]}, # System instruction moved here
+        "contents": messages_for_api, # This now contains the main prompt and chat history
+        "generationConfig": {
+            "responseMimeType": "text/plain", # Request plain text output
+            "responseSchema": {
+                "type": "STRING" # The model will return a string, which we expect to be JSON
             }
         }
-        
-        model_name = "gemini-1.5-flash-latest" 
+    }
+
+    try:
+        # Clean the base URL before use
+        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
+        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/{model_name}:generateContent",
+            f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", # Using gemini-1.5-flash-latest as per error log
             headers=headers,
             json=payload,
             timeout=120 
@@ -429,7 +417,8 @@ def handle_generate_course(request_json):
                 for lesson in module.get('lessons', []):
                     if 'lesson_id' not in lesson or not lesson['lesson_id']:
                         lesson['lesson_id'] = str(uuid.uuid4())
-                    for step in lesson.get('steps', []): # Add step_id if needed
+                    # Ensure steps have UUIDs if present
+                    for step in lesson.get('steps', []):
                         if 'step_id' not in step or not step['step_id']:
                             step['step_id'] = str(uuid.uuid4())
             
