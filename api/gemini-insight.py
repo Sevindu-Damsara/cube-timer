@@ -374,11 +374,58 @@ def handle_generate_course(request_json):
     }
     payload = {
         "systemInstruction": {"parts": [{"text": system_instruction}]}, # System instruction moved here
-        "contents": messages_for_api, # This now contains the main prompt and chat history
+        "contents": [{"role": "user", "parts": [{"text": prompt_text}]}], # Only the prompt_text as a single user message
         "generationConfig": {
-            "responseMimeType": "text/plain", # Request plain text output
-            "responseSchema": {
-                "type": "STRING" # The model will return a string, which we expect to be JSON
+            "responseMimeType": "application/json", # Request application/json output
+            "responseSchema": { # Define the full schema here
+                "type": "OBJECT",
+                "properties": {
+                    "course_id": {"type": "STRING"},
+                    "title": {"type": "STRING"},
+                    "description": {"type": "STRING"},
+                    "cubeType": {"type": "STRING"},
+                    "level": {"type": "STRING"},
+                    "modules": {
+                        "type": "ARRAY",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "module_id": {"type": "STRING"},
+                                "module_title": {"type": "STRING"},
+                                "lessons": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "lesson_id": {"type": "STRING"},
+                                            "lesson_title": {"type": "STRING"},
+                                            "lesson_type": {"type": "STRING"},
+                                            "content": {"type": "STRING"},
+                                            "scrambles": {"type": "ARRAY", "items": {"type": "STRING"}, "nullable": True},
+                                            "algorithms": {"type": "ARRAY", "items": {"type": "STRING"}, "nullable": True},
+                                            "quiz_questions": {
+                                                "type": "ARRAY",
+                                                "items": {
+                                                    "type": "OBJECT",
+                                                    "properties": {
+                                                        "question": {"type": "STRING"},
+                                                        "options": {"type": "ARRAY", "items": {"type": "STRING"}},
+                                                        "answer": {"oneOf": [{"type": "STRING"}, {"type": "ARRAY", "items": {"type": "STRING"}}]}
+                                                    },
+                                                    "required": ["question", "options", "answer"]
+                                                },
+                                                "nullable": True
+                                            }
+                                        },
+                                        "required": ["lesson_id", "lesson_title", "lesson_type", "content"]
+                                    }
+                                }
+                            },
+                            "required": ["module_id", "module_title", "lessons"]
+                        }
+                    }
+                },
+                "required": ["course_id", "title", "description", "cubeType", "level", "modules"]
             }
         }
     }
@@ -389,7 +436,7 @@ def handle_generate_course(request_json):
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
         gemini_response = requests.post(
-            f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", # Using gemini-1.5-flash-latest as per error log
+            f"{clean_base_url}/gemini-1.5-flash-latest:generateContent",
             headers=headers,
             json=payload,
             timeout=120 
@@ -402,14 +449,8 @@ def handle_generate_course(request_json):
         if response_data and response_data.get('candidates'):
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
             
-            # Use regex to find the first JSON object in the string
-            json_match = re.search(r'\{.*\}', ai_response_text, re.DOTALL)
-            
-            if json_match:
-                json_string = json_match.group(0)
-                generated_course = json.loads(json_string)
-            else:
-                raise ValueError("No valid JSON object found in AI response.")
+            # Since responseMimeType is application/json, expect direct JSON
+            generated_course = json.loads(ai_response_text)
             
             # Add UUIDs if not present (this part is from original code)
             if 'course_id' not in generated_course or not generated_course['course_id']:
@@ -437,10 +478,6 @@ def handle_generate_course(request_json):
         print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
         print(f"Raw AI text response that failed parsing: {ai_response_text}") 
         return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
-    except ValueError as e: # Catch the new ValueError for no JSON found
-        print(f"ERROR: Failed to extract JSON from AI response: {e}")
-        print(f"Raw AI text response: {ai_response_text}")
-        return jsonify({"error": f"AI service response did not contain a parsable JSON course structure. Details: {e}"}), 500
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
         return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
