@@ -18,7 +18,7 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_BASE_URL = "[https://generativelanguage.googleapis.com/v1beta/models](https://generativelanguage.googleapis.com/v1beta/models)"
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models" # Corrected URL formatting
 
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
