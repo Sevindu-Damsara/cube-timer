@@ -1,350 +1,453 @@
-// Firebase imports are assumed to be available in the execution environment
+// Firebase imports - These are provided globally by the Canvas environment
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+console.log("[DEBUG] Firebase imports for lessons.js completed.");
 
-console.log("Jarvis systems online. Initializing lesson protocols.");
-
-// --- Global Configuration & Variables ---
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'cubically-ai-timer';
-// CORRECTED: Use the provided __firebase_config global or the valid fallback configuration.
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
-    authDomain: "ubically-timer.firebaseapp.com",
-    projectId: "ubically-timer",
-    storageBucket: "ubically-timer.appspot.com",
-    messagingSenderId: "467118524389",
-    appId: "1:467118524389:web:d3455f5be5747be2cb910c"
+// =====================================================================================================
+// --- IMPORTANT: Firebase Configuration for Hosting (Duplicate for self-containment) ---
+// These are duplicated from script.js to ensure lessons.js can function independently.
+// =====================================================================================================
+// Use Canvas global variables if they are defined, otherwise fall back to hardcoded values.
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedcube-timer';
+const firebaseConfig = {
+  apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+  authDomain: "ubically-timer.firebaseapp.com",
+  databaseURL: "https://ubically-timer-default-rtdb.firebaseio.com",
+  projectId: "ubically-timer",
+  storageBucket: "ubically-timer.firebasestorage.app",
+  messagingSenderId: "467118524389",
+  appId: "1:467118524389:web:d3455f5be5747be2cb910c",
+  measurementId: "G-6033SRP9WC"
 };
+// __initial_auth_token is provided globally by Canvas and should NOT be redeclared with 'const' here.
 
-// Firebase Services
-let app, db, auth;
+
+// Firebase variables
+let app;
+let db;
+let auth;
 let userId = null;
-let coursesUnsubscribe = null; // To hold the onSnapshot listener
+let isAuthReady = false;
+let isUserAuthenticated = false; // Track if user is explicitly authenticated (not anonymous)
+
+// Tone.js Synth for sound effects
+let synth;
+
+// Cubing.js 3D viewer instance
+let scramble3DViewer;
 
 // DOM Elements
-let dom = {}; // Object to hold all DOM element references
+let globalLoadingSpinner;
+let lessonHub, lessonViewer, lessonHistorySection;
+let startNewCourseBtn, courseTypeFilter, courseLevelFilter, courseList, noCoursesMessage;
+let courseCreationSection, backToCoursesBtn, courseChatContainer, courseChatMessages, courseChatInput, sendCourseChatBtn, courseChatSpinner; // Renamed from courseCreationModal
+let courseNavigationSidebar, currentCourseTitle, courseProgressBarContainer, courseProgressBar, moduleList;
+let lessonTitle, lessonStepCounter, editLessonBtn, lessonContentDisplay, lessonEditorContainer, lessonMarkdownEditor, cancelEditLessonBtn, saveLessonContentBtn;
+let scramble3DContainer, playPreviewBtn, pausePreviewBtn, stepBackwardBtn, stepForwardBtn, resetAlgBtn, applyScrambleBtn;
+let quizArea, quizQuestionsContainer, quizFeedback, submitQuizBtn;
+let prevLessonStepBtn, nextLessonStepBtn, completeLessonBtn, lessonCompletionMessage;
+let openInLessonChatBtn, inLessonChatContainer, closeInLessonChatBtn, inLessonChatMessages, inLessonChatInput, sendInLessonChatBtn, inLessonChatSpinner;
+let lessonHistoryList, noLessonsMessage, historyLoadingSpinner;
 
-// State Management
-let state = {
-    currentView: 'lessonHub', // 'lessonHub', 'courseCreationSection', 'lessonViewer'
-    currentCourse: null,
-    currentModuleIndex: 0,
-    currentLessonIndex: 0,
-    currentLessonStepIndex: 0,
-    simpleMDEInstance: null,
-    courseChatHistory: [],
-    inLessonChatHistory: [],
-    currentQuizAnswers: {},
-    isAuthReady: false,
-};
+// State variables
+let currentCourse = null;
+let currentModuleIndex = 0;
+let currentLessonIndex = 0;
+let currentLessonStepIndex = 0;
+let simpleMDEInstance = null; // To store the SimpleMDE instance
+let courseChatHistory = []; // History for course creation chat
+let inLessonChatHistory = []; // History for in-lesson chat
+let currentQuizAnswers = {}; // To store user's answers for the current quiz
 
-// --- Core Initialization ---
-
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log("DOM fully loaded and parsed. Commencing setup.");
-    assignDomElements();
-    setupEventListeners();
-    await initializeFirebase();
-});
-
-/**
- * Initializes Firebase and sets up authentication.
- */
-async function initializeFirebase() {
-    try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        console.log("Firebase services initialized.");
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                console.log(`Authentication state changed. User is present. UID: ${userId}`);
-            } else {
-                console.log("No user found. Attempting to sign in.");
-                try {
-                    const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                    if (token) {
-                        await signInWithCustomToken(auth, token);
-                        console.log("Signed in with custom token.");
-                    } else {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously.");
-                    }
-                    userId = auth.currentUser.uid;
-                } catch (error) {
-                    console.error("Critical authentication error:", error);
-                    showToast("Authentication failed. Some features may not work.", "error");
-                    userId = `guest-${crypto.randomUUID()}`;
-                }
-            }
-            state.isAuthReady = true;
-            await handleInitialView();
-        });
-    } catch (e) {
-        console.error("Firebase initialization failed:", e);
-        showToast("Application services could not be initialized.", "error");
-    }
-}
-
-/**
- * Assigns all necessary DOM elements to the `dom` object.
- */
-function assignDomElements() {
-    const ids = [
-        'sidebar', 'lessonHub', 'courseCreationSection', 'lessonViewer', 'globalLoadingSpinner',
-        'startNewCourseBtn', 'courseTypeFilter', 'courseLevelFilter', 'courseListContainer',
-        'historyLoadingSpinner', 'noCoursesMessage', 'courseList', 'backToCoursesBtn',
-        'courseChatContainer', 'courseChatMessages', 'courseChatInput', 'sendCourseChatBtn', 'courseChatSpinner',
-        'courseNavigationSidebar', 'backToHubFromViewerBtn', 'currentCourseTitle', 'courseProgressBarContainer',
-        'courseProgressBar', 'moduleList', 'lessonTitle', 'editLessonBtn', 'openInLessonChatBtn',
-        'lessonContentDisplay', 'lessonEditorContainer', 'lessonMarkdownEditor', 'cancelEditLessonBtn',
-        'saveLessonContentBtn', 'scramble3DContainer', 'scramble3DViewer', 'playPreviewBtn', 'pausePreviewBtn',
-        'resetAlgBtn', 'quizArea', 'quizQuestionsContainer', 'quizFeedback', 'submitQuizBtn',
-        'prevLessonStepBtn', 'lessonStepCounter', 'nextLessonStepBtn', 'completeCourseBtn',
-        'inLessonChatContainer', 'closeInLessonChatBtn', 'inLessonChatMessages', 'inLessonChatInput',
-        'sendInLessonChatBtn', 'inLessonChatSpinner', 'toast-container'
-    ];
-    ids.forEach(id => dom[id] = document.getElementById(id));
-    console.log("DOM elements assigned.");
-}
-
-/**
- * Sets up all primary event listeners for the application.
- */
-function setupEventListeners() {
-    dom.startNewCourseBtn.addEventListener('click', async () => {
-        // CORRECTED: Resume AudioContext on user gesture to prevent browser warnings.
-        if (Tone.context.state !== 'running') {
-            await Tone.start();
-            console.log("Tone.js AudioContext resumed on user gesture.");
-        }
-        switchView('courseCreationSection');
-    });
-    dom.backToCoursesBtn.addEventListener('click', () => switchView('lessonHub'));
-    dom.backToHubFromViewerBtn.addEventListener('click', () => switchView('lessonHub'));
-
-    dom.sendCourseChatBtn.addEventListener('click', () => processCourseChatInput());
-    dom.courseChatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            processCourseChatInput();
-        }
-    });
-
-    dom.courseTypeFilter.addEventListener('change', () => loadCourseList(true));
-    dom.courseLevelFilter.addEventListener('change', () => loadCourseList(true));
-
-    dom.prevLessonStepBtn.addEventListener('click', goToPreviousStep);
-    dom.nextLessonStepBtn.addEventListener('click', goToNextStep);
-    dom.completeCourseBtn.addEventListener('click', completeCourse);
-
-    dom.submitQuizBtn.addEventListener('click', submitQuiz);
-
-    dom.editLessonBtn.addEventListener('click', toggleLessonEditor);
-    dom.cancelEditLessonBtn.addEventListener('click', () => toggleLessonEditor(false));
-    dom.saveLessonContentBtn.addEventListener('click', saveLessonContent);
-
-    // 3D Viewer Controls
-    dom.playPreviewBtn.addEventListener('click', () => {
-        dom.scramble3DViewer.play();
-        dom.playPreviewBtn.classList.add('hidden');
-        dom.pausePreviewBtn.classList.remove('hidden');
-    });
-    dom.pausePreviewBtn.addEventListener('click', () => {
-        dom.scramble3DViewer.pause();
-        dom.pausePreviewBtn.classList.add('hidden');
-        dom.playPreviewBtn.classList.remove('hidden');
-    });
-    dom.resetAlgBtn.addEventListener('click', () => {
-        dom.scramble3DViewer.reset();
-        dom.pausePreviewBtn.classList.add('hidden');
-        dom.playPreviewBtn.classList.remove('hidden');
-    });
-
-    // In-Lesson Chat
-    dom.openInLessonChatBtn.addEventListener('click', () => dom.inLessonChatContainer.classList.add('open'));
-    dom.closeInLessonChatBtn.addEventListener('click', () => dom.inLessonChatContainer.classList.remove('open'));
-    dom.sendInLessonChatBtn.addEventListener('click', () => sendInLessonChatPrompt());
-    dom.inLessonChatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            sendInLessonChatPrompt();
-        }
-    });
-
-    console.log("Event listeners configured.");
-}
-
-// --- View & State Management ---
-
-/**
- * Switches the main view of the application.
- * @param {string} viewName - The name of the view to switch to.
- */
-function switchView(viewName) {
-    console.log(`Switching view to: ${viewName}`);
-    state.currentView = viewName;
-    ['lessonHub', 'courseCreationSection', 'lessonViewer'].forEach(viewId => {
-        if(dom[viewId]) dom[viewId].classList.add('hidden');
-    });
-    if(dom[viewName]) dom[viewName].classList.remove('hidden');
-
-    if (viewName === 'lessonHub') {
-        loadCourseList(true); // Refresh list when returning to hub
-    } else if (viewName === 'courseCreationSection') {
-        // Reset and prime the course creation chat
-        state.courseChatHistory = [];
-        dom.courseChatMessages.innerHTML = '';
-        displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to design a new cubing course. Please describe your requirements, including cube type, skill level, and any specific topics of interest.");
-    }
-}
-
-/**
- * Determines the initial view to load.
- */
-async function handleInitialView() {
-    if (!state.isAuthReady) {
-        console.log("Authentication not ready. Deferring initial view load.");
-        return;
-    }
-    console.log("Authentication is ready. Loading initial view.");
-    switchView('lessonHub');
-}
-
-/**
- * Shows or hides a global loading spinner.
- * @param {boolean} show - True to show, false to hide.
- */
-function showGlobalSpinner(show) {
-    if (dom.globalLoadingSpinner) {
-        dom.globalLoadingSpinner.classList.toggle('hidden', !show);
-    }
-}
+// =====================================================================================================
+// --- Utility Functions ---
+// =====================================================================================================
 
 /**
  * Displays a toast notification.
  * @param {string} message - The message to display.
- * @param {string} type - 'success', 'error', or 'info'.
+ * @param {string} type - 'success', 'error', 'info'.
  */
 function showToast(message, type = 'info') {
-    const toastContainer = dom['toast-container'];
-    if (!toastContainer) return;
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        console.error("Toast container not found!");
+        return;
+    }
+
     const toast = document.createElement('div');
-    toast.className = `toast show`;
-    let bgColor = 'bg-blue-500';
-    if (type === 'success') bgColor = 'bg-green-500';
-    if (type === 'error') bgColor = 'bg-red-500';
-    toast.classList.add(bgColor, 'text-white', 'p-3', 'rounded-lg', 'shadow-lg');
-    toast.textContent = message;
+    toast.className = `toast ${type} p-3 rounded-md shadow-lg text-white flex items-center space-x-2`;
+
+    let iconClass = '';
+    let bgColor = '';
+    switch (type) {
+        case 'success':
+            iconClass = 'fas fa-check-circle';
+            bgColor = 'bg-green-500';
+            break;
+        case 'error':
+            iconClass = 'fas fa-times-circle';
+            bgColor = 'bg-red-500';
+            break;
+        case 'info':
+        default:
+            iconClass = 'fas fa-info-circle';
+            bgColor = 'bg-blue-500';
+            break;
+    }
+
+    toast.innerHTML = `<i class="${iconClass}"></i><span>${message}</span>`;
+    toast.classList.add(bgColor);
+
     toastContainer.appendChild(toast);
+
+    // Show the toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10); // Small delay for transition to work
+
+    // Hide and remove the toast after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
         toast.addEventListener('transitionend', () => toast.remove());
     }, 3000);
 }
 
-// --- Firestore & Data Handling ---
+/**
+ * Speaks a given text using the Web Speech API.
+ * @param {string} text The text to speak.
+ */
+function speakAsJarvis(text) {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        // Attempt to find a suitable voice, e.g., a British male voice
+        const voices = speechSynthesis.getVoices();
+        const jarvisVoice = voices.find(voice => voice.name.includes('Google UK English Male') || voice.name.includes('Microsoft David') || voice.lang === 'en-US'); // Fallback to US English
+        if (jarvisVoice) {
+            utterance.voice = jarvisVoice;
+            console.log(`[DEBUG] Jarvis voice loaded: ${jarvisVoice.name} - ${jarvisVoice.lang}`);
+        } else {
+            console.warn("[WARN] Jarvis voice not found, using default voice.");
+        }
+        utterance.pitch = 1.0;
+        utterance.rate = 1.0;
+        speechSynthesis.speak(utterance);
+    } else {
+        console.warn("Speech Synthesis API not supported in this browser.");
+    }
+}
+
+/**
+ * Shows or hides the global loading spinner.
+ * @param {boolean} show - True to show, false to hide.
+ */
+function showGlobalLoadingSpinner(show) {
+    if (globalLoadingSpinner) {
+        globalLoadingSpinner.classList.toggle('hidden', !show);
+        globalLoadingSpinner.classList.toggle('flex', show);
+    }
+}
+
+/**
+ * Hides all main sections and resets specific elements.
+ */
+function hideAllSections() {
+    console.log("[DEBUG] Hiding all sections.");
+    const sections = [lessonHub, lessonViewer, lessonHistorySection, courseCreationSection];
+    sections.forEach(section => {
+        if (section) { // Ensure element exists
+            section.style.display = 'none';
+            section.style.visibility = 'hidden';
+            section.style.height = '0px';
+            section.style.overflow = 'hidden';
+        }
+    });
+
+    // Explicitly clear text content and hide buttons for lessonViewer elements
+    // to prevent residual display when lessonViewer is hidden.
+    if (currentCourseTitle) currentCourseTitle.textContent = '';
+    if (lessonTitle) lessonTitle.textContent = '';
+    if (lessonStepCounter) lessonStepCounter.textContent = '';
+    
+    // Hide navigation buttons
+    if (prevLessonStepBtn) prevLessonStepBtn.style.display = 'none';
+    if (editLessonBtn) editLessonBtn.style.display = 'none';
+    if (openInLessonChatBtn) openInLessonChatBtn.style.display = 'none';
+    if (nextLessonStepBtn) nextLessonStepBtn.style.display = 'none';
+    if (completeLessonBtn) completeLessonBtn.style.display = 'none';
+    if (lessonCompletionMessage) lessonCompletionMessage.style.display = 'none';
+    if (scramble3DContainer) scramble3DContainer.style.display = 'none';
+    if (quizArea) quizArea.style.display = 'none';
+
+    // Also hide the in-lesson chat modal if open
+    if (inLessonChatContainer) inLessonChatContainer.style.display = 'none';
+}
+
+/**
+ * Shows a specific section.
+ * @param {HTMLElement} sectionElement - The section to show.
+ */
+function showSection(sectionElement) {
+    console.log(`[DEBUG] Attempting to show section: ${sectionElement.id}`);
+    hideAllSections(); // Ensure all are hidden first
+
+    if (sectionElement) { // Ensure element exists
+        // Reset aggressive hiding styles when showing a section
+        sectionElement.style.visibility = 'visible';
+        sectionElement.style.height = ''; // Reset height
+        sectionElement.style.overflow = ''; // Reset overflow
+
+        if (sectionElement === lessonViewer) {
+            sectionElement.style.display = 'grid'; // lessonViewer uses grid layout
+            // Ensure buttons are visible when lessonViewer is active
+            if (prevLessonStepBtn) prevLessonStepBtn.style.display = 'inline-flex';
+            if (editLessonBtn) editLessonBtn.style.display = 'inline-flex';
+            if (openInLessonChatBtn) openInLessonChatBtn.style.display = 'inline-flex';
+            if (nextLessonStepBtn) nextLessonStepBtn.style.display = 'inline-flex';
+        } else {
+            sectionElement.style.display = 'flex'; // Other sections use flex layout
+        }
+    }
+    console.log(`[DEBUG] Section ${sectionElement.id} display style after show: ${sectionElement.style.display}`);
+}
+
+/**
+ * Updates the course progress bar.
+ */
+function updateCourseProgressBar() {
+    if (!currentCourse || !currentCourse.modules || currentCourse.modules.length === 0) {
+        courseProgressBar.style.width = '0%';
+        return;
+    }
+
+    let totalSteps = 0;
+    let completedSteps = 0;
+
+    currentCourse.modules.forEach(module => {
+        if (module.lessons) { // Defensive check
+            module.lessons.forEach(lesson => {
+                if (lesson.steps) { // Defensive check
+                    lesson.steps.forEach(step => {
+                        totalSteps++;
+                        if (step.completed) {
+                            completedSteps++;
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+    courseProgressBar.style.width = `${progress}%`;
+    courseProgressBar.title = `${completedSteps} of ${totalSteps} steps completed`;
+}
+
+// =====================================================================================================
+// --- Firebase Initialization and Authentication ---
+// =====================================================================================================
+
+/**
+ * Initializes Firebase app and services.
+ */
+async function initializeFirebaseAndAuth() {
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        console.log("[DEBUG] Firebase app and services initialized.");
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                isUserAuthenticated = !user.isAnonymous;
+                console.log(`[DEBUG] Auth state changed. User ID: ${userId}, Authenticated: ${isUserAuthenticated}`);
+            } else {
+                // Sign in anonymously if no user is logged in
+                try {
+                    // Access __initial_auth_token directly as it's globally provided by Canvas
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                        console.log("[DEBUG] Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("[DEBUG] Signed in anonymously.");
+                    }
+                    userId = auth.currentUser.uid;
+                    isUserAuthenticated = !auth.currentUser.isAnonymous;
+                } catch (anonError) {
+                    console.error("[ERROR] Anonymous sign-in failed:", anonError);
+                    showToast("Authentication failed. Please try again.", "error");
+                    // Fallback to a random UUID if anonymous sign-in fails
+                    userId = `guest-${crypto.randomUUID()}`;
+                    isUserAuthenticated = false;
+                }
+            }
+            isAuthReady = true;
+            console.log("[DEBUG] Auth ready, calling loadInitialView().");
+            await loadInitialView(); // Load initial view after auth is ready
+        });
+    } catch (e) {
+        console.error("[ERROR] Firebase initialization failed:", e);
+        showToast("Failed to initialize application services.", "error");
+        // Proceed as guest if Firebase init fails
+        userId = `guest-${crypto.randomUUID()}`;
+        isAuthReady = true;
+        isUserAuthenticated = false;
+        console.log("[DEBUG] Firebase init failed, proceeding as guest and calling loadInitialView().");
+        await loadInitialView();
+    }
+}
 
 /**
  * Gets the Firestore collection reference for user-specific data.
- * @param {string} collectionName - The name of the sub-collection.
- * @returns {import("firebase/firestore").CollectionReference | null}
+ * @param {string} collectionName - The name of the sub-collection (e.g., 'courses').
+ * @returns {firebase.firestore.CollectionReference}
  */
 function getUserCollectionRef(collectionName) {
     if (!db || !userId) {
         console.error("Firestore DB or User ID not available.");
         return null;
     }
+    // Use 'public' data for collaborative apps, otherwise 'users/{userId}'
+    // For this app, lessons are user-specific, so use 'users/{userId}'
     return collection(db, `artifacts/${appId}/users/${userId}/${collectionName}`);
 }
 
+// =====================================================================================================
+// --- Course Hub Functions ---
+// =====================================================================================================
+
 /**
- * Loads and displays the list of courses from Firestore.
- * @param {boolean} forceRefresh - If true, re-attaches the snapshot listener.
+ * Loads and displays the list of courses.
  */
-function loadCourseList(forceRefresh = false) {
-    if (!state.isAuthReady) return;
-    if (coursesUnsubscribe && !forceRefresh) return; // Already listening
-    if (coursesUnsubscribe) coursesUnsubscribe(); // Detach old listener
+async function loadCourseList() {
+    console.log("[DEBUG] loadCourseList() called.");
+    showGlobalLoadingSpinner(true);
+    historyLoadingSpinner.classList.remove('hidden');
+    noCoursesMessage.classList.add('hidden');
+    courseList.innerHTML = ''; // Clear existing list
+    courseList.style.display = 'none'; // Explicitly hide courseList at the start
 
-    dom.historyLoadingSpinner.classList.remove('hidden');
-    dom.noCoursesMessage.classList.add('hidden');
-    dom.courseList.innerHTML = '';
-
-    const coursesRef = getUserCollectionRef('courses');
-    if (!coursesRef) {
-        showToast("Cannot load courses: Authentication error.", "error");
-        dom.historyLoadingSpinner.classList.add('hidden');
-        return;
-    }
-
-    coursesUnsubscribe = onSnapshot(query(coursesRef), (snapshot) => {
-        console.log(`Received course snapshot with ${snapshot.docs.length} documents.`);
-        const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const typeFilter = dom.courseTypeFilter.value;
-        const levelFilter = dom.courseLevelFilter.value;
-
-        const filteredCourses = courses.filter(course =>
-            (typeFilter === 'all' || course.cubeType === typeFilter) &&
-            (levelFilter === 'all' || course.level === levelFilter)
-        );
-
-        dom.historyLoadingSpinner.classList.add('hidden');
-        dom.courseList.innerHTML = '';
-        if (filteredCourses.length === 0) {
-            dom.noCoursesMessage.classList.remove('hidden');
-        } else {
-            dom.noCoursesMessage.classList.add('hidden');
-            filteredCourses.forEach(renderCourseCard);
+    try {
+        const coursesRef = getUserCollectionRef('courses');
+        if (!coursesRef) {
+            showToast("Failed to load courses: Authentication not ready.", "error");
+            historyLoadingSpinner.classList.add('hidden');
+            showGlobalLoadingSpinner(false);
+            console.log("[DEBUG] loadCourseList() exiting due to no coursesRef.");
+            return;
         }
-    }, (error) => {
-        console.error("Error listening to course updates:", error);
-        showToast("Failed to load courses in real-time.", "error");
-        dom.historyLoadingSpinner.classList.add('hidden');
-    });
+
+        console.log("[DEBUG] Setting up onSnapshot listener for courses.");
+        // Listen for real-time updates to the courses collection
+        onSnapshot(coursesRef, (snapshot) => {
+            console.log("[DEBUG] Course list snapshot received. Number of documents:", snapshot.docs.length);
+            courseList.innerHTML = ''; // Clear list on every update
+            
+            const courses = [];
+            snapshot.forEach(doc => {
+                const courseData = doc.data();
+                courses.push({ id: doc.id, ...courseData });
+            });
+
+            // Apply filters
+            const typeFilter = courseTypeFilter.value;
+            const levelFilter = courseLevelFilter.value;
+
+            const filteredCourses = courses.filter(course => {
+                const matchesType = typeFilter === 'all' || course.cubeType === typeFilter;
+                const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
+                return matchesType && matchesLevel; // Corrected logic here
+            });
+
+            if (filteredCourses.length === 0) {
+                noCoursesMessage.classList.remove('hidden');
+                courseList.style.display = 'none'; // Ensure courseList is hidden when empty
+                console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
+            } else {
+                noCoursesMessage.classList.add('hidden');
+                courseList.style.display = 'flex'; // Show courseList when there are courses
+                console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
+                filteredCourses.forEach(course => {
+                    renderCourseCard(course);
+                });
+            }
+            historyLoadingSpinner.classList.add('hidden');
+            showGlobalLoadingSpinner(false);
+            console.log("[DEBUG] loadCourseList() completed rendering.");
+        }, (error) => {
+            console.error("Error listening to courses:", error);
+            showToast("Error loading courses.", "error");
+            historyLoadingSpinner.classList.add('hidden');
+            showGlobalLoadingSpinner(false);
+        });
+
+    } catch (e) {
+        console.error("Error loading course list:", e);
+        showToast("Failed to load course list.", "error");
+        historyLoadingSpinner.classList.add('hidden');
+        showGlobalLoadingSpinner(false);
+    }
 }
 
 /**
  * Renders a single course card in the lesson hub.
- * @param {object} course - The course data.
+ * @param {Object} course - The course data.
  */
 function renderCourseCard(course) {
+    console.log("[DEBUG] Full course object being rendered:", course); // Diagnostic log: This will show the full course object
     const card = document.createElement('div');
-    card.className = 'course-card';
-    const totalLessons = course.modules ? course.modules.reduce((acc, mod) => acc + (mod.lessons ? mod.lessons.length : 0), 0) : 0;
-
+    // Removed 'cursor: pointer' from the card's class list
+    card.className = 'course-card glass-panel p-6 rounded-xl shadow-lg border border-gray-700';
     card.innerHTML = `
-        <div>
-            <h3 class="text-gradient">${course.title || 'Untitled Course'}</h3>
-            <p class="course-description">${course.description || 'No description.'}</p>
+        <h3 class="text-xl font-bold text-gradient mb-2">${course.title || 'Untitled Course'}</h3>
+        <p class="text-gray-300 text-sm mb-3">${course.description || 'No description provided.'}</p>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-cube mr-1"></i> ${course.cubeType || 'N/A'}</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-signal mr-1"></i> ${course.level || 'N/A'}</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-layer-group mr-1"></i> ${course.modules ? course.modules.length : 0} Modules</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-book mr-1"></i> ${course.modules ? course.modules.reduce((acc, mod) => acc + mod.lessons.length, 0) : 0} Lessons</span>
         </div>
-        <div>
-            <div class="course-meta">
-                <span><i class="fas fa-cube"></i> ${course.cubeType || 'N/A'}</span>
-                <span><i class="fas fa-signal"></i> ${course.level || 'N/A'}</span>
-                <span><i class="fas fa-layer-group"></i> ${course.modules ? course.modules.length : 0} Modules</span>
-                <span><i class="fas fa-book-open"></i> ${totalLessons} Lessons</span>
-            </div>
-            <div class="course-card-actions">
-                <button class="button-secondary delete-course-btn text-sm !px-3 !py-1.5"><i class="fas fa-trash-alt"></i></button>
-                <button class="button-primary start-course-btn text-sm !px-4 !py-1.5">Start Course <i class="fas fa-play-circle ml-2"></i></button>
-            </div>
+        <div class="flex justify-end mt-4 space-x-2 course-card-actions">
+            <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn" data-id="${course.id}">
+                <i class="fas fa-trash-alt"></i> Delete
+            </button>
+            <button class="button-primary text-sm px-3 py-1.5 rounded-lg start-course-btn" data-id="${course.id}">
+                <i class="fas fa-play-circle"></i> Start Course
+            </button>
         </div>
     `;
-    dom.courseList.appendChild(card);
+    courseList.appendChild(card);
 
-    card.querySelector('.start-course-btn').addEventListener('click', () => loadCourse(course.id));
-    card.querySelector('.delete-course-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (confirm(`Are you sure you want to delete the course "${course.title}"? This action cannot be undone.`)) {
-            deleteCourse(course.id);
-        }
-    });
+    const startButton = card.querySelector('.start-course-btn');
+    const deleteButton = card.querySelector('.delete-course-btn');
+
+    if (startButton) {
+        console.log(`[DEBUG] Found Start button for course ID: ${course.id}. Attaching listener.`); // NEW LOG
+        startButton.addEventListener('click', async (event) => { // Added event parameter
+            event.stopPropagation(); // Prevent click from bubbling up to the card
+            console.log(`[DEBUG] Start Course button CLICKED for ID: ${course.id}`); // Renamed for clarity
+            await loadCourse(course.id);
+            showSection(lessonViewer);
+        });
+    } else {
+        console.error("[ERROR] Start Course button element NOT FOUND for course:", course.id);
+    }
+
+    if (deleteButton) {
+        console.log(`[DEBUG] Found Delete button for course ID: ${course.id}. Attaching listener.`); // NEW LOG
+        deleteButton.addEventListener('click', async (event) => {
+            event.stopPropagation(); // Prevent start-course-btn from being triggered
+            console.log(`[DEBUG] Delete Course button CLICKED for ID: ${course.id}`); // Renamed for clarity
+            if (confirm("Are you sure you want to delete this course?")) {
+                await deleteCourse(course.id);
+            }
+        });
+    } else {
+        console.error("[ERROR] Delete Course button element NOT FOUND for course:", course.id);
+    }
 }
 
 /**
@@ -352,138 +455,236 @@ function renderCourseCard(course) {
  * @param {string} courseId - The ID of the course to delete.
  */
 async function deleteCourse(courseId) {
-    showGlobalSpinner(true);
+    console.log(`[DEBUG] Attempting to delete course with ID: ${courseId}`);
     try {
-        await deleteDoc(doc(getUserCollectionRef('courses'), courseId));
-        showToast("Course deleted successfully.", "success");
+        const courseDocRef = doc(getUserCollectionRef('courses'), courseId);
+        await deleteDoc(courseDocRef);
+        showToast("Course deleted successfully!", "success");
+        console.log(`[DEBUG] Course ${courseId} deleted from Firestore.`);
+        // No need to reload course list, onSnapshot will handle it
     } catch (e) {
-        console.error("Error deleting course:", e);
+        console.error(`[ERROR] Error deleting course ${courseId}:`, e);
         showToast("Failed to delete course.", "error");
-    } finally {
-        showGlobalSpinner(false);
     }
 }
 
-// --- AI Course Creation ---
+// =====================================================================================================
+// --- Course Creation Functions ---
+// =====================================================================================================
 
 /**
- * Displays a message in the course creation chat.
+ * Displays a chat message in the course creation section.
  * @param {string} sender - 'user' or 'jarvis'.
  * @param {string} message - The message content.
  */
 function displayCourseChatMessage(sender, message) {
     const messageElement = document.createElement('div');
-    messageElement.className = `chat-message ${sender === 'user' ? 'user-message' : 'jarvis-message'}`;
-    const formattedMessage = marked.parse(message); // Parse markdown
-    messageElement.innerHTML = `<span class="font-bold">${sender === 'user' ? 'You' : 'Jarvis'}:</span> ${formattedMessage}`;
-    dom.courseChatMessages.appendChild(messageElement);
-    dom.courseChatMessages.scrollTop = dom.courseChatMessages.scrollHeight;
+    messageElement.classList.add('chat-message', sender === 'user' ? 'user-message' : 'jarvis-message');
+    messageElement.innerHTML = `
+        <span class="font-bold ${sender === 'user' ? 'text-green-400' : 'text-indigo-400'}">${sender === 'user' ? 'You' : 'Jarvis'}:</span>
+        <span class="${sender === 'user' ? 'text-white' : 'text-gray-200'}">${message}</span>
+    `;
+    courseChatMessages.appendChild(messageElement);
+    courseChatMessages.scrollTop = courseChatMessages.scrollHeight; // Auto-scroll to bottom
 }
 
 /**
- * Processes user input for course creation via AI.
+ * Sends a message to the Vercel serverless function to process chat input.
+ * It determines whether to continue chat or initiate course generation.
+ * @param {string} prompt - The user's prompt.
  */
-async function processCourseChatInput() {
-    const prompt = dom.courseChatInput.value.trim();
-    if (!prompt) return;
-
+async function processCourseChatInput(prompt) {
     displayCourseChatMessage('user', prompt);
-    state.courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
-    dom.courseChatInput.value = '';
-    dom.courseChatSpinner.classList.remove('hidden');
-    dom.sendCourseChatBtn.disabled = true;
+    courseChatInput.value = '';
+    courseChatSpinner.classList.remove('hidden');
+    sendCourseChatBtn.disabled = true;
+
+    // Add user's message to history for sending to server
+    courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     try {
         const payload = {
-            type: 'generate_course',
-            chatHistory: state.courseChatHistory
+            type: 'lesson_chat', // Always start with a 'lesson_chat' type for conversational input
+            chatHistory: courseChatHistory, // Send the full history for context
+            cubeType: courseTypeFilter.value,
+            skillLevel: courseLevelFilter.value,
         };
 
-        const response = await fetch('/api/gemini-insight', {
+        const apiUrl = '/api/gemini-insight'; 
+
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        // CORRECTED: Handle non-JSON responses from server errors
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server responded with status ${response.status}: ${errorText}`);
-        }
-        
         const result = await response.json();
-        
-        await saveCourse(result);
-        displayCourseChatMessage('jarvis', `Excellent, Sir Sevindu. I have constructed the course framework for "${result.title}". You may now return to the hub to begin.`);
+        console.log("[DEBUG] Vercel Serverless Function response (chat processing):", result);
 
+        if (response.ok && result.message) {
+            displayCourseChatMessage('jarvis', result.message);
+            courseChatHistory.push({ role: "model", parts: [{ text: result.message }] });
+            speakAsJarvis(result.message);
+
+            if (result.action === 'generate_course') {
+                // If the server signals to generate a course, initiate the course generation process
+                await initiateCourseGeneration();
+            }
+        } else {
+            const errorMessage = result.error || "I am unable to process your request, Sir Sevindu. Please try again.";
+            displayCourseChatMessage('jarvis', errorMessage);
+            courseChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
+        }
     } catch (e) {
-        console.error("Error processing course chat:", e);
-        // Display a more informative error message
-        const errorMessage = e.message.includes("not valid JSON") 
-            ? "My apologies, Sir. The AI service returned an invalid response. This may be a temporary issue."
-            : `My apologies, Sir. I encountered an error: ${e.message}`;
-        displayCourseChatMessage('jarvis', errorMessage);
+        console.error("Error calling Vercel Serverless Function for chat processing:", e);
+        displayCourseChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later.");
+        courseChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later." }] });
     } finally {
-        dom.courseChatSpinner.classList.add('hidden');
-        dom.sendCourseChatBtn.disabled = false;
+        courseChatSpinner.classList.add('hidden');
+        sendCourseChatBtn.disabled = false;
     }
 }
 
 /**
- * Saves a new course to Firestore.
- * @param {object} courseData - The course data generated by the AI.
+ * Initiates the course generation process by sending a specific request to the serverless function.
  */
-async function saveCourse(courseData) {
-    showGlobalSpinner(true);
+async function initiateCourseGeneration() {
+    displayCourseChatMessage('jarvis', "Understood, Sir Sevindu. I am now generating your personalized cubing course. This may take a moment.");
+    speakAsJarvis("Understood, Sir Sevindu. I am now generating your personalized cubing course. This may take a moment.");
+    courseChatSpinner.classList.remove('hidden');
+    sendCourseChatBtn.disabled = true;
+
     try {
-        const coursesRef = getUserCollectionRef('courses');
-        const dataToSave = {
-            ...courseData,
-            createdAt: new Date().toISOString(),
-            lastAccessedModuleIndex: 0,
-            lastAccessedLessonIndex: 0,
-            lastAccessedStepIndex: 0,
-            completed: false,
+        const payload = {
+            type: 'generate_course', // Explicitly request course generation
+            chatHistory: courseChatHistory, // Send the full chat history for context
+            cubeType: courseTypeFilter.value,
+            skillLevel: courseLevelFilter.value,
+            // Add other relevant context from the UI if needed for the AI model
         };
-        await addDoc(coursesRef, dataToSave);
-        showToast("Course created successfully!", "success");
+
+        const apiUrl = '/api/gemini-insight'; 
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        console.log("[DEBUG] Vercel Serverless Function response (course generation):", result);
+
+        // Corrected: Check for 'title' directly in the result object, as the server now returns the course object itself with 'title'.
+        if (response.ok && result.title) { 
+            const newCourse = result; // Assign the entire result as the newCourse
+            newCourse.lastAccessedModuleIndex = 0;
+            newCourse.lastAccessedLessonIndex = 0;
+            newCourse.lastAccessedStepIndex = 0;
+            await saveCourse(newCourse);
+            displayCourseChatMessage('jarvis', `Course "${newCourse.title}" created successfully, Sir Sevindu! You may now close this chat and begin your training.`);
+            speakAsJarvis(`Course "${newCourse.title}" created successfully, Sir Sevindu! You may now close this chat and begin your training.`);
+        } else {
+            const errorMessage = result.error || "I encountered an issue generating the course, Sir Sevindu. Please ensure all necessary details were provided or try again.";
+            displayCourseChatMessage('jarvis', errorMessage);
+            speakAsJarvis(errorMessage);
+        }
     } catch (e) {
-        console.error("Error saving course:", e);
-        showToast("Failed to save the new course.", "error");
+        console.error("Error calling Vercel Serverless Function for course generation:", e);
+        displayCourseChatMessage('jarvis', "My apologies, Sir Sevindu. A critical error occurred during course generation. Please check your network and try again.");
+        speakAsJarvis("My apologies, Sir Sevindu. A critical error occurred during course generation. Please check your network and try again.");
     } finally {
-        showGlobalSpinner(false);
+        courseChatSpinner.classList.add('hidden');
+        sendCourseChatBtn.disabled = false;
     }
 }
 
-// --- Lesson Viewer ---
+
+/**
+ * Saves a new course to Firestore.
+ * @param {Object} courseData - The course data to save.
+ */
+async function saveCourse(courseData) {
+    console.log("[DEBUG] Attempting to save course to Firestore:", courseData);
+    try {
+        const coursesRef = getUserCollectionRef('courses');
+        if (!coursesRef) {
+            showToast("Failed to save course: Authentication not ready.", "error");
+            return;
+        }
+        // Ensure courseData includes necessary top-level fields for Firestore
+        const dataToSave = {
+            id: courseData.id, // Firestore document ID will be auto-generated, but keeping this for consistency if AI provides it
+            title: courseData.title,
+            description: courseData.description,
+            cubeType: courseData.cubeType,
+            level: courseData.level,
+            modules: courseData.modules,
+            lastAccessedModuleIndex: courseData.lastAccessedModuleIndex,
+            lastAccessedLessonIndex: courseData.lastAccessedLessonIndex,
+            lastAccessedStepIndex: courseData.lastAccessedStepIndex,
+            createdAt: new Date().toISOString()
+        };
+
+        const docRef = await addDoc(coursesRef, dataToSave);
+        console.log("Course saved with ID:", docRef.id);
+        showToast("Course created successfully!", "success");
+        // No need to reload course list, onSnapshot will handle it
+    } catch (e) {
+        console.error("Error saving course:", e);
+        showToast("Failed to save course.", "error");
+    }
+}
+
+// =====================================================================================================
+// --- Lesson Viewer Functions ---
+// =====================================================================================================
 
 /**
  * Loads a specific course into the lesson viewer.
  * @param {string} courseId - The ID of the course to load.
  */
 async function loadCourse(courseId) {
-    showGlobalSpinner(true);
+    console.log(`[DEBUG] Attempting to load course with ID: ${courseId}`);
+    showGlobalLoadingSpinner(true);
     try {
-        const courseDoc = await getDoc(doc(getUserCollectionRef('courses'), courseId));
-        if (!courseDoc.exists()) {
-            throw new Error("Course not found.");
-        }
-        state.currentCourse = { id: courseDoc.id, ...courseDoc.data() };
-        
-        state.currentModuleIndex = state.currentCourse.lastAccessedModuleIndex || 0;
-        state.currentLessonIndex = state.currentCourse.lastAccessedLessonIndex || 0;
-        state.currentLessonStepIndex = state.currentCourse.lastAccessedStepIndex || 0;
+        const courseDocRef = doc(getUserCollectionRef('courses'), courseId);
+        const courseDoc = await getDoc(courseDocRef);
 
-        dom.currentCourseTitle.textContent = state.currentCourse.title;
-        renderModuleList();
-        await loadLessonStep();
-        switchView('lessonViewer');
+        if (courseDoc.exists()) {
+            currentCourse = { id: courseDoc.id, ...courseDoc.data() };
+            console.log("[DEBUG] Loaded Course:", currentCourse);
+
+            currentCourseTitle.textContent = currentCourse.title;
+            renderModuleList();
+            updateCourseProgressBar();
+
+            // Load the last accessed step, or the very first step if no history
+            currentModuleIndex = currentCourse.lastAccessedModuleIndex || 0;
+            currentLessonIndex = currentCourse.lastAccessedLessonIndex || 0;
+            currentLessonStepIndex = currentCourse.lastAccessedStepIndex || 0;
+
+            // Ensure indices are within bounds
+            if (!currentCourse.modules || currentModuleIndex >= currentCourse.modules.length) currentModuleIndex = 0;
+            const currentModule = currentCourse.modules ? currentCourse.modules[currentModuleIndex] : null;
+
+            if (!currentModule || !currentModule.lessons || currentLessonIndex >= currentModule.lessons.length) currentLessonIndex = 0;
+            const currentLesson = currentModule && currentModule.lessons ? currentModule.lessons[currentLessonIndex] : null;
+
+            if (!currentLesson || !currentLesson.steps || currentLessonStepIndex >= currentLesson.steps.length) currentLessonStepIndex = 0;
+
+            await loadLessonStep(currentModuleIndex, currentLessonIndex, currentLessonStepIndex);
+            showSection(lessonViewer);
+        } else {
+            showToast("Course not found.", "error");
+            console.error("Course not found:", courseId);
+            showSection(lessonHub); // Go back to hub if course not found
+        }
     } catch (e) {
         console.error("Error loading course:", e);
-        showToast(e.message, "error");
-        switchView('lessonHub');
+        showToast("Failed to load course details.", "error");
+        showSection(lessonHub); // Go back to hub on error
     } finally {
-        showGlobalSpinner(false);
+        showGlobalLoadingSpinner(false);
     }
 }
 
@@ -491,140 +692,336 @@ async function loadCourse(courseId) {
  * Renders the list of modules and lessons in the sidebar.
  */
 function renderModuleList() {
-    dom.moduleList.innerHTML = '';
-    if (!state.currentCourse || !state.currentCourse.modules) return;
-
-    state.currentCourse.modules.forEach((module, modIndex) => {
-        const moduleItem = document.createElement('div');
+    moduleList.innerHTML = ''; // Clear existing list
+    if (!currentCourse || !currentCourse.modules) {
+        console.warn("[WARN] No modules to render or currentCourse is null.");
+        return;
+    }
+    currentCourse.modules.forEach((module, modIndex) => {
+        const moduleItem = document.createElement('li');
         moduleItem.className = 'module-item';
         moduleItem.innerHTML = `
-            <div class="module-title">
-                <i class="fas fa-chevron-right module-chevron"></i>
+            <div class="module-title flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-chevron-right mr-2 transition-transform"></i>
                 <span>${module.moduleTitle}</span>
             </div>
-            <div class="lesson-list hidden"></div>
+            <ul class="lesson-list hidden space-y-1"></ul>
         `;
-        const lessonListEl = moduleItem.querySelector('.lesson-list');
+        const lessonListElement = moduleItem.querySelector('.lesson-list');
+        const moduleTitleElement = moduleItem.querySelector('.module-title');
+        const chevronIcon = moduleItem.querySelector('.fas.fa-chevron-right');
+
         if (module.lessons) {
             module.lessons.forEach((lesson, lessonIndex) => {
-                const lessonItem = document.createElement('div');
-                lessonItem.className = 'lesson-item';
+                const lessonItem = document.createElement('li');
+                lessonItem.className = 'lesson-item text-gray-400 hover:text-white hover:bg-gray-700 px-3 py-1 rounded-md transition-colors';
                 lessonItem.textContent = lesson.lessonTitle;
                 lessonItem.dataset.modIndex = modIndex;
                 lessonItem.dataset.lessonIndex = lessonIndex;
                 lessonItem.addEventListener('click', async () => {
-                    state.currentModuleIndex = modIndex;
-                    state.currentLessonIndex = lessonIndex;
-                    state.currentLessonStepIndex = 0;
-                    await loadLessonStep();
+                    currentModuleIndex = modIndex;
+                    currentLessonIndex = lessonIndex;
+                    currentLessonStepIndex = 0; // Reset to first step when changing lesson
+                    await loadLessonStep(modIndex, lessonIndex, 0);
+                    updateCourseProgressInFirestore();
                 });
-                lessonListEl.appendChild(lessonItem);
+                lessonListElement.appendChild(lessonItem);
             });
         }
-        moduleItem.querySelector('.module-title').addEventListener('click', (e) => {
-            const lessonList = e.currentTarget.nextElementSibling;
-            const chevron = e.currentTarget.querySelector('.module-chevron');
-            e.currentTarget.classList.toggle('expanded');
-            chevron.classList.toggle('rotate-90');
-            lessonList.classList.toggle('hidden');
-            lessonList.classList.toggle('open');
+
+        moduleTitleElement.addEventListener('click', () => {
+            lessonListElement.classList.toggle('hidden');
+            lessonListElement.classList.toggle('open'); // For smooth transition
+            chevronIcon.classList.toggle('expanded');
         });
-        dom.moduleList.appendChild(moduleItem);
+
+        moduleList.appendChild(moduleItem);
     });
-}
-
-/**
- * Loads a specific step of a lesson into the viewer.
- */
-async function loadLessonStep() {
-    const { currentCourse, currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
-    if (!currentCourse) return;
-
-    const module = currentCourse.modules[currentModuleIndex];
-    if (!module || !module.lessons) return;
-    const lesson = module.lessons[currentLessonIndex];
-    if (!lesson || !lesson.steps) {
-        lesson.steps = [{ stepId: crypto.randomUUID(), content: 'This lesson appears to be empty, Sir.' }];
-    }
-    const step = lesson.steps[currentLessonStepIndex];
-
-    dom.lessonTitle.textContent = lesson.lessonTitle;
-    dom.lessonStepCounter.textContent = `Step ${currentLessonStepIndex + 1} of ${lesson.steps.length}`;
-    dom.lessonContentDisplay.innerHTML = marked.parse(step.content || '');
-    
-    dom.scramble3DContainer.classList.add('hidden');
-    dom.quizArea.classList.add('hidden');
-    
-    if (step.algorithm || step.scramble) {
-        dom.scramble3DContainer.classList.remove('hidden');
-        dom.scramble3DContainer.classList.add('flex');
-        dom.scramble3DViewer.puzzle = currentCourse.cubeType || '3x3x3';
-        dom.scramble3DViewer.alg = step.algorithm || step.scramble;
-        dom.scramble3DViewer.reset();
-        dom.pausePreviewBtn.classList.add('hidden');
-        dom.playPreviewBtn.classList.remove('hidden');
-    }
-
-    if (step.quiz && step.quiz.length > 0) {
-        dom.quizArea.classList.remove('hidden');
-        dom.quizArea.classList.add('flex');
-        renderQuiz(step.quiz);
-    }
-    
-    updateNavigation();
     highlightCurrentLesson();
-    updateCourseProgressBar();
-    await updateCourseProgressInFirestore();
 }
 
 /**
- * Updates the visibility and state of navigation buttons.
+ * Highlights the currently active lesson in the sidebar.
  */
-function updateNavigation() {
-    const { currentCourse, currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
-    const isFirstStep = currentModuleIndex === 0 && currentLessonIndex === 0 && currentLessonStepIndex === 0;
-    
+function highlightCurrentLesson() {
+    moduleList.querySelectorAll('.lesson-item').forEach(item => {
+        item.classList.remove('active');
+        item.classList.remove('bg-blue-600'); // Remove active background
+        item.classList.add('text-gray-400'); // Ensure default text color
+    });
+
+    const currentLessonElement = moduleList.querySelector(`[data-mod-index="${currentModuleIndex}"][data-lesson-index="${currentLessonIndex}"]`);
+    if (currentLessonElement) {
+        currentLessonElement.classList.add('active');
+        currentLessonElement.classList.remove('text-gray-400');
+        currentLessonElement.classList.add('bg-blue-600'); // Add active background
+        // Ensure parent module is expanded
+        const parentModuleList = currentLessonElement.closest('.lesson-list');
+        if (parentModuleList && parentModuleList.classList.contains('hidden')) {
+            parentModuleList.classList.remove('hidden');
+            parentModuleList.classList.add('open');
+            const parentModuleTitle = parentModuleList.previousElementSibling;
+            if (parentModuleTitle) {
+                parentModuleTitle.querySelector('.fas.fa-chevron-right').classList.add('expanded');
+            }
+        }
+    }
+}
+
+/**
+ * Loads a specific step of a lesson.
+ * @param {number} modIndex - Module index.
+ * @param {number} lessonIndex - Lesson index.
+ * @param {number} stepIndex - Step index.
+ */
+async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
+    if (!currentCourse || !currentCourse.modules[modIndex] || !currentCourse.modules[modIndex].lessons[lessonIndex] || !currentCourse.modules[modIndex].lessons[lessonIndex].steps[stepIndex]) {
+        showToast("Lesson step not found.", "error");
+        return;
+    }
+
+    currentModuleIndex = modIndex;
+    currentLessonIndex = lessonIndex;
+    currentLessonStepIndex = stepIndex;
+
+    const lesson = currentCourse.modules[modIndex].lessons[lessonIndex];
+    const step = lesson.steps[stepIndex];
+
+    lessonTitle.textContent = lesson.lessonTitle;
+    lessonStepCounter.textContent = `Step ${stepIndex + 1} of ${lesson.steps.length}`;
+    lessonContentDisplay.innerHTML = marked.parse(step.content || 'No content for this step.');
+
+    // Handle 3D visualizer
+    if (step.scramble || step.algorithm) {
+        scramble3DContainer.classList.remove('hidden');
+        scramble3DContainer.classList.add('flex');
+        scramble3DViewer.puzzle = currentCourse.cubeType || '3x3x3'; // Set puzzle type
+        scramble3DViewer.alg = step.scramble || ''; // Set scramble
+        scramble3DViewer.alg = step.algorithm || ''; // Set algorithm (will override scramble if both exist)
+        // Reset player state
+        scramble3DViewer.reset();
+        playPreviewBtn.style.display = 'inline-block';
+        pausePreviewBtn.style.display = 'none';
+    } else {
+        scramble3DContainer.classList.add('hidden');
+        scramble3DContainer.classList.remove('flex');
+    }
+
+    // Handle Quiz
+    if (step.quiz && step.quiz.length > 0) {
+        quizArea.classList.remove('hidden');
+        quizArea.classList.add('flex');
+        renderQuiz(step.quiz);
+    } else {
+        quizArea.classList.add('hidden');
+        quizArea.classList.remove('flex');
+    }
+
+    // Update navigation buttons visibility
+    prevLessonStepBtn.style.display = (stepIndex === 0 && lessonIndex === 0 && modIndex === 0) ? 'none' : 'inline-flex';
+    nextLessonStepBtn.style.display = 'inline-flex';
+    completeLessonBtn.style.display = 'none';
+    lessonCompletionMessage.style.display = 'none';
+
+    // If it's the last step of the last lesson of the last module
     const lastModuleIndex = currentCourse.modules.length - 1;
     const lastLessonIndex = currentCourse.modules[lastModuleIndex].lessons.length - 1;
     const lastStepIndex = currentCourse.modules[lastModuleIndex].lessons[lastLessonIndex].steps.length - 1;
-    const isLastStep = currentModuleIndex === lastModuleIndex && currentLessonIndex === lastLessonIndex && currentLessonStepIndex === lastStepIndex;
 
-    dom.prevLessonStepBtn.classList.toggle('hidden', isFirstStep);
-    dom.nextLessonStepBtn.classList.toggle('hidden', isLastStep);
-    dom.completeCourseBtn.classList.toggle('hidden', !isLastStep);
+    if (modIndex === lastModuleIndex && lessonIndex === lastLessonIndex && stepIndex === lastStepIndex) {
+        nextLessonStepBtn.style.display = 'none';
+        completeLessonBtn.style.display = 'inline-flex';
+    }
+
+    highlightCurrentLesson();
+    // Ensure editor is hidden when viewing content
+    lessonEditorContainer.classList.add('hidden');
+    lessonContentDisplay.classList.remove('hidden');
+    editLessonBtn.textContent = 'Edit'; // Reset edit button text
 }
 
 /**
- * Highlights the active lesson in the sidebar.
+ * Renders the quiz questions for the current step.
+ * @param {Array} quizData - Array of quiz questions.
  */
-function highlightCurrentLesson() {
-    dom.moduleList.querySelectorAll('.lesson-item').forEach(el => el.classList.remove('active'));
-    dom.moduleList.querySelectorAll('.module-title').forEach(el => el.classList.remove('expanded'));
-    dom.moduleList.querySelectorAll('.lesson-list').forEach(el => {
-        el.classList.add('hidden');
-        el.classList.remove('open');
+function renderQuiz(quizData) {
+    quizQuestionsContainer.innerHTML = '';
+    quizFeedback.textContent = '';
+    submitQuizBtn.classList.remove('hidden');
+    currentQuizAnswers = {}; // Reset answers
+
+    quizData.forEach((q, qIndex) => {
+        const questionElement = document.createElement('div');
+        questionElement.className = 'question-item bg-gray-800 p-4 rounded-lg shadow-md';
+        questionElement.innerHTML = `
+            <p class="text-white font-semibold mb-3">${qIndex + 1}. ${q.question}</p>
+            <div class="options-container space-y-2"></div>
+        `;
+        const optionsContainer = questionElement.querySelector('.options-container');
+
+        q.options.forEach((option, oIndex) => {
+            const optionElement = document.createElement('label');
+            optionElement.className = 'answer-option flex items-center text-gray-300 cursor-pointer hover:bg-gray-700 p-2 rounded-md';
+            const inputType = q.answer && Array.isArray(q.answer) ? 'checkbox' : 'radio'; // Check if answer is an array for checkbox
+            optionElement.innerHTML = `
+                <input type="${inputType}" name="question-${qIndex}" value="${option}" class="mr-2">
+                <span>${option}</span>
+            `;
+            optionsContainer.appendChild(optionElement);
+
+            optionElement.querySelector('input').addEventListener('change', (event) => {
+                if (inputType === 'radio') {
+                    currentQuizAnswers[qIndex] = event.target.value;
+                } else {
+                    // For checkboxes, store an array of selected options
+                    if (!currentQuizAnswers[qIndex]) {
+                        currentQuizAnswers[qIndex] = [];
+                    }
+                    if (event.target.checked) {
+                        currentQuizAnswers[qIndex].push(event.target.value);
+                    } else {
+                        currentQuizAnswers[qIndex] = currentQuizAnswers[qIndex].filter(ans => ans !== event.target.value);
+                    }
+                }
+            });
+        });
+        quizQuestionsContainer.appendChild(questionElement);
+    });
+}
+
+/**
+ * Submits the quiz and checks answers.
+ */
+function submitQuiz() {
+    let correctCount = 0;
+    const quizData = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].quiz;
+
+    quizData.forEach((q, qIndex) => {
+        const questionElement = quizQuestionsContainer.children[qIndex];
+        const options = questionElement.querySelectorAll('.answer-option');
+        const userAnswer = currentQuizAnswers[qIndex];
+        const correctAnswers = Array.isArray(q.answer) ? q.answer.map(ans => ans.trim()) : [String(q.answer).trim()]; // Handle both string and array for correct answers and ensure string conversion
+
+        let isQuestionCorrect = false;
+
+        if (Array.isArray(userAnswer)) { // Checkbox
+            isQuestionCorrect = userAnswer.length === correctAnswers.length &&
+                                userAnswer.every(ans => correctAnswers.includes(ans));
+        } else { // Radio
+            isQuestionCorrect = (userAnswer === correctAnswers[0]);
+        }
+
+        if (isQuestionCorrect) {
+            correctCount++;
+            questionElement.classList.add('correct');
+        } else {
+            questionElement.classList.add('incorrect');
+        }
+
+        // Disable options after submission and show correct answer
+        options.forEach(optionElement => {
+            optionElement.querySelector('input').disabled = true;
+            const optionText = optionElement.querySelector('span').textContent;
+            if (correctAnswers.includes(optionText)) {
+                optionElement.classList.add('font-bold', 'text-green-300'); // Highlight correct answer
+            }
+        });
     });
 
-    const moduleEl = dom.moduleList.children[state.currentModuleIndex];
-    if (moduleEl) {
-        const moduleTitle = moduleEl.querySelector('.module-title');
-        const lessonList = moduleEl.querySelector('.lesson-list');
-        moduleTitle.classList.add('expanded');
-        lessonList.classList.remove('hidden');
-        lessonList.classList.add('open');
-        const lessonEl = lessonList.querySelector(`[data-mod-index="${state.currentModuleIndex}"][data-lesson-index="${state.currentLessonIndex}"]`);
-        if (lessonEl) {
-            lessonEl.classList.add('active');
+    if (correctCount === quizData.length) {
+        quizFeedback.textContent = "Excellent, Sir Sevindu! All answers are correct!";
+        quizFeedback.classList.remove('text-red-400');
+        quizFeedback.classList.add('text-green-400');
+        showToast("Quiz completed successfully!", "success");
+    } else {
+        quizFeedback.textContent = `You got ${correctCount} out of ${quizData.length} correct. Review the lesson and try again.`;
+        quizFeedback.classList.remove('text-green-400');
+        quizFeedback.classList.add('text-red-400');
+        showToast("Quiz has incorrect answers.", "error");
+    }
+    submitQuizBtn.classList.add('hidden'); // Hide submit button after submission
+}
+
+
+/**
+ * Navigates to the next lesson step.
+ */
+async function goToNextStep() {
+    const lesson = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex];
+    if (currentLessonStepIndex < lesson.steps.length - 1) {
+        currentLessonStepIndex++;
+    } else {
+        // Move to next lesson
+        if (currentLessonIndex < currentCourse.modules[currentModuleIndex].lessons.length - 1) {
+            currentLessonIndex++;
+            currentLessonStepIndex = 0;
+        } else {
+            // Move to next module
+            if (currentModuleIndex < currentCourse.modules.length - 1) {
+                currentModuleIndex++;
+                currentLessonIndex = 0;
+                currentLessonStepIndex = 0;
+            } else {
+                // End of course
+                showToast("You have completed the course!", "success");
+                completeLessonBtn.style.display = 'inline-flex';
+                nextLessonStepBtn.style.display = 'none';
+                return;
+            }
         }
+    }
+    await loadLessonStep(currentModuleIndex, currentLessonIndex, currentLessonStepIndex);
+    updateCourseProgressInFirestore();
+}
+
+/**
+ * Navigates to the previous lesson step.
+ */
+async function goToPreviousStep() {
+    if (currentLessonStepIndex > 0) {
+        currentLessonStepIndex--;
+    } else {
+        // Move to previous lesson
+        if (currentLessonIndex > 0) {
+            currentLessonIndex--;
+            currentLessonStepIndex = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps.length - 1;
+        } else {
+            // Move to previous module
+            if (currentModuleIndex > 0) {
+                currentModuleIndex--;
+                currentLessonIndex = currentCourse.modules[currentModuleIndex].lessons.length - 1;
+                currentLessonStepIndex = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps.length - 1;
+            } else {
+                showToast("You are at the beginning of the course.", "info");
+                return;
+            }
+        }
+    }
+    await loadLessonStep(currentModuleIndex, currentLessonIndex, currentLessonStepIndex);
+    updateCourseProgressInFirestore();
+}
+
+/**
+ * Marks the current step as completed and updates progress.
+ */
+async function completeCurrentStep() {
+    if (!currentCourse) return;
+
+    const currentStep = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex];
+    if (!currentStep.completed) {
+        currentStep.completed = true;
+        await updateCourseProgressInFirestore();
+        showToast("Step marked as complete!", "success");
+    } else {
+        showToast("Step already completed.", "info");
     }
 }
 
 /**
- * Updates the user's progress in Firestore.
+ * Updates the user's progress in the current course in Firestore.
  */
 async function updateCourseProgressInFirestore() {
-    const { currentCourse, currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
-    if (!currentCourse) return;
+    if (!currentCourse || !db || !userId) return;
 
     try {
         const courseDocRef = doc(getUserCollectionRef('courses'), currentCourse.id);
@@ -632,295 +1029,410 @@ async function updateCourseProgressInFirestore() {
             lastAccessedModuleIndex: currentModuleIndex,
             lastAccessedLessonIndex: currentLessonIndex,
             lastAccessedStepIndex: currentLessonStepIndex,
-            modules: currentCourse.modules
+            modules: currentCourse.modules // Save the updated modules array (for step completion)
         });
-        console.log("Course progress saved.");
+        console.log("[DEBUG] Course progress updated in Firestore.");
+        updateCourseProgressBar(); // Update the visual progress bar
     } catch (e) {
         console.error("Error updating course progress:", e);
-        showToast("Failed to save your progress.", "error");
+        showToast("Failed to save progress.", "error");
     }
 }
 
 /**
- * Updates the visual progress bar based on completed steps.
+ * Marks the entire course as completed.
  */
-function updateCourseProgressBar() {
-    if (!state.currentCourse || !state.currentCourse.modules) return;
-    let totalSteps = 0;
-    let completedSteps = 0;
-    state.currentCourse.modules.forEach(mod => {
-        if(mod.lessons) {
-            mod.lessons.forEach(les => {
-                if (les.steps) {
-                    totalSteps += les.steps.length;
-                    les.steps.forEach(step => {
-                        if (step.completed) completedSteps++;
-                    });
-                }
-            });
-        }
-    });
-    const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-    dom.courseProgressBar.style.width = `${progress}%`;
-}
-
-
-// --- Lesson Step Navigation and Completion ---
-
-async function goToNextStep() {
-    const { currentCourse, currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
-    const lesson = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex];
-
-    // Mark current step as complete before moving
-    if (lesson.steps && lesson.steps[currentLessonStepIndex]) {
-        lesson.steps[currentLessonStepIndex].completed = true;
-    }
-
-    if (currentLessonStepIndex < lesson.steps.length - 1) {
-        state.currentLessonStepIndex++;
-    } else if (currentLessonIndex < currentCourse.modules[currentModuleIndex].lessons.length - 1) {
-        state.currentLessonIndex++;
-        state.currentLessonStepIndex = 0;
-    } else if (currentModuleIndex < currentCourse.modules.length - 1) {
-        state.currentModuleIndex++;
-        state.currentLessonIndex = 0;
-        state.currentLessonStepIndex = 0;
-    }
-    await loadLessonStep();
-}
-
-async function goToPreviousStep() {
-    const { currentCourse, currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
-
-    if (currentLessonStepIndex > 0) {
-        state.currentLessonStepIndex--;
-    } else if (currentLessonIndex > 0) {
-        state.currentLessonIndex--;
-        const prevLesson = currentCourse.modules[currentModuleIndex].lessons[state.currentLessonIndex];
-        state.currentLessonStepIndex = prevLesson.steps.length - 1;
-    } else if (currentModuleIndex > 0) {
-        state.currentModuleIndex--;
-        const prevModule = currentCourse.modules[state.currentModuleIndex];
-        state.currentLessonIndex = prevModule.lessons.length - 1;
-        const prevLesson = prevModule.lessons[state.currentLessonIndex];
-        state.currentLessonStepIndex = prevLesson.steps.length - 1;
-    }
-    await loadLessonStep();
-}
-
 async function completeCourse() {
-    if (!state.currentCourse) return;
-    showGlobalSpinner(true);
-    try {
-        // Mark the final step as complete
-        const lastModule = state.currentCourse.modules[state.currentCourse.modules.length - 1];
-        const lastLesson = lastModule.lessons[lastModule.lessons.length - 1];
-        if (lastLesson.steps && lastLesson.steps.length > 0) {
-            const lastStep = lastLesson.steps[lastLesson.steps.length - 1];
-            lastStep.completed = true;
-        }
+    if (!currentCourse) return;
 
-        const courseDocRef = doc(getUserCollectionRef('courses'), state.currentCourse.id);
+    try {
+        const courseDocRef = doc(getUserCollectionRef('courses'), currentCourse.id);
         await updateDoc(courseDocRef, {
             completed: true,
-            completionDate: new Date().toISOString(),
-            modules: state.currentCourse.modules // Save final completion status
+            completionDate: new Date().toISOString()
         });
-        showToast("Course completed! Congratulations!", "success");
-        updateCourseProgressBar();
-        switchView('lessonHub');
+        showToast("Course completed! Congratulations, Sir Sevindu!", "success");
+        lessonCompletionMessage.textContent = "Course Completed!";
+        lessonCompletionMessage.style.display = 'block';
+        completeLessonBtn.style.display = 'none';
+        speakAsJarvis("Course completed! Congratulations, Sir Sevindu!");
     } catch (e) {
-        console.error("Error completing course:", e);
+        console.error("Error marking course as complete:", e);
         showToast("Failed to mark course as complete.", "error");
-    } finally {
-        showGlobalSpinner(false);
     }
 }
 
+/**
+ * Toggles the lesson content between display and editor mode.
+ */
+function toggleLessonEditor() {
+    const isEditing = lessonEditorContainer.classList.contains('hidden'); // If hidden, we want to show editor
+    const currentStep = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex];
 
-// --- Quiz Logic ---
-function renderQuiz(quizData) {
-    dom.quizQuestionsContainer.innerHTML = '';
-    dom.quizFeedback.textContent = '';
-    dom.submitQuizBtn.classList.remove('hidden');
-    state.currentQuizAnswers = {};
+    if (isEditing) {
+        // Switch to editor mode
+        lessonContentDisplay.classList.add('hidden');
+        lessonEditorContainer.classList.remove('hidden');
+        editLessonBtn.textContent = 'Preview';
 
-    quizData.forEach((q, qIndex) => {
-        const questionElement = document.createElement('div');
-        questionElement.className = 'question-item';
-        questionElement.innerHTML = `<p>${qIndex + 1}. ${q.question}</p>`;
-        const optionsContainer = document.createElement('div');
-        
-        q.options.forEach(option => {
-            const isMulti = Array.isArray(q.answer);
-            const inputType = isMulti ? 'checkbox' : 'radio';
-            const optionId = `q${qIndex}-opt-${option.replace(/\s+/g, '-')}`;
-            
-            const optionLabel = document.createElement('label');
-            optionLabel.className = 'answer-option';
-            optionLabel.setAttribute('for', optionId);
-            optionLabel.innerHTML = `
-                <input type="${inputType}" id="${optionId}" name="question-${qIndex}" value="${option}">
-                <span>${option}</span>
-            `;
-            optionsContainer.appendChild(optionLabel);
-        });
-        questionElement.appendChild(optionsContainer);
-        dom.quizQuestionsContainer.appendChild(questionElement);
-    });
-}
-
-function submitQuiz() {
-    const quizData = state.currentCourse.modules[state.currentModuleIndex].lessons[state.currentLessonIndex].steps[state.currentLessonStepIndex].quiz;
-    let correctCount = 0;
-
-    // First, gather all user answers
-    quizData.forEach((q, qIndex) => {
-        const inputs = dom.quizQuestionsContainer.querySelectorAll(`[name="question-${qIndex}"]:checked`);
-        if (Array.isArray(q.answer)) { // Checkbox
-            state.currentQuizAnswers[qIndex] = Array.from(inputs).map(input => input.value);
-        } else { // Radio
-            state.currentQuizAnswers[qIndex] = inputs.length > 0 ? inputs[0].value : undefined;
-        }
-    });
-
-    // Now, check answers and provide feedback
-    quizData.forEach((q, qIndex) => {
-        const userAnswer = state.currentQuizAnswers[qIndex];
-        let isCorrect = false;
-        const correctAnswers = Array.isArray(q.answer) ? q.answer : [q.answer];
-
-        if (Array.isArray(userAnswer)) { // Multi-choice
-            isCorrect = userAnswer.length === correctAnswers.length && userAnswer.every(ans => correctAnswers.includes(ans));
-        } else { // Single-choice
-            isCorrect = userAnswer === correctAnswers[0];
-        }
-
-        if (isCorrect) correctCount++;
-        
-        // Visually mark options
-        const optionInputs = dom.quizQuestionsContainer.querySelectorAll(`[name="question-${qIndex}"]`);
-        optionInputs.forEach(input => {
-            const parentLabel = input.closest('.answer-option');
-            
-            if (correctAnswers.includes(input.value)) {
-                parentLabel.classList.add('reveal-correct');
+        // Initialize SimpleMDE if it's not already
+        if (!simpleMDEInstance) {
+            // Ensure SimpleMDE is loaded before initializing
+            if (typeof SimpleMDE === 'undefined') {
+                console.error("SimpleMDE library not loaded. Cannot initialize editor.");
+                showToast("Editor library not loaded. Please try refreshing.", "error");
+                return;
             }
-            if (input.checked && !correctAnswers.includes(input.value)) {
-                parentLabel.classList.add('incorrect');
-            }
-            input.disabled = true;
-        });
-    });
-
-    if (correctCount === quizData.length) {
-        dom.quizFeedback.textContent = "Excellent! All answers are correct.";
-        dom.quizFeedback.className = 'text-center font-semibold mb-4 text-green-400';
-    } else {
-        dom.quizFeedback.textContent = `You got ${correctCount} of ${quizData.length} correct. Review the correct answers.`;
-        dom.quizFeedback.className = 'text-center font-semibold mb-4 text-yellow-400';
-    }
-    dom.submitQuizBtn.classList.add('hidden');
-}
-
-
-// --- Editor & In-Lesson Chat ---
-function toggleLessonEditor(forceClose = null) {
-    const isEditing = !dom.lessonEditorContainer.classList.contains('hidden');
-    
-    if (forceClose === false || (forceClose === null && isEditing)) { // Close editor
-        dom.lessonEditorContainer.classList.add('hidden');
-        dom.lessonContentDisplay.classList.remove('hidden');
-        dom.editLessonBtn.innerHTML = '<i class="fas fa-pencil-alt mr-2"></i>Edit';
-        dom.lessonContentDisplay.innerHTML = marked.parse(state.simpleMDEInstance.value());
-    } else { // Open editor
-        dom.lessonContentDisplay.classList.add('hidden');
-        dom.lessonEditorContainer.classList.remove('hidden');
-        dom.editLessonBtn.innerHTML = '<i class="fas fa-eye mr-2"></i>Preview';
-        if (!state.simpleMDEInstance) {
-            state.simpleMDEInstance = new SimpleMDE({
-                element: dom.lessonMarkdownEditor,
+            simpleMDEInstance = new SimpleMDE({
+                element: lessonMarkdownEditor,
                 spellChecker: false,
-                status: false,
+                hideIcons: ["guide", "fullscreen", "side-by-side"],
+                showIcons: ["undo", "redo", "heading", "bold", "italic", "strikethrough", "code", "quote", "unordered-list", "ordered-list", "link", "image", "table"],
+                status: false, // Hide status bar
+                toolbarTips: true,
             });
+            console.log("[DEBUG] SimpleMDE initialized.");
         }
-        const currentContent = state.currentCourse.modules[state.currentModuleIndex].lessons[state.currentLessonIndex].steps[state.currentLessonStepIndex].content;
-        state.simpleMDEInstance.value(currentContent || '');
+        // Set content to editor
+        simpleMDEInstance.value(currentStep.content || '');
+    } else {
+        // Switch to display mode
+        lessonEditorContainer.classList.add('hidden');
+        lessonContentDisplay.classList.remove('hidden');
+        editLessonBtn.textContent = 'Edit';
+
+        // Update content display with markdown
+        lessonContentDisplay.innerHTML = marked.parse(simpleMDEInstance.value() || '');
     }
 }
 
+/**
+ * Saves the edited lesson content.
+ */
 async function saveLessonContent() {
-    if (!state.currentCourse || !state.simpleMDEInstance) return;
-    showGlobalSpinner(true);
-    const newContent = state.simpleMDEInstance.value();
-    state.currentCourse.modules[state.currentModuleIndex].lessons[state.currentLessonIndex].steps[state.currentLessonStepIndex].content = newContent;
+    if (!currentCourse || !simpleMDEInstance) return;
+
+    const newContent = simpleMDEInstance.value();
+    currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].content = newContent;
 
     try {
-        await updateCourseProgressInFirestore();
+        const courseDocRef = doc(getUserCollectionRef('courses'), currentCourse.id);
+        await updateDoc(courseDocRef, {
+            modules: currentCourse.modules // Update the entire modules array
+        });
         showToast("Lesson content saved!", "success");
-        toggleLessonEditor(false); // Close the editor
+        console.log("[DEBUG] Lesson content updated in Firestore.");
+        toggleLessonEditor(); // Switch back to display mode
     } catch (e) {
-        showToast("Failed to save content.", "error");
-    } finally {
-        showGlobalSpinner(false);
+        console.error("Error saving lesson content:", e);
+        showToast("Failed to save lesson content.", "error");
     }
 }
 
-async function sendInLessonChatPrompt() {
-    const prompt = dom.inLessonChatInput.value.trim();
-    if (!prompt) return;
+// =====================================================================================================
+// --- In-Lesson Chat Functions ---
+// =====================================================================================================
 
+/**
+ * Displays a chat message in the in-lesson chat modal.
+ * @param {string} sender - 'user' or 'jarvis'.
+ * @param {string} message - The message content.
+ */
+function displayInLessonChatMessage(sender, message) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message', sender === 'user' ? 'user-message' : 'jarvis-message');
+    messageElement.innerHTML = `
+        <span class="font-bold ${sender === 'user' ? 'text-green-400' : 'text-indigo-400'}">${sender === 'user' ? 'You' : 'Jarvis'}:</span>
+        <span class="${sender === 'user' ? 'text-white' : 'text-gray-200'}">${message}</span>
+    `;
+    inLessonChatMessages.appendChild(messageElement);
+    inLessonChatMessages.scrollTop = inLessonChatMessages.scrollHeight; // Auto-scroll to bottom
+}
+
+/**
+ * Sends a message to the Vercel serverless function for in-lesson assistance.
+ * @param {string} prompt - The user's prompt.
+ */
+async function sendInLessonChatPrompt(prompt) {
     displayInLessonChatMessage('user', prompt);
-    state.inLessonChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
-    dom.inLessonChatInput.value = '';
-    dom.inLessonChatSpinner.classList.remove('hidden');
-    dom.sendInLessonChatBtn.disabled = true;
+    inLessonChatInput.value = '';
+    inLessonChatSpinner.classList.remove('hidden');
+    sendInLessonChatBtn.disabled = true;
+
+    // Include current lesson context in the chat history
+    const currentLessonContext = {
+        lessonTitle: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lessonTitle,
+        lessonType: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lesson_type, // Assuming lesson_type exists
+        content: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].content,
+        scramble: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble,
+        algorithm: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].algorithm,
+    };
+
+    // The chat history to send to the serverless function
+    const chatHistoryToSend = [...inLessonChatHistory, { role: "user", parts: [{ text: prompt }] }];
 
     try {
-        const currentStep = state.currentCourse.modules[state.currentModuleIndex].lessons[state.currentLessonIndex].steps[state.currentLessonStepIndex];
         const payload = {
-            type: 'lesson_chat',
-            chatHistory: state.inLessonChatHistory,
-            currentLessonContext: {
-                lessonTitle: state.currentCourse.modules[state.currentModuleIndex].lessons[state.currentLessonIndex].lessonTitle,
-                content: currentStep.content,
-                algorithm: currentStep.algorithm,
-                scramble: currentStep.scramble,
-            }
+            type: 'lesson_chat', // Indicate to the serverless function that this is a lesson chat request
+            chatHistory: chatHistoryToSend,
+            cubeType: currentCourse.cubeType,
+            userLevel: currentCourse.level,
+            currentLessonContext: currentLessonContext,
         };
 
-        const response = await fetch('/api/gemini-insight', {
+        // The client-side makes a request to YOUR Vercel serverless function
+        const apiUrl = '/api/gemini-insight'; 
+
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server responded with status ${response.status}: ${errorText}`);
-        }
 
         const result = await response.json();
+        console.log("[DEBUG] Vercel Serverless Function response (in-lesson chat):", result);
 
-        displayInLessonChatMessage('jarvis', result.message);
-        state.inLessonChatHistory.push({ role: 'model', parts: [{ text: result.message }] });
-
+        if (response.ok && result.message) { // Check for successful response from your serverless function
+            const jarvisResponse = result.message;
+            displayInLessonChatMessage('jarvis', jarvisResponse);
+            // Update client-side chat history only if response was successful
+            inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            inLessonChatHistory.push({ role: "model", parts: [{ text: jarvisResponse }] });
+            speakAsJarvis(jarvisResponse);
+        } else {
+            const errorMessage = result.error || "I am unable to provide assistance at this moment, Sir Sevindu. Please try again.";
+            displayInLessonChatMessage('jarvis', errorMessage);
+            // Update client-side chat history even if there was an error, to keep context
+            inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            inLessonChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
+        }
     } catch (e) {
-        console.error("Error with in-lesson chat:", e);
-        const errorMessage = e.message.includes("not valid JSON") 
-            ? "My apologies, Sir. The AI service returned an invalid response."
-            : `My apologies, Sir. I am unable to assist at this moment. ${e.message}`;
-        displayInLessonChatMessage('jarvis', errorMessage);
+        console.error("Error calling Vercel Serverless Function for in-lesson chat:", e);
+        displayInLessonChatMessage('jarvis', "My apologies, Sir Sevindu. I am experiencing a technical difficulty. Please check your internet connection or try again later.");
+        inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        inLessonChatHistory.push({ role: "model", parts: [{ text: "My apologies, Sir Sevindu. I am experiencing a technical difficulty and cannot generate the course at this moment. Please check your internet connection or try again later." }] });
     } finally {
-        dom.inLessonChatSpinner.classList.add('hidden');
-        dom.sendInLessonChatBtn.disabled = false;
+        inLessonChatSpinner.classList.add('hidden');
+        sendInLessonChatBtn.disabled = false;
     }
 }
 
-function displayInLessonChatMessage(sender, message) {
-    const messageElement = document.createElement('div');
-    messageElement.className = `chat-message ${sender === 'user' ? 'user-message' : 'jarvis-message'}`;
-    messageElement.innerHTML = `<span class="font-bold">${sender === 'user' ? 'You' : 'Jarvis'}:</span> ${marked.parse(message)}`;
-    dom.inLessonChatMessages.appendChild(messageElement);
-    dom.inLessonChatMessages.scrollTop = dom.inLessonChatMessages.scrollHeight;
+
+// =====================================================================================================
+// --- Event Listeners and Initialization ---
+// =====================================================================================================
+
+/**
+ * Assigns DOM elements and sets up event listeners.
+ */
+function setupEventListeners() {
+    console.log("[DEBUG] lessons.js: Setting up event listeners.");
+
+    // Assign DOM elements
+    globalLoadingSpinner = document.getElementById('globalLoadingSpinner');
+    lessonHub = document.getElementById('lessonHub');
+    lessonViewer = document.getElementById('lessonViewer');
+    lessonHistorySection = document.getElementById('lessonHistorySection');
+
+    startNewCourseBtn = document.getElementById('startNewCourseBtn');
+    courseTypeFilter = document.getElementById('courseTypeFilter');
+    courseLevelFilter = document.getElementById('courseLevelFilter');
+    courseList = document.getElementById('courseList');
+    noCoursesMessage = document.getElementById('noCoursesMessage');
+    historyLoadingSpinner = document.getElementById('historyLoadingSpinner'); // Re-using for course list loading
+
+    courseCreationSection = document.getElementById('courseCreationSection'); // Renamed from courseCreationModal
+    backToCoursesBtn = document.getElementById('backToCoursesBtn'); // New button for navigation
+    courseChatContainer = document.getElementById('courseChatContainer');
+    courseChatMessages = document.getElementById('courseChatMessages');
+    courseChatInput = document.getElementById('courseChatInput');
+    sendCourseChatBtn = document.getElementById('sendCourseChatBtn');
+    courseChatSpinner = document.getElementById('courseChatSpinner');
+
+    courseNavigationSidebar = document.getElementById('courseNavigationSidebar');
+    currentCourseTitle = document.getElementById('currentCourseTitle');
+    courseProgressBarContainer = document.getElementById('courseProgressBarContainer');
+    courseProgressBar = document.getElementById('courseProgressBar');
+    moduleList = document.getElementById('moduleList');
+
+    lessonTitle = document.getElementById('lessonTitle');
+    lessonStepCounter = document.getElementById('lessonStepCounter');
+    editLessonBtn = document.getElementById('editLessonBtn');
+    lessonContentDisplay = document.getElementById('lessonContentDisplay');
+    lessonEditorContainer = document.getElementById('lessonEditorContainer');
+    lessonMarkdownEditor = document.getElementById('lessonMarkdownEditor');
+    cancelEditLessonBtn = document.getElementById('cancelEditLessonBtn');
+    saveLessonContentBtn = document.getElementById('saveLessonContentBtn');
+
+    scramble3DContainer = document.getElementById('scramble3DContainer');
+    scramble3DViewer = document.getElementById('scramble3DViewer');
+    playPreviewBtn = document.getElementById('playPreviewBtn');
+    pausePreviewBtn = document.getElementById('pausePreviewBtn');
+    stepBackwardBtn = document.getElementById('stepBackwardBtn');
+    stepForwardBtn = document.getElementById('stepForwardBtn');
+    resetAlgBtn = document.getElementById('resetAlgBtn'); // Corrected assignment
+    applyScrambleBtn = document.getElementById('applyScrambleBtn');
+
+    quizArea = document.getElementById('quizArea');
+    quizQuestionsContainer = document.getElementById('quizQuestionsContainer');
+    quizFeedback = document.getElementById('quizFeedback');
+    submitQuizBtn = document.getElementById('submitQuizBtn');
+
+    prevLessonStepBtn = document.getElementById('prevLessonStepBtn');
+    nextLessonStepBtn = document.getElementById('nextLessonStepBtn');
+    completeLessonBtn = document.getElementById('completeLessonBtn');
+    lessonCompletionMessage = document.getElementById('lessonCompletionMessage');
+
+    openInLessonChatBtn = document.getElementById('openInLessonChatBtn');
+    inLessonChatContainer = document.getElementById('inLessonChatContainer');
+    closeInLessonChatBtn = document.getElementById('closeInLessonChatBtn');
+    inLessonChatMessages = document.getElementById('inLessonChatMessages');
+    inLessonChatInput = document.getElementById('inLessonChatInput');
+    sendInLessonChatBtn = document.getElementById('sendInLessonChatBtn');
+    inLessonChatSpinner = document.getElementById('inLessonChatSpinner');
+
+    lessonHistoryList = document.getElementById('lessonHistoryList');
+    noLessonsMessage = document.getElementById('noLessonsMessage');
+
+
+    // Event Listeners
+    if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', async () => {
+        // Resume AudioContext on user gesture
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+            console.log("[DEBUG] Tone.js AudioContext resumed.");
+        }
+        console.log("[DEBUG] Before showing courseCreationSection, lessonViewer display:", lessonViewer.style.display, "visibility:", lessonViewer.style.visibility, "height:", lessonViewer.style.height); // Added debug log
+        showSection(courseCreationSection); // Show the new full-screen section
+        courseChatHistory = []; // Clear chat history for new course creation
+        courseChatMessages.innerHTML = '';
+        displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to assist you in designing a new cubing course. Please tell me what type of cube (e.g., 3x3, Pyraminx), what skill level (e.g., beginner, advanced), and any specific topics or methods you would like to include.");
+    });
+    if (backToCoursesBtn) backToCoursesBtn.addEventListener('click', () => { // Updated button
+        console.log("[DEBUG] Before showing lessonHub, lessonViewer display:", lessonViewer.style.display, "visibility:", lessonViewer.style.visibility, "height:", lessonViewer.style.height); // Added debug log
+        showSection(lessonHub); // Go back to the hub
+        loadCourseList(); // Refresh course list
+    });
+    if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => processCourseChatInput(courseChatInput.value));
+    if (courseChatInput) courseChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && courseChatInput.value.trim() !== '') {
+            processCourseChatInput(courseChatInput.value);
+        }
+    });
+
+    if (courseTypeFilter) courseTypeFilter.addEventListener('change', loadCourseList);
+    if (courseLevelFilter) courseLevelFilter.addEventListener('change', loadCourseList);
+
+    if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', goToNextStep); // Corrected to goToPreviousStep
+    if (nextLessonStepBtn) nextLessonStepBtn.addEventListener('click', goToNextStep);
+    if (completeLessonBtn) completeLessonBtn.addEventListener('click', completeCourse);
+    if (submitQuizBtn) submitQuizBtn.addEventListener('click', submitQuiz);
+
+    if (editLessonBtn) editLessonBtn.addEventListener('click', toggleLessonEditor);
+    if (cancelEditLessonBtn) cancelEditLessonBtn.addEventListener('click', toggleLessonEditor); // Cancel also just toggles back
+    if (saveLessonContentBtn) saveLessonContentBtn.addEventListener('click', saveLessonContent);
+
+    // 3D Viewer Controls
+    if (playPreviewBtn) playPreviewBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.play();
+            playPreviewBtn.style.display = 'none';
+            pausePreviewBtn.style.display = 'inline-block';
+        } else {
+            speakAsJarvis("Pardon me, Sir Sevindu. The 3D visualizer is not ready.");
+        }
+    });
+
+    if (pausePreviewBtn) pausePreviewBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.pause();
+            playPreviewBtn.style.display = 'inline-block';
+            pausePreviewBtn.style.display = 'none';
+        }
+    });
+
+    if (stepBackwardBtn) stepBackwardBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.backward();
+            playPreviewBtn.style.display = 'inline-block';
+            pausePreviewBtn.style.display = 'none';
+        }
+    });
+
+    if (stepForwardBtn) stepForwardBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.forward();
+            playPreviewBtn.style.display = 'inline-block';
+            pausePreviewBtn.style.display = 'none';
+        }
+    });
+
+    if (resetAlgBtn) resetAlgBtn.addEventListener('click', () => {
+        if (scramble3DViewer) {
+            scramble3DViewer.reset();
+            playPreviewBtn.style.display = 'inline-block';
+            pausePreviewBtn.style.display = 'none';
+        }
+    });
+
+    if (applyScrambleBtn) applyScrambleBtn.addEventListener('click', () => {
+        if (scramble3DViewer && currentCourse && currentCourse.modules[currentModuleIndex] && currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex] && currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex] && currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble) {
+            scramble3DViewer.alg = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble;
+            scramble3DViewer.play(); // Play the scramble animation
+            playPreviewBtn.style.display = 'none';
+            pausePreviewBtn.style.display = 'inline-block';
+        } else {
+            speakAsJarvis("Pardon me, Sir Sevindu. This step does not have a specific scramble to apply.");
+        }
+    });
+
+    // In-lesson chat listeners
+    if (openInLessonChatBtn) openInLessonChatBtn.addEventListener('click', () => {
+        inLessonChatContainer.style.display = 'flex'; // Use style.display for consistency
+        inLessonChatMessages.scrollTop = inLessonChatMessages.scrollHeight; // Scroll to bottom on open
+    });
+    if (closeInLessonChatBtn) closeInLessonChatBtn.addEventListener('click', () => {
+        inLessonChatContainer.style.display = 'none'; // Use style.display for consistency
+    });
+    if (sendInLessonChatBtn) sendInLessonChatBtn.addEventListener('click', () => sendInLessonChatPrompt(inLessonChatInput.value));
+    if (inLessonChatInput) inLessonChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && inLessonChatInput.value.trim() !== '') {
+            sendInLessonChatPrompt(inLessonChatInput.value);
+        }
+    });
 }
+
+/**
+ * Determines which section to show initially based on user state or last activity.
+ */
+async function loadInitialView() {
+    console.log("[DEBUG] loadInitialView() called.");
+    // For now, always start at the hub. In a more complex app,
+    // we might check if a lesson was in progress and resume it directly.
+    showSection(lessonHub);
+    console.log("[DEBUG] Calling loadCourseList() from loadInitialView.");
+    await loadCourseList(); // Load courses for the hub
+    showGlobalLoadingSpinner(false); // Hide global spinner once initial view is set
+    console.log("[DEBUG] loadInitialView() completed.");
+}
+
+
+/**
+ * Initializes the lessons page by setting up DOM elements and Firebase.
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("[DEBUG] lessons.js: DOMContentLoaded triggered. Assigning DOM elements and initializing.");
+    setupEventListeners(); // Assign DOM elements and add listeners
+    await initializeFirebaseAndAuth(); // Initialize Firebase and authentication
+
+    // Tone.js Synth initialization is now handled on first user gesture (e.g., clicking 'Create New Course')
+    // This resolves the "AudioContext was not allowed to start" warning.
+    try {
+        synth = new Tone.Synth().toDestination();
+        // Do NOT call Tone.start() here. It will be called on first user interaction.
+        console.log("[DEBUG] Tone.js Synth initialized (but not yet started).");
+    } catch (e) {
+        console.warn("[WARN] Tone.js initialization failed:", e.message);
+        showToast("Audio playback may not work. Please interact with the page.", "info");
+    }
+});
