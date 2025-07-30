@@ -320,4 +320,3 @@ def handle_lesson_chat(payload):
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
         return jsonify({"error": f"An unexpected error occurred during lesson chat: {e}"}), 500
-
