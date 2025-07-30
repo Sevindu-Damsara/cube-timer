@@ -1,66 +1,82 @@
-# In api/gemini-insight.py
+# api/gemini-insight.py inside your Vercel project's 'api' directory
+# This function specifies Python dependencies for your Vercel Cloud Function.
+# This function generates AI insight and now AI lessons using Gemini API.
+
 import os
 import requests
 import json
-import uuid
+import uuid # Import uuid for generating unique lesson IDs
+
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS # Required for handling CORS in Flask functions
 
-# It is good practice to initialize the Flask app for Vercel.
+# Initialize the Flask app for Vercel.
 app = Flask(__name__)
-# This will enable CORS for all domains. For production, you might want to restrict this.
-CORS(app)
+CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
 
-# It is recommended to retrieve the Gemini API key from environment variables for security.
-# On Vercel, you can set this in the project settings.
+# Retrieve Gemini API key from environment variables for security.
+# In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
-# --- Main Handler ---
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
-def handler():
+def gemini_insight_handler():
+    """HTTP endpoint that generates AI insight or AI lessons using Gemini API.
+    Handles both preflight (OPTIONS) and actual (POST) requests.
     """
-    This is the main endpoint. It routes requests based on the 'type' field in the JSON payload.
-    It also handles CORS preflight requests.
-    """
+    print("DEBUG: gemini_insight_handler received a request.")
+
+    # Handle CORS preflight (OPTIONS) request. Vercel routes these automatically.
     if request.method == 'OPTIONS':
-        # This is a preflight request. Respond with CORS headers.
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Max-Age': '3600'
-        }
-        return ('', 204, headers)
-        
+        print("DEBUG: Handling OPTIONS (preflight) request.")
+        return '', 204
+
     try:
-        payload = request.get_json()
-        if not payload:
-            return jsonify({"error": "Invalid JSON payload"}), 400
+        # Attempt to parse the incoming JSON request body.
+        request_json = request.get_json(silent=True)
+        print(f"DEBUG: Received request JSON: {request_json}")
 
-        request_type = payload.get('type')
-        print(f"DEBUG: Received request of type: {request_type}")
+        if not request_json:
+            print("ERROR: Invalid JSON body.")
+            return jsonify({"error": "Invalid JSON body or empty request."}), 400
 
-        if request_type == 'generate_insight':
-            return generate_solve_insight(payload)
+        request_type = request_json.get('type')
+
+        if request_type == 'lesson_chat':
+            return handle_lesson_chat(request_json)
         elif request_type == 'generate_course':
-            return generate_course_structure(payload)
-        elif request_type == 'lesson_chat':
-            return handle_lesson_chat(payload)
+            return handle_generate_course(request_json)
         else:
-            return jsonify({"error": f"Unknown request type: {request_type}"}), 400
+            # Fallback to existing insight generation if no specific type is provided
+            return generate_insight(request_json)
 
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"ERROR: Connection error during Gemini API call: {conn_err}")
+        return jsonify({"error": "Network error: Could not connect to the AI service. Please check your internet connection or try again later."}), 503
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"ERROR: Timeout error during Gemini API call: {timeout_err}")
+        return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
+    except requests.exceptions.RequestException as req_err:
+        print(f"ERROR: General request error during Gemini API call: {req_err}")
+        # Note: 'response' variable might not be defined in all error paths.
+        # This part assumes 'response' would be from gemini_response.
+        # A more robust solution might pass gemini_response to the exception handler
+        # or capture it higher up. For this fix, assuming typical flow.
+        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
+    except json.JSONDecodeError as json_err:
+        raw_body = request.get_data(as_text=True)
+        print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
+        return jsonify({"error": f"Invalid JSON format in your request. Details: {json_err}"}), 400
+    except ValueError as val_err:
+        print(f"ERROR: Data validation error: {val_err}")
+        return jsonify({"error": f"Invalid data received or generated: {val_err}"}), 400
     except Exception as e:
         import traceback
-        print(f"CRITICAL ERROR in handler: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": "An unexpected server-side error occurred."}), 500
+        print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
+        return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
 
-# --- Insight Generation Logic (for timer page) ---
-def generate_solve_insight(request_json):
-    """
-    Generates AI insight based on scramble, time, and user performance.
-    This is the original, complete function for the timer page.
-    """
+def generate_insight(request_json):
+    """Generates AI insight based on scramble, time, and user performance."""
     scramble = request_json.get('scramble')
     time_ms = request_json.get('time_ms')
     user_performance_history = request_json.get('userPerformanceHistory', [])
@@ -91,7 +107,11 @@ def generate_solve_insight(request_json):
     """
 
     try:
-        gemini_payload = {
+        headers = {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': GEMINI_API_KEY
+        }
+        payload = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {
                 "responseMimeType": "application/json",
@@ -107,216 +127,285 @@ def generate_solve_insight(request_json):
             }
         }
         
-        response = requests.post(GEMINI_API_URL, json=gemini_payload, timeout=30)
-        response.raise_for_status() 
+        gemini_response = requests.post(f"{GEMINI_API_BASE_URL}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
+        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         
-        response_data = response.json()
-        print(f"DEBUG: Gemini API insight response: {response_data}")
+        response_data = gemini_response.json()
+        print(f"DEBUG: Gemini API response: {response_data}")
 
         if response_data and response_data.get('candidates'):
             json_text = response_data['candidates'][0]['content']['parts'][0]['text']
             insight = json.loads(json_text)
             return jsonify(insight), 200
         else:
-            print(f"ERROR: Gemini API insight response missing content: {response_data}")
+            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
             return jsonify({"error": "AI service did not return a valid insight."}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API for insight failed: {e}")
+        print(f"ERROR: Request to Gemini API failed: {e}")
         return jsonify({"error": f"Failed to get insight from AI service: {e}"}), 500
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
+        print(f"Raw response text: {gemini_response.text}")
+        return jsonify({"error": f"AI service returned invalid JSON: {e}"}), 500
     except Exception as e:
-        print(f"CRITICAL ERROR: Unexpected error in generate_solve_insight: {e}")
+        print(f"CRITICAL ERROR: Unexpected error in generate_insight: {e}")
         return jsonify({"error": f"An unexpected error occurred during insight generation: {e}"}), 500
 
+def handle_lesson_chat(request_json):
+    """Handles conversational chat for lesson creation or in-lesson queries."""
+    chat_history = request_json.get('chatHistory', [])
+    cube_type = request_json.get('cubeType', '3x3')
+    user_level = request_json.get('userLevel', 'beginner')
+    current_lesson_context = request_json.get('currentLessonContext', {})
 
-# --- Course Generation Logic (for lessons page) ---
-def generate_course_structure(payload):
+    system_instruction = f"""
+    You are Jarvis, an AI assistant for a Rubik's Cube learning application.
+    Your primary function is to converse with Sir Sevindu about creating and understanding cubing lessons.
+    Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
+    
+    When discussing course creation:
+    - If Sir Sevindu has already provided cube type and skill level, acknowledge them and ask for further preferences (e.g., "Given your current settings for a {cube_type} cube and your {user_level} level, what specific areas would you like to focus on?").
+    - If the user indicates they want to generate a course, respond with a confirmation message and set the 'action' to 'generate_course'.
+    - If the user asks general questions about cubing or lessons, provide helpful information.
+
+    When discussing an ongoing lesson (if currentLessonContext is provided):
+    - Answer questions related to the lesson content, algorithms, scrambles, or concepts.
+    - Do not try to generate a new course or change the lesson. Focus on explaining the current topic. Keep responses concise and directly address Sir Sevindu's query.
     """
-    Generates a structured cubing course using a detailed prompt and schema.
-    """
-    chat_history = payload.get('chatHistory', [])
-    if not chat_history:
-        return jsonify({"error": "Chat history is required to generate a course."}), 400
+    
+    # Prepare chat history for Gemini API, ensuring 'system' role is first
+    formatted_chat_history = [{"role": "system", "parts": [{"text": system_instruction}]}]
+    if chat_history:
+        for msg in chat_history:
+            formatted_chat_history.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
 
-    user_request = chat_history[-1]['parts'][0]['text']
+    # Add current lesson context if available. It should be appended to the latest user input.
+    if current_lesson_context and formatted_chat_history and formatted_chat_history[-1]['role'] == 'user':
+        context_text = f"\n\nCurrent Lesson Context:\nTitle: {current_lesson_context.get('lessonTitle', 'N/A')}\nType: {current_lesson_context.get('lessonType', 'N/A')}\nContent Snippet: {current_lesson_context.get('content', '')[:200]}..."
+        formatted_chat_history[-1]['parts'][0]['text'] += context_text
 
-    system_prompt = f"""
-    You are Jarvis, an AI cubing instructor. Your task is to design a comprehensive Rubik's Cube course for Sir Sevindu based on his request.
+    ai_response_text = None # Initialize to None for error handling
 
-    **User's Request:** "{user_request}"
-
-    **Instructions:**
-    1.  Analyze the user's request to determine the `cubeType`, `level`, `title`, and `description` for the course.
-    2.  Design a course with 2-4 logical modules. Each module must have 2-4 lessons.
-    3.  Each lesson must have 1-5 steps. A step is the smallest unit of learning.
-    4.  For each step, provide `content` in Markdown.
-    5.  Optionally, a step can include an `algorithm`, a `scramble`, or a `quiz`. Do not include more than one of these per step.
-    6.  Quizzes must be an array of questions, each with `options` and a correct `answer`. The answer can be a string or an array of strings for multi-select questions.
-    7.  Adhere strictly to the provided JSON schema. All IDs must be unique. `course_id` is not needed.
-
-    **Output Format:**
-    Return ONLY a single, valid JSON object that conforms to the schema. Do not include any text or markdown before or after the JSON object.
-    """
-
-    course_schema = {
-        "type": "OBJECT",
-        "properties": {
-            "title": {"type": "STRING", "description": "A concise and engaging title for the course."},
-            "description": {"type": "STRING", "description": "A brief, one-sentence summary of the course."},
-            "cubeType": {"type": "STRING", "description": "The type of cube, e.g., '3x3x3', '2x2x2', 'pyraminx'."},
-            "level": {"type": "STRING", "enum": ["beginner", "intermediate", "advanced", "expert"]},
-            "modules": {
-                "type": "ARRAY",
-                "items": {
+    try:
+        headers = {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': GEMINI_API_KEY
+        }
+        payload = {
+            "contents": formatted_chat_history,
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
                     "type": "OBJECT",
                     "properties": {
-                        "moduleId": {"type": "STRING", "description": "A unique identifier for the module."},
-                        "moduleTitle": {"type": "STRING"},
-                        "lessons": {
+                        "message": {"type": "STRING"},
+                        "action": {"type": "STRING"} # The AI is supposed to return this action
+                    },
+                    "required": ["message"]
+                }
+            }
+        }
+        
+        # Use gemini-1.5-flash-latest for conversational chat
+        model_name = "gemini-1.5-flash-latest"
+
+        gemini_response = requests.post(
+            f"{GEMINI_API_BASE_URL}/{model_name}:generateContent",
+            headers=headers,
+            json=payload,
+            timeout=60 # Increased timeout for potentially longer AI responses
+        )
+        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        
+        response_data = gemini_response.json()
+        print(f"DEBUG: Gemini API raw response for chat: {response_data}")
+
+        if response_data and response_data.get('candidates'):
+            # The AI is supposed to return a JSON string as its text content if responseMimeType is set.
+            ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            # Attempt to parse the AI's response text as JSON
+            ai_response_json = json.loads(ai_response_text)
+            
+            # Extract message and action from the parsed JSON
+            message = ai_response_json.get('message', "No message provided by AI.")
+            action = ai_response_json.get('action') # This will be None if not present
+
+            print(f"DEBUG: Parsed AI response message: {message}, action: {action}")
+            
+            # The frontend expects a JSON object with `message` and `action`.
+            response_payload = {"message": message}
+            if action:
+                response_payload["action"] = action
+
+            return jsonify(response_payload), 200
+        else:
+            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+            return jsonify({"error": "AI service did not return a valid response."}), 500
+
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Request to Gemini API failed: {e}")
+        return jsonify({"error": f"Failed to get response from AI service: {e}"}), 500
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
+        print(f"Raw AI text response that failed parsing: {ai_response_text}") # Log the raw text
+        return jsonify({"error": "AI service returned malformed JSON. Please try again or rephrase."}), 500
+    except Exception as e:
+        print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
+        return jsonify({"error": f"An unexpected error occurred during chat processing: {e}"}), 500
+
+
+def handle_generate_course(request_json):
+    """Initiates the course generation process by sending a specific request to the serverless function."""
+    chat_history = request_json.get('chatHistory', [])
+    cube_type = request_json.get('cubeType', '3x3')
+    user_level = request_json.get('skillLevel', 'beginner') # Note: 'skillLevel' from frontend payload
+
+    system_instruction = f"""
+    You are Jarvis, an AI assistant. Your task is to generate a comprehensive, structured Rubik's Cube course tailored for a {user_level} level cuber learning the {cube_type} cube.
+    Based on the preceding chat history and any explicit user requests, generate a complete course structure.
+    
+    The course should be returned as a JSON object adhering to the following schema:
+    {{
+        "title": "Generated Course Title",
+        "description": "Brief description of the course.",
+        "cubeType": "{cube_type}",
+        "level": "{user_level}",
+        "modules": [
+            {{
+                "title": "Module Title 1",
+                "description": "Description of Module 1.",
+                "lessons": [
+                    {{
+                        "title": "Lesson Title 1.1",
+                        "description": "Description of Lesson 1.1.",
+                        "lessonType": "text", // Can be 'text', 'scramble', 'quiz'
+                        "content": "Full markdown content for Lesson 1.1, including explanations, examples, and markdown formatting. For scrambles, embed them as <scramble>R U R' U'</scramble>. For quizzes, embed questions as <question id='q1'>What is F2L?</question><options><option>First 2 Layers</option><option>Last Layer</option></options><answer>First 2 Layers</answer>.",
+                        "steps": [ // Break down content into manageable steps
+                            {{
+                                "title": "Step 1.1.1",
+                                "content": "Markdown content for this step. Use <scramble>...</scramble> or <question>...</question> for interactive parts.",
+                                "completed": false // Default to false
+                            }}
+                        ]
+                    }}
+                ]
+            }}
+        ]
+    }}
+    
+    Ensure ALL markdown content for lessons and steps is fully included within the `content` field. Do not truncate.
+    Make sure to include appropriate `lessonType` for each lesson (e.g., 'text', 'scramble', 'quiz').
+    For 'scramble' lessons, embed actual scramble strings using the `<scramble>R U R' U'</scramble>` tag within the `content` of the steps.
+    For 'quiz' lessons, embed questions, options, and answers using `<question id='qN'>...</question><options><option>...</option><option>...</option></options><answer>...</answer>` tags within the `content` of the steps.
+    Generate a complete, coherent course. Do not ask for further clarification.
+    """
+
+    # Prepare chat history for Gemini API, ensuring 'system' role is first
+    formatted_chat_history = [{"role": "system", "parts": [{"text": system_instruction}]}]
+    if chat_history:
+        for msg in chat_history:
+            formatted_chat_history.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
+
+    ai_response_text = None # Initialize to None for error handling
+
+    try:
+        headers = {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': GEMINI_API_KEY
+        }
+        payload = {
+            "contents": formatted_chat_history,
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "title": {"type": "STRING"},
+                        "description": {"type": "STRING"},
+                        "cubeType": {"type": "STRING"},
+                        "level": {"type": "STRING"},
+                        "modules": {
                             "type": "ARRAY",
                             "items": {
                                 "type": "OBJECT",
                                 "properties": {
-                                    "lessonId": {"type": "STRING"},
-                                    "lessonTitle": {"type": "STRING"},
-                                    "steps": {
+                                    "title": {"type": "STRING"},
+                                    "description": {"type": "STRING"},
+                                    "lessons": {
                                         "type": "ARRAY",
                                         "items": {
                                             "type": "OBJECT",
                                             "properties": {
-                                                "stepId": {"type": "STRING"},
-                                                "content": {"type": "STRING", "description": "The main instructional content in Markdown."},
-                                                "algorithm": {"type": "STRING", "nullable": True},
-                                                "scramble": {"type": "STRING", "nullable": True},
-                                                "quiz": {
+                                                "title": {"type": "STRING"},
+                                                "description": {"type": "STRING"},
+                                                "lessonType": {"type": "STRING"},
+                                                "content": {"type": "STRING"},
+                                                "steps": {
                                                     "type": "ARRAY",
-                                                    "nullable": True,
                                                     "items": {
                                                         "type": "OBJECT",
                                                         "properties": {
-                                                            "question": {"type": "STRING"},
-                                                            "options": {"type": "ARRAY", "items": {"type": "STRING"}},
-                                                            "answer": {"oneOf": [{"type": "STRING"}, {"type": "ARRAY", "items": {"type": "STRING"}}]}
+                                                            "title": {"type": "STRING"},
+                                                            "content": {"type": "STRING"},
+                                                            "completed": {"type": "BOOLEAN"}
                                                         },
-                                                        "required": ["question", "options", "answer"]
+                                                        "required": ["title", "content", "completed"]
                                                     }
                                                 }
                                             },
-                                            "required": ["stepId", "content"]
+                                            "required": ["title", "description", "lessonType", "content", "steps"]
                                         }
                                     }
                                 },
-                                "required": ["lessonId", "lessonTitle", "steps"]
+                                "required": ["title", "description", "lessons"]
                             }
                         }
                     },
-                    "required": ["moduleId", "moduleTitle", "lessons"]
+                    "required": ["title", "description", "cubeType", "level", "modules"]
                 }
             }
-        },
-        "required": ["title", "description", "cubeType", "level", "modules"]
-    }
-
-    gemini_payload = {
-        "contents": [{"role": "user", "parts": [{"text": system_prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": course_schema
         }
-    }
-
-    try:
-        response = requests.post(GEMINI_API_URL, json=gemini_payload, timeout=90)
-        response.raise_for_status()
         
-        response_data = response.json()
-        print("DEBUG: Received successful response from Gemini for course generation.")
+        # Use a model suitable for complex content generation
+        model_name = "gemini-1.5-flash-latest" # Consider 'gemini-1.5-pro-latest' for more complex generation if needed
+
+        gemini_response = requests.post(
+            f"{GEMINI_API_BASE_URL}/{model_name}:generateContent",
+            headers=headers,
+            json=payload,
+            timeout=120 # Increased timeout for course generation
+        )
+        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        
+        response_data = gemini_response.json()
+        print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
 
         if response_data and response_data.get('candidates'):
-            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            course_data = json.loads(json_text)
+            ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            # Attempt to parse the AI's response text as JSON
+            generated_course = json.loads(ai_response_text)
             
-            # Post-process to add unique IDs if the AI missed them
-            for module in course_data.get('modules', []):
-                if 'moduleId' not in module or not module['moduleId']: module['moduleId'] = str(uuid.uuid4())
-                for lesson in module.get('lessons', []):
-                    if 'lessonId' not in lesson or not lesson['lessonId']: lesson['lessonId'] = str(uuid.uuid4())
-                    for step in lesson.get('steps', []):
-                        if 'stepId' not in step or not step['stepId']: step['stepId'] = str(uuid.uuid4())
-
-            return jsonify(course_data), 200
+            # The frontend expects the course object directly
+            return jsonify(generated_course), 200
         else:
-            print(f"ERROR: Gemini course response missing content: {response_data}")
-            return jsonify({"error": "AI service returned an empty course response."}), 500
+            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+            return jsonify({"error": "AI service did not return a valid course structure."}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API for course failed: {e}")
-        return jsonify({"error": f"Failed to communicate with AI service for course generation: {e}"}), 502
+        print(f"ERROR: Request to Gemini API failed: {e}")
+        return jsonify({"error": f"Failed to generate course from AI service: {e}"}), 500
     except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse Gemini course response as JSON: {e}")
-        print(f"Raw response text: {response.text}")
-        return jsonify({"error": "AI service returned malformed data for course."}), 500
-
-# --- In-Lesson Chat Logic ---
-def handle_lesson_chat(payload):
-    """
-    Handles conversational chat for in-lesson queries.
-    """
-    chat_history = payload.get('chatHistory', [])
-    context = payload.get('currentLessonContext', {})
-    user_query = chat_history[-1]['parts'][0]['text'] if chat_history else ""
-
-    prompt = f"""
-    You are Jarvis, an AI cubing assistant. Sir Sevindu has a question about a lesson.
-
-    **Lesson Context:**
-    - Title: {context.get('lessonTitle', 'N/A')}
-    - Content: {context.get('content', 'N/A')[:500]}...
-    - Algorithm: {context.get('algorithm', 'None')}
-    - Scramble: {context.get('scramble', 'None')}
-
-    **Sir Sevindu's Question:** "{user_query}"
-
-    Based on the context and the question, provide a clear, concise, and helpful answer.
-    Maintain your formal and respectful persona.
-    
-    Format your response as a JSON object with a single key "message".
-    """
-
-    chat_schema = {
-        "type": "OBJECT",
-        "properties": {
-            "message": {"type": "STRING"}
-        },
-        "required": ["message"]
-    }
-
-    gemini_payload = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": chat_schema
-        }
-    }
-
-    try:
-        response = requests.post(GEMINI_API_URL, json=gemini_payload, timeout=60)
-        response.raise_for_status()
-        
-        response_data = response.json()
-        print(f"DEBUG: Gemini API chat response: {response_data}")
-
-        if response_data and response_data.get('candidates'):
-            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            parsed_response = json.loads(json_text)
-            return jsonify(parsed_response), 200
-        else:
-            print(f"ERROR: Gemini API chat response missing content: {response_data}")
-            return jsonify({"error": "AI service did not return a valid chat response."}), 500
-            
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API for chat failed: {e}")
-        return jsonify({"error": f"Failed to get chat response from AI service: {e}"}), 500
+        print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
+        print(f"Raw AI text response that failed parsing: {ai_response_text}") # Log the raw text
+        return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
     except Exception as e:
-        print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
-        return jsonify({"error": f"An unexpected error occurred during lesson chat: {e}"}), 500
+        print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
+        return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
+
+if __name__ == '__main__':
+    # This block is for local development and will not run on Vercel.
+    # On Vercel, the 'app' object is directly used by the Vercel server.
+    # It's good practice to keep this for local testing.
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
