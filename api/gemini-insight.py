@@ -170,9 +170,9 @@ def handle_lesson_chat(request_json):
     Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
     
     When discussing course creation:
-    - If Sir Sevindu has already provided cube type and skill level, acknowledge them and ask for further preferences (e.g., "Given your current settings for a {cube_type} cube and your {user_level} level, what specific areas would you like to focus on?").
-    - If the user indicates they want to generate a course, respond with a confirmation message and set the 'action' to 'generate_course'.
-    - If the user asks general questions about cubing or lessons, provide helpful information.
+    - If Sir Sevindu provides a general topic (e.g., "F2L", "OLL"), **you MUST ask clarifying questions** about their specific interests, learning style, and desired depth before suggesting to generate a course.
+    - If Sir Sevindu explicitly states "generate course" or "create course" after providing details, then you may confirm and set the 'action' to 'generate_course'.
+    - If the user asks general questions about cubing or lessons, provide helpful information and keep the 'action' as 'continue_chat'.
 
     When discussing an ongoing lesson (if currentLessonContext is provided):
     - Answer questions related to the lesson content, algorithms, scrambles, or concepts.
@@ -304,6 +304,8 @@ def handle_generate_course(request_json):
 
     Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
     Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
+
+    The course title should be descriptive and general, reflecting the content and target audience, for example: "F2L Beginner's Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names in the course title.
 
     Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
     Example JSON structure:
