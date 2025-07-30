@@ -8,15 +8,14 @@ console.log("Jarvis systems online. Initializing lesson protocols.");
 
 // --- Global Configuration & Variables ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cubically-ai-timer';
+// Correctly use the provided __firebase_config global or a valid fallback.
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-    // This is a fallback configuration for local development.
-    // In a real environment, __firebase_config should be provided.
-    apiKey: "AIzaSy...",
-    authDomain: "your-project-id.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project-id.appspot.com",
-    messagingSenderId: "your-sender-id",
-    appId: "your-app-id"
+    apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
+    authDomain: "ubically-timer.firebaseapp.com",
+    projectId: "ubically-timer",
+    storageBucket: "ubically-timer.appspot.com",
+    messagingSenderId: "467118524389",
+    appId: "1:467118524389:web:d3455f5be5747be2cb910c"
 };
 
 // Firebase Services
@@ -48,7 +47,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     assignDomElements();
     setupEventListeners();
     await initializeFirebase();
-    // Initial view is set by auth state change listener
 });
 
 /**
@@ -97,7 +95,7 @@ async function initializeFirebase() {
  */
 function assignDomElements() {
     const ids = [
-        'lessonHub', 'courseCreationSection', 'lessonViewer', 'globalLoadingSpinner',
+        'sidebar', 'lessonHub', 'courseCreationSection', 'lessonViewer', 'globalLoadingSpinner',
         'startNewCourseBtn', 'courseTypeFilter', 'courseLevelFilter', 'courseListContainer',
         'historyLoadingSpinner', 'noCoursesMessage', 'courseList', 'backToCoursesBtn',
         'courseChatContainer', 'courseChatMessages', 'courseChatInput', 'sendCourseChatBtn', 'courseChatSpinner',
@@ -118,12 +116,23 @@ function assignDomElements() {
  * Sets up all primary event listeners for the application.
  */
 function setupEventListeners() {
-    dom.startNewCourseBtn.addEventListener('click', () => switchView('courseCreationSection'));
+    dom.startNewCourseBtn.addEventListener('click', async () => {
+        // Resume AudioContext on user gesture to prevent browser warnings.
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
+        switchView('courseCreationSection');
+    });
     dom.backToCoursesBtn.addEventListener('click', () => switchView('lessonHub'));
     dom.backToHubFromViewerBtn.addEventListener('click', () => switchView('lessonHub'));
 
     dom.sendCourseChatBtn.addEventListener('click', () => processCourseChatInput());
-    dom.courseChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), processCourseChatInput()));
+    dom.courseChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            processCourseChatInput();
+        }
+    });
 
     dom.courseTypeFilter.addEventListener('change', () => loadCourseList(true));
     dom.courseLevelFilter.addEventListener('change', () => loadCourseList(true));
@@ -158,8 +167,13 @@ function setupEventListeners() {
     // In-Lesson Chat
     dom.openInLessonChatBtn.addEventListener('click', () => dom.inLessonChatContainer.classList.add('open'));
     dom.closeInLessonChatBtn.addEventListener('click', () => dom.inLessonChatContainer.classList.remove('open'));
-    dom.sendInLessonChatBtn.addEventListener('click', sendInLessonChatPrompt);
-    dom.inLessonChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && sendInLessonChatPrompt());
+    dom.sendInLessonChatBtn.addEventListener('click', () => sendInLessonChatPrompt());
+    dom.inLessonChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendInLessonChatPrompt();
+        }
+    });
 
     console.log("Event listeners configured.");
 }
@@ -422,7 +436,7 @@ async function saveCourse(courseData) {
             lastAccessedModuleIndex: 0,
             lastAccessedLessonIndex: 0,
             lastAccessedStepIndex: 0,
-            completedSteps: 0, // Initialize progress
+            completed: false,
         };
         await addDoc(coursesRef, dataToSave);
         showToast("Course created successfully!", "success");
@@ -501,9 +515,12 @@ function renderModuleList() {
             });
         }
         moduleItem.querySelector('.module-title').addEventListener('click', (e) => {
+            const lessonList = e.currentTarget.nextElementSibling;
+            const chevron = e.currentTarget.querySelector('.module-chevron');
             e.currentTarget.classList.toggle('expanded');
-            e.currentTarget.nextElementSibling.classList.toggle('hidden');
-            e.currentTarget.nextElementSibling.classList.toggle('open');
+            chevron.classList.toggle('rotate-90');
+            lessonList.classList.toggle('hidden');
+            lessonList.classList.toggle('open');
         });
         dom.moduleList.appendChild(moduleItem);
     });
@@ -517,8 +534,11 @@ async function loadLessonStep() {
     if (!currentCourse) return;
 
     const module = currentCourse.modules[currentModuleIndex];
+    if (!module || !module.lessons) return;
     const lesson = module.lessons[currentLessonIndex];
-    if (!lesson.steps) lesson.steps = [{ stepId: crypto.randomUUID(), content: 'This lesson is empty.' }]; // Graceful handling of empty lessons
+    if (!lesson || !lesson.steps) {
+        lesson.steps = [{ stepId: crypto.randomUUID(), content: 'This lesson appears to be empty, Sir.' }];
+    }
     const step = lesson.steps[currentLessonStepIndex];
 
     dom.lessonTitle.textContent = lesson.lessonTitle;
@@ -622,14 +642,16 @@ function updateCourseProgressBar() {
     let totalSteps = 0;
     let completedSteps = 0;
     state.currentCourse.modules.forEach(mod => {
-        mod.lessons.forEach(les => {
-            if (les.steps) {
-                totalSteps += les.steps.length;
-                les.steps.forEach(step => {
-                    if (step.completed) completedSteps++;
-                });
-            }
-        });
+        if(mod.lessons) {
+            mod.lessons.forEach(les => {
+                if (les.steps) {
+                    totalSteps += les.steps.length;
+                    les.steps.forEach(step => {
+                        if (step.completed) completedSteps++;
+                    });
+                }
+            });
+        }
     });
     const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
     dom.courseProgressBar.style.width = `${progress}%`;
@@ -643,7 +665,7 @@ async function goToNextStep() {
     const lesson = currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex];
 
     // Mark current step as complete before moving
-    if (lesson.steps[currentLessonStepIndex]) {
+    if (lesson.steps && lesson.steps[currentLessonStepIndex]) {
         lesson.steps[currentLessonStepIndex].completed = true;
     }
 
@@ -661,17 +683,17 @@ async function goToNextStep() {
 }
 
 async function goToPreviousStep() {
-    const { currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
+    const { currentCourse, currentModuleIndex, currentLessonIndex, currentLessonStepIndex } = state;
 
     if (currentLessonStepIndex > 0) {
         state.currentLessonStepIndex--;
     } else if (currentLessonIndex > 0) {
         state.currentLessonIndex--;
-        const prevLesson = state.currentCourse.modules[currentModuleIndex].lessons[state.currentLessonIndex];
+        const prevLesson = currentCourse.modules[currentModuleIndex].lessons[state.currentLessonIndex];
         state.currentLessonStepIndex = prevLesson.steps.length - 1;
     } else if (currentModuleIndex > 0) {
         state.currentModuleIndex--;
-        const prevModule = state.currentCourse.modules[state.currentModuleIndex];
+        const prevModule = currentCourse.modules[state.currentModuleIndex];
         state.currentLessonIndex = prevModule.lessons.length - 1;
         const prevLesson = prevModule.lessons[state.currentLessonIndex];
         state.currentLessonStepIndex = prevLesson.steps.length - 1;
@@ -686,8 +708,10 @@ async function completeCourse() {
         // Mark the final step as complete
         const lastModule = state.currentCourse.modules[state.currentCourse.modules.length - 1];
         const lastLesson = lastModule.lessons[lastModule.lessons.length - 1];
-        const lastStep = lastLesson.steps[lastLesson.steps.length - 1];
-        lastStep.completed = true;
+        if (lastLesson.steps && lastLesson.steps.length > 0) {
+            const lastStep = lastLesson.steps[lastLesson.steps.length - 1];
+            lastStep.completed = true;
+        }
 
         const courseDocRef = doc(getUserCollectionRef('courses'), state.currentCourse.id);
         await updateDoc(courseDocRef, {
