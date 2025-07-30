@@ -237,6 +237,9 @@ def handle_lesson_chat(request_json):
     if extracted_learning_style is None:
         missing_info.append("preferred learning style (e.g., theoretical, hands-on practice, interactive quizzes)")
 
+    print(f"DEBUG: handle_lesson_chat - should_generate_explicitly: {should_generate_explicitly}")
+    print(f"DEBUG: handle_lesson_chat - missing_info: {missing_info}")
+
     # Force continue_chat if not all information is gathered OR no explicit command
     if not should_generate_explicitly or len(missing_info) > 0:
         clarifying_message = "My apologies, Sir Sevindu. To design the most suitable course, I require a few more details."
@@ -248,26 +251,25 @@ def handle_lesson_chat(request_json):
             'action': "continue_chat",
             'message': clarifying_message
         }
+        print(f"DEBUG: handle_lesson_chat - Returning forced continue_chat: {response_payload}")
         return jsonify(response_payload), 200
     # --- End: Enhanced Conversational State Management ---
 
     # If an explicit generate command IS present AND all info is gathered, proceed to ask the AI for its response
-    # Construct the prompt for the AI
+    # This block will ONLY be reached if the above 'if' condition is FALSE.
+    # This means should_generate_explicitly is TRUE AND len(missing_info) is 0.
+
+    # Construct the prompt for the AI (this prompt is only used when we are ready to generate)
     system_instruction = f"""
     You are Jarvis, an AI assistant for a Rubik's Cube learning application.
     Your primary function is to converse with Sir Sevindu about creating and understanding cubing lessons.
     Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
     
-    When discussing course creation:
-    - You have been explicitly instructed to gather Cube Type, Skill Level, Specific Focus, and Learning Style Preference.
-    - You MUST NOT return `action: "generate_course"` unless Sir Sevindu's MOST RECENT message contains an explicit command to generate the course (e.g., "generate the course now", "create it"), AND you have successfully gathered all necessary details.
-    - If any details are missing or the explicit command is not present, your `action` MUST be `continue_chat` and your `message` MUST be a clarifying question or a statement indicating what information is still needed.
-
-    When discussing an ongoing lesson (if current_lesson_context is provided):
-    - Answer questions related to the lesson content, algorithms, scrambles, or concepts.
-    - Do not try to generate a new course or change the lesson. Focus on explaining the current topic.
-
-    Keep responses concise and directly address Sir Sevindu's query.
+    You have successfully gathered all necessary details for course generation.
+    Your response MUST now confirm the course generation and provide a brief, encouraging message.
+    The 'action' MUST be "generate_course".
+    The 'message' MUST be a confirmation that the course framework has been constructed and that Sir Sevindu can return to the hub.
+    DO NOT ask further questions. DO NOT imply that more information is needed.
     """
 
     # Prepare chat history for Gemini API
@@ -298,9 +300,9 @@ def handle_lesson_chat(request_json):
                 "type": "OBJECT",
                 "properties": {
                     "message": {"type": "STRING"},
-                    "action": {"type": "STRING", "enum": ["generate_course", "continue_chat"]}
+                    "action": {"type": "STRING", "enum": ["generate_course"]} # Only generate_course is allowed here
                 },
-                "required": ["message"]
+                "required": ["message", "action"]
             }
         }
     }
@@ -308,41 +310,41 @@ def handle_lesson_chat(request_json):
     retries = 0
     while retries < MAX_RETRIES:
         try:
-            # Clean the base URL before use
             clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
             clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
-            gemini_response = requests.post(f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", headers=headers, json=payload, timeout=60) # Increased timeout
+            gemini_response = requests.post(f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", headers=headers, json=payload, timeout=60)
             gemini_response.raise_for_status()
             
             response_data = gemini_response.json()
-            print(f"DEBUG: Gemini API chat response: {response_data}")
+            print(f"DEBUG: handle_lesson_chat - Gemini API chat response (for generation confirmation): {response_data}")
 
             if response_data and response_data.get('candidates'):
                 json_text = response_data['candidates'][0]['content']['parts'][0]['text']
                 parsed_response = json.loads(json_text)
-
+                # Ensure action is generate_course as per system instruction for this path
+                parsed_response['action'] = "generate_course"
                 return jsonify(parsed_response), 200
             else:
-                print(f"ERROR: Gemini API chat response missing candidates or content: {response_data}")
-                return jsonify({"error": "AI service did not return a valid chat response."}), 500
+                print(f"ERROR: handle_lesson_chat - Gemini API chat response missing candidates or content (for generation confirmation): {response_data}")
+                return jsonify({"error": "AI service did not return a valid chat response for course generation confirmation."}), 500
 
         except requests.exceptions.RequestException as e:
             retries += 1
             if retries < MAX_RETRIES:
                 retry_delay = INITIAL_RETRY_DELAY * (2 ** (retries - 1))
-                print(f"WARNING: Request to Gemini API for chat failed: {e}. Retrying in {retry_delay} seconds (Attempt {retries}/{MAX_RETRIES}).")
+                print(f"WARNING: handle_lesson_chat - Request to Gemini API for generation confirmation failed: {e}. Retrying in {retry_delay} seconds (Attempt {retries}/{MAX_RETRIES}).")
                 time.sleep(retry_delay)
             else:
-                print(f"ERROR: Request to Gemini API for chat failed after {MAX_RETRIES} retries: {e}")
-                return jsonify({"error": f"Failed to get chat response from AI service after multiple retries: {e}"}), 500
+                print(f"ERROR: handle_lesson_chat - Request to Gemini API for generation confirmation failed after {MAX_RETRIES} retries: {e}")
+                return jsonify({"error": f"Failed to get chat response for course generation confirmation after multiple retries: {e}"}), 500
         except json.JSONDecodeError as e:
-            print(f"ERROR: Failed to parse Gemini API chat response as JSON: {e}")
+            print(f"ERROR: handle_lesson_chat - Failed to parse Gemini API chat response as JSON (for generation confirmation): {e}")
             print(f"Raw response text: {gemini_response.text}")
-            return jsonify({"error": f"AI service returned invalid JSON for chat: {e}"}), 500
+            return jsonify({"error": f"AI service returned invalid JSON for generation confirmation: {e}"}), 500
         except Exception as e:
-            print(f"CRITICAL ERROR: Unexpected error in handle_lesson_chat: {e}")
-            return jsonify({"error": f"An unexpected error occurred during lesson chat: {e}"}), 500
+            print(f"CRITICAL ERROR: handle_lesson_chat - Unexpected error during generation confirmation: {e}")
+            return jsonify({"error": f"An unexpected error occurred during lesson chat (generation confirmation): {e}"}), 500
 
 
 def handle_generate_course(request_json):
