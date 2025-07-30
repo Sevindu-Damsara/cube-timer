@@ -189,60 +189,71 @@ def handle_lesson_chat(request_json):
     explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
     should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
 
-    # --- Start: Enhanced Conversational State Management ---
-    # Attempt to extract parameters from the entire chat history
-    extracted_skill_level = None
-    extracted_focus_area = None
-    extracted_learning_style = None
+    # --- Start: Enhanced Conversational State Management and Parameter Extraction ---
+    current_params = {
+        'skill_level': None,
+        'focus_area': None,
+        'learning_style': None
+    }
 
-    # Parse chat history for parameters
+    # Iterate through chat history to build up current_params
     for msg in chat_history:
         if msg.get('role') == 'user':
             text = msg.get('parts', [{}])[0].get('text', '').lower()
-            if "beginner" in text:
-                extracted_skill_level = "beginner"
-            elif "intermediate" in text:
-                extracted_skill_level = "intermediate"
-            elif "advanced" in text:
-                extracted_skill_level = "advanced"
+
+            # More robust extraction for skill_level using regex for whole words
+            if re.search(r'\bbeginner\b', text):
+                current_params['skill_level'] = "beginner"
+            elif re.search(r'\bintermediate\b', text):
+                current_params['skill_level'] = "intermediate"
+            elif re.search(r'\badvanced\b', text):
+                current_params['skill_level'] = "advanced"
             
-            if "f2l" in text:
-                extracted_focus_area = "F2L"
-            elif "oll" in text:
-                extracted_focus_area = "OLL"
-            elif "pll" in text:
-                extracted_focus_area = "PLL"
-            elif "cross" in text:
-                extracted_focus_area = "Cross"
+            # More robust extraction for focus_area using regex for whole words
+            if re.search(r'\bf2l\b', text):
+                current_params['focus_area'] = "F2L"
+            elif re.search(r'\boll\b', text):
+                current_params['focus_area'] = "OLL"
+            elif re.search(r'\bpll\b', text):
+                current_params['focus_area'] = "PLL"
+            elif re.search(r'\bcross\b', text):
+                current_params['focus_area'] = "Cross"
             
-            if "theoretical" in text:
-                extracted_learning_style = "theoretical"
-            elif "practice" in text or "hands-on" in text:
-                extracted_learning_style = "hands-on practice"
-            elif "quiz" in text or "quizzes" in text:
-                extracted_learning_style = "interactive quiz"
+            # More robust extraction for learning_style using regex for whole words
+            if re.search(r'\btheoretical\b', text):
+                current_params['learning_style'] = "theoretical"
+            elif re.search(r'\bpractice\b|\bhands-on\b', text):
+                current_params['learning_style'] = "hands-on practice"
+            elif re.search(r'\bquiz\b|\bquizzes\b', text):
+                current_params['learning_style'] = "interactive quiz"
         # Add logic to parse model responses if they confirm parameters
         elif msg.get('role') == 'model':
             # This is where we could parse the AI's previous confirmations to update state
-            # For now, relying on user inputs for extraction.
+            # For now, relying primarily on user inputs for extraction.
             pass
     
     missing_info = []
-    if extracted_skill_level is None:
+    if current_params['skill_level'] is None:
         missing_info.append("skill level (e.g., beginner, intermediate, advanced)")
-    if extracted_focus_area is None:
+    if current_params['focus_area'] is None:
         missing_info.append("specific topic or focus area (e.g., F2L, OLL, PLL)")
-    if extracted_learning_style is None:
+    if current_params['learning_style'] is None:
         missing_info.append("preferred learning style (e.g., theoretical, hands-on practice, interactive quizzes)")
 
     print(f"DEBUG: handle_lesson_chat - should_generate_explicitly: {should_generate_explicitly}")
-    print(f"DEBUG: handle_lesson_chat - extracted_skill_level: {extracted_skill_level}")
-    print(f"DEBUG: handle_lesson_chat - extracted_focus_area: {extracted_focus_area}")
-    print(f"DEBUG: handle_lesson_chat - extracted_learning_style: {extracted_learning_style}")
+    print(f"DEBUG: handle_lesson_chat - current_params: {current_params}")
     print(f"DEBUG: handle_lesson_chat - missing_info: {missing_info}")
 
-    # Force continue_chat if not all information is gathered OR no explicit command
-    if not should_generate_explicitly or len(missing_info) > 0:
+    # --- Programmatic Decision Logic for Action and Message ---
+    # This section now entirely controls the 'action' and 'message' based on extracted state.
+    if should_generate_explicitly and not missing_info: # All conditions met for generation
+        response_payload = {
+            'action': "generate_course",
+            'message': f"Excellent, Sir Sevindu. I have constructed the course framework for '{current_params['focus_area']} {current_params['skill_level'].capitalize()} Course'. You may now return to the hub to begin."
+        }
+        print(f"DEBUG: handle_lesson_chat - Returning forced generate_course: {response_payload}")
+        return jsonify(response_payload), 200
+    else: # Not ready for generation, force continue_chat and ask clarifying questions
         clarifying_message = "My apologies, Sir Sevindu. To design the most suitable course, I require a few more details."
         if missing_info:
             clarifying_message += f" I am still awaiting information on your {', '.join(missing_info)}."
@@ -254,104 +265,7 @@ def handle_lesson_chat(request_json):
         }
         print(f"DEBUG: handle_lesson_chat - Returning forced continue_chat: {response_payload}")
         return jsonify(response_payload), 200
-    # --- End: Enhanced Conversational State Management ---
-
-    # If an explicit generate command IS present AND all info is gathered, proceed to ask the AI for its response
-    # This block will ONLY be reached if the above 'if' condition is FALSE.
-    # This means should_generate_explicitly is TRUE AND len(missing_info) is 0.
-
-    # Construct the prompt for the AI (this prompt is only used when we are ready to generate)
-    system_instruction = f"""
-    You are Jarvis, an AI assistant for a Rubik's Cube learning application.
-    Your primary function is to converse with Sir Sevindu about creating and understanding cubing lessons.
-    Maintain a formal, respectful, and helpful tone, similar to your persona in the Iron Man movies.
-    
-    You have successfully gathered all necessary details for course generation:
-    - Cube Type: {cube_type}
-    - Skill Level: {extracted_skill_level if extracted_skill_level else 'N/A'}
-    - Specific Focus: {extracted_focus_area if extracted_focus_area else 'N/A'}
-    - Learning Style: {extracted_learning_style if extracted_learning_style else 'N/A'}
-
-    Your response MUST now confirm the course generation and provide a brief, encouraging message.
-    The 'action' MUST be "generate_course".
-    The 'message' MUST be a confirmation that the course framework has been constructed and that Sir Sevindu can return to the hub.
-    DO NOT ask further questions. DO NOT imply that more information is needed.
-    """
-
-    # Prepare chat history for Gemini API
-    formatted_chat_history = []
-    if chat_history:
-        for msg in chat_history:
-            formatted_chat_history.append({"role": msg['role'], "parts": [{"text": msg['parts'][0]['text']}]})
-    
-    # Add current lesson context if available for in-lesson chat
-    current_lesson_context = request_json.get('currentLessonContext', {}) # Re-fetch just in case
-    if current_lesson_context:
-        context_text = f"\n\nCurrent Lesson Context:\nTitle: {current_lesson_context.get('lessonTitle')}\nType: {current_lesson_context.get('lessonType')}\nContent Snippet: {current_lesson_context.get('content', '')[:200]}..."
-        if formatted_chat_history and formatted_chat_history[-1]['role'] == 'user':
-            formatted_chat_history[-1]['parts'][0]['text'] += context_text
-        else:
-            formatted_chat_history.append({"role": "user", "parts": [{"text": context_text}]})
-
-
-    headers = {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_API_KEY
-    }
-    payload = {
-        "systemInstruction": {"parts": [{"text": system_instruction}]},
-        "contents": formatted_chat_history,
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": {
-                "type": "OBJECT",
-                "properties": {
-                    "message": {"type": "STRING"},
-                    "action": {"type": "STRING", "enum": ["generate_course"]} # Only generate_course is allowed here
-                },
-                "required": ["message", "action"]
-            }
-        }
-    }
-
-    retries = 0
-    while retries < MAX_RETRIES:
-        try:
-            clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
-            clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
-
-            gemini_response = requests.post(f"{clean_base_url}/gemini-1.5-flash-latest:generateContent", headers=headers, json=payload, timeout=60)
-            gemini_response.raise_for_status()
-            
-            response_data = gemini_response.json()
-            print(f"DEBUG: handle_lesson_chat - Gemini API chat response (for generation confirmation): {response_data}")
-
-            if response_data and response_data.get('candidates'):
-                json_text = response_data['candidates'][0]['content']['parts'][0]['text']
-                parsed_response = json.loads(json_text)
-                # Ensure action is generate_course as per system instruction for this path
-                parsed_response['action'] = "generate_course"
-                return jsonify(parsed_response), 200
-            else:
-                print(f"ERROR: handle_lesson_chat - Gemini API chat response missing candidates or content (for generation confirmation): {response_data}")
-                return jsonify({"error": "AI service did not return a valid chat response for course generation confirmation."}), 500
-
-        except requests.exceptions.RequestException as e:
-            retries += 1
-            if retries < MAX_RETRIES:
-                retry_delay = INITIAL_RETRY_DELAY * (2 ** (retries - 1))
-                print(f"WARNING: handle_lesson_chat - Request to Gemini API for generation confirmation failed: {e}. Retrying in {retry_delay} seconds (Attempt {retries}/{MAX_RETRIES}).")
-                time.sleep(retry_delay)
-            else:
-                print(f"ERROR: handle_lesson_chat - Request to Gemini API for generation confirmation failed after {MAX_RETRIES} retries: {e}")
-                return jsonify({"error": f"Failed to get chat response for course generation confirmation after multiple retries: {e}"}), 500
-        except json.JSONDecodeError as e:
-            print(f"ERROR: handle_lesson_chat - Failed to parse Gemini API chat response as JSON (for generation confirmation): {e}")
-            print(f"Raw response text: {gemini_response.text}")
-            return jsonify({"error": f"AI service returned invalid JSON for generation confirmation: {e}"}), 500
-        except Exception as e:
-            print(f"CRITICAL ERROR: handle_lesson_chat - Unexpected error during generation confirmation: {e}")
-            return jsonify({"error": f"An unexpected error occurred during lesson chat (generation confirmation): {e}"}), 500
+    # --- End Programmatic Decision Logic ---
 
 
 def handle_generate_course(request_json):
@@ -363,7 +277,7 @@ def handle_generate_course(request_json):
     cube_type = request_json.get('cubeType', '3x3')
     skill_level = request_json.get('skillLevel', 'beginner')
     learning_style = request_json.get('learningStyle', 'conceptual')
-    focus_area = request_json.get('focusArea', 'general')
+    focus_area = request_json.get('focus_area', 'general') # Use focus_area from the request_json, which should be passed from frontend based on extracted params
 
     # Use the last user message from chat_history as the primary prompt for course generation
     user_prompt_for_course = ""
@@ -540,7 +454,10 @@ def handle_generate_course(request_json):
                 for module in generated_course.get('modules', []):
                     if 'module_id' not in module or not module['module_id']:
                         module['module_id'] = str(uuid.uuid4())
-                    for lesson in generated_course.get('lessons', []): # Corrected from module.get('lessons') to generated_course.get('lessons')
+                    # The loop below was incorrectly iterating over 'generated_course.get('lessons')'
+                    # which would only work if lessons were directly under generated_course.
+                    # It should iterate over lessons within each module.
+                    for lesson in module.get('lessons', []): 
                         if 'lesson_id' not in lesson or not lesson['lesson_id']:
                             lesson['lesson_id'] = str(uuid.uuid4())
                         # Ensure steps have UUIDs if present
