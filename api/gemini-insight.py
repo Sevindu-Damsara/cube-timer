@@ -174,8 +174,16 @@ def handle_lesson_chat(request_json):
     """Handles conversational chat for lesson creation or in-lesson queries."""
     chat_history = request_json.get('chatHistory', [])
     cube_type = request_json.get('cubeType', '3x3')
-    user_level = request_json.get('userLevel', 'beginner')
+    user_level = request_json.get('userLevel', 'beginner') # This is likely a default, not confirmed from chat
     current_lesson_context = request_json.get('currentLessonContext', {})
+
+    # Extract the most recent user message to check for explicit commands
+    latest_user_message = ""
+    if chat_history:
+        for msg in reversed(chat_history):
+            if msg['role'] == 'user':
+                latest_user_message = msg['parts'][0]['text'].lower()
+                break
 
     # Construct the prompt for the AI
     system_instruction = f"""
@@ -189,7 +197,7 @@ def handle_lesson_chat(request_json):
       1.  **Skill Level:** "What is your current skill level for this topic (e.g., beginner, intermediate, advanced)?"
       2.  **Specific Focus (if applicable):** "Are there any particular aspects within F2L you'd like to emphasize (e.g., recognizing cases, efficient insertions, look-ahead)?"
       3.  **Learning Style Preference:** "Do you prefer a more theoretical approach, hands-on practice with scrambles, or interactive quizzes?"
-      **CRITICAL RULE: DO NOT return `action: "generate_course"` unless ALL of the following conditions are met:**
+      **CRITICAL RULE: You MUST NOT return `action: "generate_course"` unless ALL of the following conditions are met:**
       1.  Sir Sevindu's **MOST RECENT message** contains an explicit command to generate the course (e.g., "generate the course now", "create it", "make the course").
       2.  You have successfully gathered and confirmed the **Skill Level**, **Specific Focus**, and **Learning Style Preference** during the conversation.
       3.  You have a clear understanding of the **Cube Type** (defaulting to '3x3' if not specified).
@@ -256,6 +264,20 @@ def handle_lesson_chat(request_json):
             if response_data and response_data.get('candidates'):
                 json_text = response_data['candidates'][0]['content']['parts'][0]['text']
                 parsed_response = json.loads(json_text)
+
+                # --- NEW LOGIC FOR ENFORCING CLARIFICATION ---
+                # Check for explicit generation command in the latest user message
+                explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
+                should_generate = any(cmd in latest_user_message for cmd in explicit_generate_commands)
+
+                # If the AI suggested 'generate_course' but no explicit command was found,
+                # or if crucial details are still missing (we'd need more state for this,
+                # but for now, prioritize the explicit command and prompt for details).
+                if parsed_response.get('action') == "generate_course" and not should_generate:
+                    parsed_response['action'] = "continue_chat"
+                    parsed_response['message'] = "My apologies, Sir Sevindu. To generate the most suitable course, I require a bit more clarity. Could you please specify your skill level (e.g., beginner, intermediate, advanced) for F2L, any particular aspects you wish to focus on, and your preferred learning style (e.g., theoretical, practice-based, quiz-focused)? Once I have these details, please explicitly state 'generate the course' to proceed."
+                # --- END NEW LOGIC ---
+
                 return jsonify(parsed_response), 200
             else:
                 print(f"ERROR: Gemini API chat response missing candidates or content: {response_data}")
