@@ -189,9 +189,11 @@ def handle_lesson_chat(request_json):
       1.  **Skill Level:** "What is your current skill level for this topic (e.g., beginner, intermediate, advanced)?"
       2.  **Specific Focus (if applicable):** "Are there any particular aspects within F2L you'd like to emphasize (e.g., recognizing cases, efficient insertions, look-ahead)?"
       3.  **Learning Style Preference:** "Do you prefer a more theoretical approach, hands-on practice with scrambles, or interactive quizzes?"
-      **DO NOT** suggest or initiate course generation until Sir Sevindu explicitly states phrases like "generate course", "create course", "make the course", or similar clear commands, AND you have gathered all the necessary information.
-    - If the user explicitly states a command to generate a course after providing details, then you may confirm and set the 'action' to 'generate_course'.
-    - If the user asks general questions about cubing or lessons, provide helpful information and keep the 'action' as 'continue_chat'.
+      **CRITICAL RULE: DO NOT return `action: "generate_course"` unless ALL of the following conditions are met:**
+      1.  Sir Sevindu's **MOST RECENT message** contains an explicit command to generate the course (e.g., "generate the course now", "create it", "make the course").
+      2.  You have successfully gathered and confirmed the **Skill Level**, **Specific Focus**, and **Learning Style Preference** during the conversation.
+      3.  You have a clear understanding of the **Cube Type** (defaulting to '3x3' if not specified).
+      **If ANY of these conditions are NOT met, you MUST return `action: "continue_chat"` and your `message` MUST be a clarifying question or a statement indicating what information is still needed.**
 
     When discussing an ongoing lesson (if currentLessonContext is provided):
     - Answer questions related to the lesson content, algorithms, scrambles, or concepts.
