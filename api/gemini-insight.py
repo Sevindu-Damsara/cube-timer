@@ -256,7 +256,7 @@ def handle_lesson_chat(request_json):
 
 
 def handle_generate_course(request_json):
-    """Initiates the course generation process by sending a specific request to the serverless function."""
+    """Generates a structured cubing course based on user preferences."""
     chat_history = request_json.get('chatHistory', [])
     cube_type = request_json.get('cubeType', '3x3')
     user_level = request_json.get('skillLevel', 'beginner') # Note: 'skillLevel' from frontend payload
@@ -265,7 +265,8 @@ def handle_generate_course(request_json):
     You are Jarvis, an AI assistant. Your task is to generate a comprehensive, structured Rubik's Cube course tailored for a {user_level} level cuber learning the {cube_type} cube.
     Based on the preceding chat history and any explicit user requests, generate a complete course structure.
     
-    The course should be returned as a JSON object adhering to the following schema:
+    The course should be returned as a single JSON object. Ensure the JSON is valid and can be directly parsed.
+    The JSON structure should adhere to the following:
     {{
         "title": "Generated Course Title",
         "description": "Brief description of the course.",
@@ -317,52 +318,9 @@ def handle_generate_course(request_json):
         payload = {
             "contents": formatted_chat_history,
             "generationConfig": {
-                "responseMimeType": "application/json",
+                "responseMimeType": "text/plain", # Changed to text/plain
                 "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "title": {"type": "STRING"},
-                        "description": {"type": "STRING"},
-                        "cubeType": {"type": "STRING"},
-                        "level": {"type": "STRING"},
-                        "modules": {
-                            "type": "ARRAY",
-                            "items": {
-                                "type": "OBJECT",
-                                "properties": {
-                                    "title": {"type": "STRING"},
-                                    "description": {"type": "STRING"},
-                                    "lessons": {
-                                        "type": "ARRAY",
-                                        "items": {
-                                            "type": "OBJECT",
-                                            "properties": {
-                                                "title": {"type": "STRING"},
-                                                "description": {"type": "STRING"},
-                                                "lessonType": {"type": "STRING"},
-                                                "content": {"type": "STRING"},
-                                                "steps": {
-                                                    "type": "ARRAY",
-                                                    "items": {
-                                                        "type": "OBJECT",
-                                                        "properties": {
-                                                            "title": {"type": "STRING"},
-                                                            "content": {"type": "STRING"},
-                                                            "completed": {"type": "BOOLEAN"}
-                                                        },
-                                                        "required": ["title", "content", "completed"]
-                                                    }
-                                                }
-                                            },
-                                            "required": ["title", "description", "lessonType", "content", "steps"]
-                                        }
-                                    }
-                                },
-                                "required": ["title", "description", "lessons"]
-                            }
-                        }
-                    },
-                    "required": ["title", "description", "cubeType", "level", "modules"]
+                    "type": "STRING" # Simplified to expect a single string
                 }
             }
         }
