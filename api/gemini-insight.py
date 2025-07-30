@@ -252,6 +252,9 @@ def handle_lesson_chat(request_json):
 
 def handle_generate_course(request_json):
     """Generates a structured cubing course based on user preferences."""
+    # Ensure messages_for_api is initialized at the very beginning
+    messages_for_api = [] 
+
     chat_history = request_json.get('chatHistory', [])
     cube_type = request_json.get('cubeType', '3x3')
     skill_level = request_json.get('skillLevel', 'beginner')
