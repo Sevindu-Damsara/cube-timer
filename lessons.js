@@ -225,14 +225,18 @@ function updateCourseProgressBar() {
     let completedSteps = 0;
 
     currentCourse.modules.forEach(module => {
-        module.lessons.forEach(lesson => {
-            lesson.steps.forEach(step => {
-                totalSteps++;
-                if (step.completed) {
-                    completedSteps++;
+        if (module.lessons) { // Defensive check
+            module.lessons.forEach(lesson => {
+                if (lesson.steps) { // Defensive check
+                    lesson.steps.forEach(step => {
+                        totalSteps++;
+                        if (step.completed) {
+                            completedSteps++;
+                        }
+                    });
                 }
             });
-        });
+        }
     });
 
     const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
@@ -660,11 +664,13 @@ async function loadCourse(courseId) {
             currentLessonStepIndex = currentCourse.lastAccessedStepIndex || 0;
 
             // Ensure indices are within bounds
-            if (currentCourse.modules && currentModuleIndex >= currentCourse.modules.length) currentModuleIndex = 0;
+            if (!currentCourse.modules || currentModuleIndex >= currentCourse.modules.length) currentModuleIndex = 0;
             const currentModule = currentCourse.modules ? currentCourse.modules[currentModuleIndex] : null;
-            if (currentModule && currentModule.lessons && currentLessonIndex >= currentModule.lessons.length) currentLessonIndex = 0;
+
+            if (!currentModule || !currentModule.lessons || currentLessonIndex >= currentModule.lessons.length) currentLessonIndex = 0;
             const currentLesson = currentModule && currentModule.lessons ? currentModule.lessons[currentLessonIndex] : null;
-            if (currentLesson && currentLesson.steps && currentLessonStepIndex >= currentLesson.steps.length) currentLessonStepIndex = 0;
+
+            if (!currentLesson || !currentLesson.steps || currentLessonStepIndex >= currentLesson.steps.length) currentLessonStepIndex = 0;
 
             await loadLessonStep(currentModuleIndex, currentLessonIndex, currentLessonStepIndex);
             showSection(lessonViewer);
@@ -1264,7 +1270,7 @@ function setupEventListeners() {
     pausePreviewBtn = document.getElementById('pausePreviewBtn');
     stepBackwardBtn = document.getElementById('stepBackwardBtn');
     stepForwardBtn = document.getElementById('stepForwardBtn');
-    resetAlgBtn = document.getElementById('resetAlgBtn');
+    resetAlgBtn = document = document.getElementById('resetAlgBtn');
     applyScrambleBtn = document.getElementById('applyScrambleBtn');
 
     quizArea = document.getElementById('quizArea');
