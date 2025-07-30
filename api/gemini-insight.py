@@ -274,7 +274,7 @@ def handle_generate_course(request_json):
 
     system_instruction = f"""
     You are Jarvis, an AI assistant. Your task is to generate a comprehensive Rubik's Cube course for Sir Sevindu.
-    The course should be structured as a single, valid JSON object.
+    Your response MUST be a single, complete, and valid JSON object. DO NOT include any text, markdown formatting (like ```json), or conversational elements outside of the JSON object itself.
     """
 
     # The detailed JSON schema is now part of the main prompt text.
@@ -301,8 +301,6 @@ def handle_generate_course(request_json):
     For 'scramble' lessons, embed actual WCA-formatted scrambles within the `content` of the relevant steps using the tag `<scramble>R U R' U'</scramble>`.
     For 'quiz' lessons, embed quiz questions, options, and answers using `<question id='qN'>What is F2L?</question><options><option>First 2 Layers</option><option>Fast 2 Loops</option></options><answer>First 2 Layers</answer>`
     For multiple-choice answers, use multiple `<answer>` tags: `<answer>Option A</answer><answer>Option B</answer>`.
-
-    Return the entire course structure as a single JSON string. Do NOT include any additional text or formatting outside the JSON string.
 
     Example JSON structure (ensure all fields are present, even if empty arrays):
     {{
