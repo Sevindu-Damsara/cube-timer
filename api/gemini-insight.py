@@ -6,6 +6,7 @@ import os
 import requests
 import json
 import uuid # Import uuid for generating unique lesson IDs
+import re   # Import regex module
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
@@ -17,7 +18,7 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_API_BASE_URL = "[https://generativelanguage.googleapis.com/v1beta/models](https://generativelanguage.googleapis.com/v1beta/models)"
 
 @app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
 def gemini_insight_handler():
@@ -409,8 +410,15 @@ def handle_generate_course(request_json):
 
         if response_data and response_data.get('candidates'):
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            # Attempt to parse the AI's response text as JSON
-            generated_course = json.loads(ai_response_text)
+            
+            # Use regex to find the first JSON object in the string
+            json_match = re.search(r'\{.*\}', ai_response_text, re.DOTALL)
+            
+            if json_match:
+                json_string = json_match.group(0)
+                generated_course = json.loads(json_string)
+            else:
+                raise ValueError("No valid JSON object found in AI response.")
             
             # Add UUIDs if not present (this part is from original code)
             if 'course_id' not in generated_course or not generated_course['course_id']:
@@ -437,6 +445,10 @@ def handle_generate_course(request_json):
         print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
         print(f"Raw AI text response that failed parsing: {ai_response_text}") 
         return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
+    except ValueError as e: # Catch the new ValueError for no JSON found
+        print(f"ERROR: Failed to extract JSON from AI response: {e}")
+        print(f"Raw AI text response: {ai_response_text}")
+        return jsonify({"error": f"AI service response did not contain a parsable JSON course structure. Details: {e}"}), 500
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
         return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
