@@ -323,7 +323,8 @@ async function loadCourseList() {
     historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
     courseList.innerHTML = ''; // Clear existing list
-    courseList.style.display = 'none'; // Explicitly hide courseList at the start to prevent flicker
+    courseList.style.visibility = 'hidden'; // Hide courseList visually but keep space to prevent container shrinking
+
 
     try {
         const coursesRef = getUserCollectionRef('courses');
@@ -359,11 +360,11 @@ async function loadCourseList() {
 
             if (filteredCourses.length === 0) {
                 noCoursesMessage.classList.remove('hidden');
-                courseList.style.display = 'none'; // Ensure courseList is hidden when empty
+                courseList.style.visibility = 'hidden'; // Hide courseList visually but keep space
                 console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
             } else {
                 noCoursesMessage.classList.add('hidden');
-                courseList.style.display = 'grid'; // Show courseList when there are courses, use grid to match CSS
+                courseList.style.visibility = 'visible'; // Show courseList when there are courses
                 console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
                 filteredCourses.forEach(course => {
                     renderCourseCard(course);
