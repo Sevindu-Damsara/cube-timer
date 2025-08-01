@@ -64,7 +64,6 @@ def gemini_insight_handler():
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
     except requests.exceptions.RequestException as req_err:
         print(f"ERROR: General request error during Gemini API call: {req_err}")
-        # Log the specific error message from the API response body if available
         # 'response' variable might not be defined in all error paths, so check its existence
         if 'response' in locals() and response is not None and hasattr(response, 'text') and response.text:
             print(f"ERROR: API detailed error response: {response.text}")
@@ -193,12 +192,12 @@ def handle_lesson_chat(request_json):
         if msg.get('role') == 'user':
             text = msg.get('parts', [{}])[0].get('text', '').lower()
 
-            # More robust extraction for skill_level using regex for whole words
-            if re.search(r'\bbeginner\b', text):
+            # More robust extraction for skill_level using regex for whole words and common typos
+            if re.search(r'\b(beginner|begginer|biginner)\b', text):
                 current_params['skill_level'] = "beginner"
-            elif re.search(r'\bintermediate\b', text):
+            elif re.search(r'\b(intermediate|intermidiate)\b', text):
                 current_params['skill_level'] = "intermediate"
-            elif re.search(r'\badvanced\b', text):
+            elif re.search(r'\b(advanced|advance)\b', text):
                 current_params['skill_level'] = "advanced"
             
             # More robust extraction for focus_area using regex for whole words
@@ -211,12 +210,12 @@ def handle_lesson_chat(request_json):
             elif re.search(r'\bcross\b', text):
                 current_params['focus_area'] = "Cross"
             
-            # More robust extraction for learning_style using regex for whole words
-            if re.search(r'\btheoretical\b', text):
+            # More robust extraction for learning_style using regex for whole words and common typos
+            if re.search(r'\b(theoretical|concept(ual)?)\b', text):
                 current_params['learning_style'] = "theoretical"
-            elif re.search(r'\bpractice\b|\bhands-on\b', text):
+            elif re.search(r'\b(hands[- ]?on|practical|practice|practce)\b', text): # Added 'practce'
                 current_params['learning_style'] = "hands-on practice"
-            elif re.search(r'\bquiz\b|\bquizzes\b', text):
+            elif re.search(r'\b(interactive )?quiz(zes)?\b', text):
                 current_params['learning_style'] = "interactive quiz"
         # Add logic to parse model responses if they confirm parameters
         elif msg.get('role') == 'model':
@@ -283,11 +282,11 @@ def handle_generate_course(request_json):
     for msg in chat_history:
         if msg.get('role') == 'user':
             text = msg.get('parts', [{}])[0].get('text', '').lower()
-            if re.search(r'\bbeginner\b', text):
+            if re.search(r'\b(beginner|begginer|biginner)\b', text):
                 extracted_skill_level = "beginner"
-            elif re.search(r'\bintermediate\b', text):
+            elif re.search(r'\b(intermediate|intermidiate)\b', text):
                 extracted_skill_level = "intermediate"
-            elif re.search(r'\badvanced\b', text):
+            elif re.search(r'\b(advanced|advance)\b', text):
                 extracted_skill_level = "advanced"
             
             if re.search(r'\bf2l\b', text):
@@ -299,11 +298,11 @@ def handle_generate_course(request_json):
             elif re.search(r'\bcross\b', text):
                 extracted_focus_area = "Cross"
             
-            if re.search(r'\btheoretical\b', text):
+            if re.search(r'\b(theoretical|concept(ual)?)\b', text):
                 extracted_learning_style = "theoretical"
-            elif re.search(r'\bpractice\b|\bhands-on\b', text):
+            elif re.search(r'\b(hands[- ]?on|practical|practice|practce)\b', text):
                 extracted_learning_style = "hands-on practice"
-            elif re.search(r'\bquiz\b|\bquizzes\b', text):
+            elif re.search(r'\b(interactive )?quiz(zes)?\b', text):
                 extracted_learning_style = "interactive quiz"
 
     # Use extracted parameters if available, otherwise fall back to defaults or request_json
@@ -450,7 +449,7 @@ def handle_generate_course(request_json):
         }
     }
 
-    try:
+    try {
         clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
