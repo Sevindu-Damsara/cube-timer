@@ -1,7 +1,7 @@
 // Firebase imports - These are provided globally by the Canvas environment
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)";
+import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js)";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, getDocs, addDoc } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js)";
 console.log("[DEBUG] Firebase imports for lessons.js completed.");
 
 // =====================================================================================================
@@ -13,7 +13,7 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-production-speedc
 const firebaseConfig = {
   apiKey: "AIzaSyBi8BkZJnpW4WI71g5Daa8KqNBI1DjcU_M",
   authDomain: "ubically-timer.firebaseapp.com",
-  databaseURL: "https://ubically-timer-default-rtdb.firebaseio.com",
+  databaseURL: "[https://ubically-timer-default-rtdb.firebaseio.com](https://ubically-timer-default-rtdb.firebaseio.com)",
   projectId: "ubically-timer",
   storageBucket: "ubically-timer.firebasestorage.app",
   messagingSenderId: "467118524389",
@@ -158,9 +158,7 @@ function hideAllSections() {
     sections.forEach(section => {
         if (section) { // Ensure element exists
             section.style.display = 'none';
-            section.style.visibility = 'hidden';
-            section.style.height = '0px';
-            section.style.overflow = 'hidden';
+            // Removed visibility, height, overflow manipulation here
         }
     });
 
@@ -194,10 +192,7 @@ function showSection(sectionElement) {
 
     if (sectionElement) { // Ensure element exists
         // Reset aggressive hiding styles when showing a section
-        sectionElement.style.visibility = 'visible';
-        sectionElement.style.height = ''; // Reset height
-        sectionElement.style.overflow = ''; // Reset overflow
-
+        // Only manage 'display' property
         if (sectionElement === lessonViewer) {
             sectionElement.style.display = 'grid'; // lessonViewer uses grid layout
             // Ensure buttons are visible when lessonViewer is active
@@ -328,7 +323,7 @@ async function loadCourseList() {
     historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
     courseList.innerHTML = ''; // Clear existing list
-    courseList.style.display = 'none'; // Explicitly hide courseList at the start
+    courseList.style.display = 'none'; // Explicitly hide courseList at the start to prevent flicker
 
     try {
         const coursesRef = getUserCollectionRef('courses');
@@ -518,10 +513,15 @@ async function processCourseChatInput(prompt) {
             body: JSON.stringify(payload)
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Server responded with status ${response.status}: ${JSON.stringify(errorData)}`);
+        }
+
         const result = await response.json();
         console.log("[DEBUG] Vercel Serverless Function response (chat processing):", result);
 
-        if (response.ok && result.message) {
+        if (result.message) { // Always display Jarvis's message if available
             displayCourseChatMessage('jarvis', result.message);
             courseChatHistory.push({ role: "model", parts: [{ text: result.message }] });
             speakAsJarvis(result.message);
@@ -571,11 +571,16 @@ async function initiateCourseGeneration() {
             body: JSON.stringify(payload)
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Server responded with status ${response.status}: ${JSON.stringify(errorData)}`);
+        }
+
         const result = await response.json();
         console.log("[DEBUG] Vercel Serverless Function response (course generation):", result);
 
         // Corrected: Check for 'title' directly in the result object, as the server now returns the course object itself with 'title'.
-        if (response.ok && result.title) { 
+        if (result.title) { 
             const newCourse = result; // Assign the entire result as the newCourse
             newCourse.lastAccessedModuleIndex = 0;
             newCourse.lastAccessedLessonIndex = 0;
@@ -1189,10 +1194,15 @@ async function sendInLessonChatPrompt(prompt) {
             body: JSON.stringify(payload)
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Server responded with status ${response.status}: ${JSON.stringify(errorData)}`);
+        }
+
         const result = await response.json();
         console.log("[DEBUG] Vercel Serverless Function response (in-lesson chat):", result);
 
-        if (response.ok && result.message) { // Check for successful response from your serverless function
+        if (result.message) { // Check for successful response from your serverless function
             const jarvisResponse = result.message;
             displayInLessonChatMessage('jarvis', jarvisResponse);
             // Update client-side chat history only if response was successful
@@ -1323,7 +1333,7 @@ function setupEventListeners() {
     if (courseTypeFilter) courseTypeFilter.addEventListener('change', loadCourseList);
     if (courseLevelFilter) courseLevelFilter.addEventListener('change', loadCourseList);
 
-    if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', goToNextStep); // Corrected to goToPreviousStep
+    if (prevLessonStepBtn) prevLessonStepBtn.addEventListener('click', goToPreviousStep); // Corrected to goToPreviousStep
     if (nextLessonStepBtn) nextLessonStepBtn.addEventListener('click', goToNextStep);
     if (completeLessonBtn) completeLessonBtn.addEventListener('click', completeCourse);
     if (submitQuizBtn) submitQuizBtn.addEventListener('click', submitQuiz);
