@@ -499,12 +499,26 @@ async function processCourseChatInput(prompt) {
     courseChatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
     try {
-        const payload = {
-            type: 'lesson_chat', // Always start with a 'lesson_chat' type for conversational input
-            chatHistory: courseChatHistory, // Send the full history for context
-            cubeType: courseTypeFilter.value,
-            skillLevel: courseLevelFilter.value,
-        };
+    // Add system prompt instructions for humanized Jarvis chat
+    const systemInstructions = {
+        role: "system",
+        parts: [{
+            text: `You are Jarvis, a helpful and conversational cubing assistant. Respond in a friendly, engaging, and humanized manner. 
+Ask personalized follow-up questions to better understand the user's needs before generating a course. 
+For example, if the user mentions "f2l", respond with: "Oh I see you want to know f2l. How about your current level like beginner, advanced, or ...? Do you know rotations? Do you know any basic f2l currently?" 
+Wait for explicit confirmation like "generate the course" before proceeding to generate the course.`
+        }]
+    };
+
+    // Prepend system instructions to chat history
+    const chatHistoryWithInstructions = [systemInstructions, ...courseChatHistory];
+
+    const payload = {
+        type: 'lesson_chat', // Always start with a 'lesson_chat' type for conversational input
+        chatHistory: chatHistoryWithInstructions, // Send the full history with system instructions for context
+        cubeType: courseTypeFilter.value,
+        skillLevel: courseLevelFilter.value,
+    };
 
         const apiUrl = '/api/gemini-insight'; 
 
