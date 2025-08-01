@@ -513,12 +513,13 @@ Wait for explicit confirmation like "generate the course" before proceeding to g
     // Prepend system instructions to chat history
     const chatHistoryWithInstructions = [systemInstructions, ...courseChatHistory];
 
-    const payload = {
-        type: 'lesson_chat', // Always start with a 'lesson_chat' type for conversational input
-        chatHistory: chatHistoryWithInstructions, // Send the full history with system instructions for context
-        cubeType: courseTypeFilter.value,
-        skillLevel: courseLevelFilter.value,
-    };
+        const payload = {
+            type: 'lesson_chat', // Always start with a 'lesson_chat' type for conversational input
+            chatHistory: chatHistoryWithInstructions, // Send the full history with system instructions for context
+            cubeType: courseTypeFilter.value,
+            skillLevel: courseLevelFilter.value,
+        };
+        console.log("[DEBUG] Payload sent to serverless function:", JSON.stringify(payload, null, 2));
 
         const apiUrl = '/api/gemini-insight'; 
 
