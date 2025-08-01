@@ -1413,11 +1413,16 @@ body.theme-vibrant #aiInsightModal .modal-content {
 #historyLoadingSpinner {
     width: 40px;
     height: 40px;
-    margin: 2rem auto;
+    margin: 0 auto;
     display: block; /* Ensure it takes space even when hidden */
     visibility: hidden; /* Hide visually but keep space */
     opacity: 0;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 10 !important;
 }
 
 #historyLoadingSpinner:not(.hidden) {
@@ -1445,6 +1450,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
     display: flex !important;
     flex-direction: column !important;
     flex-grow: 1 !important;
+    position: relative !important;
 }
 
 #courseList {
