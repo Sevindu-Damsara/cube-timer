@@ -225,9 +225,7 @@ def handle_lesson_chat(request_json):
         "maxOutputTokens": 512,
         "topP": 0.8,
         "topK": 40,
-        "stopSequences": ["\n\n"],
-        "candidateCount": 1,
-        "model": "gemini-1.5-chat-bison",
+        "candidateCount": 1
     }
 
     # Call Gemini API
