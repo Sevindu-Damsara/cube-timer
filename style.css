@@ -1442,6 +1442,9 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border: 1px solid var(--input-border);
     color: var(--input-text);
     transition: min-height 0.3s ease;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-grow: 1 !important;
 }
 
 #courseList {
@@ -1450,6 +1453,8 @@ body.theme-vibrant #aiInsightModal .modal-content {
     display: grid !important;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important; /* Responsive columns with min width */
     gap: 1.5rem !important;
+    flex-grow: 1 !important;
+    align-self: stretch !important;
 }
 
 .course-card {
