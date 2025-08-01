@@ -363,7 +363,7 @@ async function loadCourseList() {
                 console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
             } else {
                 noCoursesMessage.classList.add('hidden');
-                courseList.style.display = 'flex'; // Show courseList when there are courses
+                courseList.style.display = 'grid'; // Show courseList when there are courses, use grid to match CSS
                 console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
                 filteredCourses.forEach(course => {
                     renderCourseCard(course);
