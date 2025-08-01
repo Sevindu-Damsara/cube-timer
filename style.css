@@ -1110,7 +1110,20 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
 /* --- Lesson Hub Styles --- */
 #courseListContainer {
-    min-height: 300px; /* Ensure it has height for the spinner */
+    min-height: 500px; /* Increased min-height to prevent shrinking */
+    border-radius: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    transition: min-height 0.3s ease; /* Smooth transition */
+}
+
+#courseList {
+    min-height: 400px; /* Prevent shrinking */
+    min-width: 100%; /* Ensure full width */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive columns with min width */
+    gap: 1.5rem;
 }
 
 .course-card {
@@ -1392,4 +1405,70 @@ body.theme-vibrant #aiInsightModal .modal-content {
     #inLessonChatContainer {
         max-width: 95%;
     }
+}
+
+/* Additional CSS fixes for lessons page */
+
+/* Fix for course list container to prevent shrinking and overlapping */
+#courseListContainer {
+    min-height: 500px !important; /* Increased min-height to prevent shrinking */
+    border-radius: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    transition: min-height 0.3s ease;
+}
+
+#courseList {
+    min-height: 400px !important; /* Prevent shrinking */
+    min-width: 100% !important; /* Ensure full width */
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important; /* Responsive columns with min width */
+    gap: 1.5rem !important;
+}
+
+.course-card {
+    min-width: 280px !important; /* Prevent cards from shrinking too small */
+    min-height: 180px !important; /* Ensure cards have enough height */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+
+/* Fix chat container and input to remove unnecessary scrollbar */
+#courseChatContainer {
+    min-height: 60vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background-color: var(--input-bg) !important;
+    border-radius: 0.75rem !important;
+    padding: 1rem !important;
+    overflow: hidden !important; /* Prevent unnecessary scrollbars */
+}
+
+#courseChatMessages {
+    flex-grow: 1 !important;
+    overflow-y: auto !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+#courseChatInput {
+    resize: none !important;
+    min-height: 2.5rem !important;
+    max-height: 5rem !important;
+    overflow-y: auto !important; /* Allow scroll only if content exceeds max height */
+    border-radius: 0.5rem !important;
+    padding: 0.5rem !important;
+    font-size: 1rem !important;
+    border: 1px solid var(--input-border) !important;
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    transition: border-color 0.3s ease !important;
+}
+
+#courseChatInput:focus {
+    outline: none !important;
+    border-color: var(--input-focus-border) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
