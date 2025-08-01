@@ -454,7 +454,7 @@ def handle_generate_course(request_json):
         }
     }
 
-    try {
+    try:
         clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
@@ -499,7 +499,10 @@ def handle_generate_course(request_json):
         return jsonify({"error": f"Failed to generate course from AI service: {e}"}), 500
     except json.JSONDecodeError as e:
         print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
-        print(f"Raw AI text response that failed parsing: {ai_response_text}") 
+        if 'ai_response_text' in locals():
+            print(f"Raw AI text response that failed parsing: {ai_response_text}") 
+        else:
+            print("No ai_response_text variable available to show raw response text.")
         return jsonify({"error": "AI service returned malformed JSON for course. Please try again or rephrase."}), 500
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
