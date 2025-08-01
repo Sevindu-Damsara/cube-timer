@@ -1324,11 +1324,20 @@ function setupEventListeners() {
         loadCourseList(); // Refresh course list
     });
     if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => processCourseChatInput(courseChatInput.value));
-    if (courseChatInput) courseChatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && courseChatInput.value.trim() !== '') {
-            processCourseChatInput(courseChatInput.value);
-        }
-    });
+    if (courseChatInput) {
+        // Auto-expand textarea height on input to prevent scrollbar
+        courseChatInput.addEventListener('input', () => {
+            courseChatInput.style.height = 'auto';
+            courseChatInput.style.height = courseChatInput.scrollHeight + 'px';
+        });
+        courseChatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && courseChatInput.value.trim() !== '') {
+                e.preventDefault(); // Prevent newline on Enter without Shift
+                processCourseChatInput(courseChatInput.value);
+                courseChatInput.style.height = 'auto'; // Reset height after sending
+            }
+        });
+    }
 
     if (courseTypeFilter) courseTypeFilter.addEventListener('change', loadCourseList);
     if (courseLevelFilter) courseLevelFilter.addEventListener('change', loadCourseList);

@@ -1409,6 +1409,31 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
 /* Additional CSS fixes for lessons page */
 
+/* Fix spinner size to prevent layout shifts */
+#historyLoadingSpinner {
+    width: 40px;
+    height: 40px;
+    margin: 2rem auto;
+    display: block; /* Ensure it takes space even when hidden */
+    visibility: hidden; /* Hide visually but keep space */
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#historyLoadingSpinner:not(.hidden) {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Auto-expand chat input textarea height */
+#courseChatInput {
+    overflow-y: hidden; /* Hide scrollbar */
+    min-height: 2.5rem;
+    max-height: 8rem;
+    resize: none;
+}
+
+
 /* Fix for course list container to prevent shrinking and overlapping */
 #courseListContainer {
     min-height: 500px !important; /* Increased min-height to prevent shrinking */
