@@ -515,11 +515,26 @@ async function processCourseChatInput(prompt) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Server responded with status ${response.status}: ${JSON.stringify(errorData)}`);
+            let errorText;
+            try {
+                errorText = await response.text();
+                // Try to parse JSON if possible
+                const errorData = JSON.parse(errorText);
+                throw new Error(`Server responded with status ${response.status}: ${JSON.stringify(errorData)}`);
+            } catch (e) {
+                // If not JSON, throw raw text
+                throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+            }
         }
 
-        const result = await response.json();
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            const text = await response.text();
+            console.error("Failed to parse JSON response from serverless function. Raw response:", text);
+            throw new Error("Invalid JSON response from serverless function.");
+        }
         console.log("[DEBUG] Vercel Serverless Function response (chat processing):", result);
 
         if (result.message) { // Always display Jarvis's message if available

@@ -62,12 +62,14 @@ def gemini_insight_handler():
     except requests.exceptions.Timeout as timeout_err:
         print(f"ERROR: Timeout error during Gemini API call: {timeout_err}")
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
-    except requests.exceptions.RequestException as req_err:
-        print(f"ERROR: General request error during Gemini API call: {req_err}")
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: General request error during Gemini API call: {e}")
         # 'response' variable might not be defined in all error paths, so check its existence
         if 'response' in locals() and response is not None and hasattr(response, 'text') and response.text:
             print(f"ERROR: API detailed error response: {response.text}")
-        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
+        else:
+            print("ERROR: No detailed response text available from Gemini API.")
+        return jsonify({"error": f"An unknown error occurred during the AI service request: {e}"}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
         print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
@@ -155,7 +157,10 @@ def generate_insight(request_json):
         return jsonify({"error": f"Failed to get insight from AI service: {e}"}), 500
     except json.JSONDecodeError as e:
         print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
-        print(f"Raw response text: {gemini_response.text}")
+        if 'gemini_response' in locals() and gemini_response is not None:
+            print(f"Raw response text: {gemini_response.text}")
+        else:
+            print("No gemini_response object available to show raw response text.")
         return jsonify({"error": f"AI service returned invalid JSON: {e}"}), 500
     except Exception as e:
         print(f"CRITICAL ERROR: Unexpected error in generate_insight: {e}")
