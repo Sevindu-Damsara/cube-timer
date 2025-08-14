@@ -564,7 +564,7 @@ function showGlobalLoadingSpinner(show) {
  */
 function hideAllSections() {
     console.log("[DEBUG] Hiding all sections.");
-    const sections = [lessonHub, lessonViewer, lessonHistorySection, courseCreationSection];
+    const sections = [lessonHub, lessonViewer, lessonHistorySection];
     sections.forEach(section => {
         if (section) { // Ensure element exists
             section.style.display = 'none';
@@ -1702,13 +1702,7 @@ function setupEventListeners() {
     noCoursesMessage = document.getElementById('noCoursesMessage');
     historyLoadingSpinner = document.getElementById('historyLoadingSpinner'); // Re-using for course list loading
 
-    courseCreationSection = document.getElementById('courseCreationSection'); // Renamed from courseCreationModal
-    backToCoursesBtn = document.getElementById('backToCoursesBtn'); // New button for navigation
-    courseChatContainer = document.getElementById('courseChatContainer');
-    courseChatMessages = document.getElementById('courseChatMessages');
-    courseChatInput = document.getElementById('courseChatInput');
-    sendCourseChatBtn = document.getElementById('sendCourseChatBtn');
-    courseChatSpinner = document.getElementById('courseChatSpinner');
+    // Course creation elements are now handled by the aiCourseBuilderChat section
 
     courseNavigationSidebar = document.getElementById('courseNavigationSidebar');
     currentCourseTitle = document.getElementById('currentCourseTitle');
@@ -1763,27 +1757,8 @@ function setupEventListeners() {
             await Tone.start();
             console.log("[DEBUG] Tone.js AudioContext resumed.");
         }
-        console.log("[DEBUG] Before showing courseCreationSection, lessonViewer display:", lessonViewer.style.display, "visibility:", lessonViewer.style.visibility, "height:", lessonViewer.style.height); // Added debug log
-        showSection(courseCreationSection); // Show the new full-screen section
-        courseChatHistory = []; // Clear chat history for new course creation
-        courseChatMessages.innerHTML = '';
-        displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to assist you in designing a new cubing course. Please tell me what type of cube (e.g., 3x3, Pyraminx), what skill level (e.g., beginner, advanced), and any specific topics or methods you would like to include.");
+        showCourseBuilderChat();
     });
-    if (backToCoursesBtn) backToCoursesBtn.addEventListener('click', () => { // Updated button
-        console.log("[DEBUG] Before showing lessonHub, lessonViewer display:", lessonViewer.style.display, "visibility:", lessonViewer.style.visibility, "height:", lessonViewer.style.height); // Added debug log
-        showSection(lessonHub); // Go back to the hub
-        loadCourseList(); // Refresh course list
-    });
-    if (sendCourseChatBtn) sendCourseChatBtn.addEventListener('click', () => processCourseChatInput(courseChatInput.value));
-    if (courseChatInput) {
-        // Auto-expand textarea height on input to prevent scrollbar
-        courseChatInput.addEventListener('input', () => {
-            courseChatInput.style.height = 'auto';
-            courseChatInput.style.height = courseChatInput.scrollHeight + 'px';
-        });
-        courseChatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey && courseChatInput.value.trim() !== '') {
-                e.preventDefault(); // Prevent newline on Enter without Shift
                 processCourseChatInput(courseChatInput.value);
                 courseChatInput.style.height = 'auto'; // Reset height after sending
             }
