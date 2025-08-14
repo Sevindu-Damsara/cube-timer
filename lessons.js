@@ -5,8 +5,9 @@ let isCourseGenerationInProgress = false;
 let courseBuilderChatSection, openCourseBuilderBtn, closeCourseBuilderBtn, courseBuilderChatMessages, courseBuilderChatInput, sendCourseBuilderChatBtn;
 
 function showCourseBuilderChat() {
-    // Hide all main sections
+    // Hide all main sections including sidebar
     document.getElementById('lessonHub').style.display = 'none';
+    document.getElementById('sidebar').style.display = 'none';
     if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = 'none';
     // Show chat
     courseBuilderChatSection.classList.remove('hidden');
@@ -32,8 +33,9 @@ Feel free to ask questions, and I'll guide you through the process! 🎯`;
 }
 
 function hideCourseBuilderChat() {
-    // Show main sections
+    // Show main sections including sidebar
     document.getElementById('lessonHub').style.display = '';
+    document.getElementById('sidebar').style.display = '';
     if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = '';
     // Hide chat
     courseBuilderChatSection.classList.add('hidden');
