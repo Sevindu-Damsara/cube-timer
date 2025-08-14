@@ -19,6 +19,8 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set")
 GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1/models"
 
 # Constants for exponential backoff (no longer used for retries, but kept for reference if needed)

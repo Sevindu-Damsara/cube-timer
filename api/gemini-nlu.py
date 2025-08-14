@@ -40,7 +40,11 @@ def gemini_nlu_handler():
             print("ERROR: GEMINI_API_KEY environment variable not set.")
             return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
 
-        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key={gemini_api_key}"
+        headers = {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': gemini_api_key
+        }
+        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent"
 
         # MODIFIED PROMPT: To distinguish between commands and general questions,
         # and to explicitly include web application related questions for 'general_query'.
@@ -106,7 +110,8 @@ def gemini_nlu_handler():
         }
 
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-goog-api-key": gemini_api_key
         }
 
         gemini_response = requests.post(gemini_url, headers=headers, data=json.dumps(payload))
