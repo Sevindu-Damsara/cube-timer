@@ -1087,6 +1087,29 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background: transparent !important;
 }
 
+/* History Loading Spinner - Dedicated styles */
+#historyLoadingSpinner {
+    border: 4px solid #ccc;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: block;
+    position: relative;
+    margin: 2rem auto;
+    animation: spin-history 1s ease infinite;
+    will-change: transform;
+}
+
+#historyLoadingSpinner.hidden {
+    display: none !important;
+}
+
+@keyframes spin-history {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
