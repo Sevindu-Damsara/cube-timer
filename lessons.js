@@ -707,11 +707,12 @@ function getUserCollectionRef(collectionName) {
  */
 async function loadCourseList() {
     console.log("[DEBUG] loadCourseList() called.");
+    // Defensive: always hide spinner before starting
+    historyLoadingSpinner.classList.add('hidden');
     showGlobalLoadingSpinner(true);
-    historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
-    courseList.innerHTML = ''; // Clear existing list
-    courseList.style.visibility = 'hidden'; // Hide courseList visually but keep space to prevent container shrinking
+    courseList.innerHTML = '';
+    courseList.style.visibility = 'hidden';
 
 
     try {
@@ -720,7 +721,6 @@ async function loadCourseList() {
             showToast("Failed to load courses: Authentication not ready.", "error");
             historyLoadingSpinner.classList.add('hidden');
             showGlobalLoadingSpinner(false);
-            console.log("[DEBUG] loadCourseList() exiting due to no coursesRef.");
             return;
         }
 
@@ -748,19 +748,17 @@ async function loadCourseList() {
 
             if (filteredCourses.length === 0) {
                 noCoursesMessage.classList.remove('hidden');
-                courseList.style.visibility = 'hidden'; // Hide courseList visually but keep space
-                console.log("[DEBUG] Filtered courses are empty, displaying no courses message.");
+                courseList.style.visibility = 'hidden';
             } else {
                 noCoursesMessage.classList.add('hidden');
-                courseList.style.visibility = 'visible'; // Show courseList when there are courses
-                console.log(`[DEBUG] Rendering ${filteredCourses.length} filtered courses.`);
+                courseList.style.visibility = 'visible';
                 filteredCourses.forEach(course => {
                     renderCourseCard(course);
                 });
             }
+            // Always hide spinner after rendering
             historyLoadingSpinner.classList.add('hidden');
             showGlobalLoadingSpinner(false);
-            console.log("[DEBUG] loadCourseList() completed rendering.");
         }, (error) => {
             console.error("Error listening to courses:", error);
             showToast("Error loading courses.", "error");
