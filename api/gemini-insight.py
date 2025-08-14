@@ -5,14 +5,7 @@
 import os
 import requests
 import json
-import uuid # Import             response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent",
-            headers=headers,
-            json=payload,
-            timeout=60  # Longer timeout for course generation
-        )ini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent",
-            headers=headers,
+import uuid  # Import for generating unique lesson IDs
             json=gemini_payload,
             timeout=30
         )for generating unique lesson IDs
@@ -148,7 +141,7 @@ def generate_insight(request_json):
     clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
     try:
-        gemini_response = requests.post(f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent", headers=headers, json=payload, timeout=30)
+        gemini_response = requests.post(f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent", headers=headers, json=payload, timeout=30)
         gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         
         response_data = gemini_response.json()
@@ -233,7 +226,7 @@ def handle_lesson_chat(request_json):
 
     try:
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
             headers=headers,
             json={"contents": formatted_chat},
             timeout=30
@@ -507,7 +500,7 @@ def handle_generate_course(request_json):
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
             headers=headers,
             json=payload,
             timeout=120 
