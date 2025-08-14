@@ -108,25 +108,25 @@ function showGeneratedCourse(course) {
         courseViewSection.className = 'fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col items-center justify-center';
         document.body.appendChild(courseViewSection);
     }
-    courseViewSection.innerHTML = `
-        <div class="w-full h-full max-w-5xl mx-auto bg-gray-900 bg-opacity-95 rounded-none md:rounded-2xl shadow-2xl flex flex-col" style="min-height:100vh;">
-            <div class="flex items-center justify-between p-4 border-b border-gray-700">
-                <h2 class="text-2xl font-bold text-gradient">${course.title}</h2>
-                <button id="closeGeneratedCourseBtn" class="button-secondary"><i class="fas fa-arrow-left"></i> Back</button>
+        courseViewSection.innerHTML = `
+            <div style="width:100vw;height:100vh;min-height:100vh;min-width:100vw;max-width:100vw;max-height:100vh;display:flex;flex-direction:column;background:rgba(17,24,39,0.98);border-radius:0;box-shadow:0 0 40px #000;">
+                <div class="flex items-center justify-between p-4 border-b border-gray-700 sticky top-0 bg-gray-900 bg-opacity-95 z-10">
+                    <h2 class="text-2xl font-bold text-gradient">${course.title}</h2>
+                    <button id="closeGeneratedCourseBtn" class="button-secondary"><i class="fas fa-arrow-left"></i> Back</button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                    <div class="text-lg text-gray-200 mb-2">${course.description || ''}</div>
+                    ${course.modules.map(module => `
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold text-gradient mb-2">${module.module_title}</h3>
+                            <ul class="list-disc ml-6">
+                                ${module.lessons.map(lesson => `<li class="mb-2"><span class="font-semibold">${lesson.lesson_title}:</span> ${lesson.content || ''}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                <div class="text-lg text-gray-200 mb-2">${course.description || ''}</div>
-                ${course.modules.map(module => `
-                    <div class="mb-6">
-                        <h3 class="text-xl font-bold text-gradient mb-2">${module.module_title}</h3>
-                        <ul class="list-disc ml-6">
-                            ${module.lessons.map(lesson => `<li class="mb-2"><span class="font-semibold">${lesson.lesson_title}:</span> ${lesson.content || ''}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
+        `;
     courseViewSection.querySelector('#closeGeneratedCourseBtn').onclick = () => {
         courseViewSection.remove();
         courseBuilderChatSection.classList.remove('hidden');
@@ -149,6 +149,9 @@ window.addEventListener('DOMContentLoaded', () => {
             sendCourseBuilderChatPrompt(courseBuilderChatInput.value);
         }
     });
+    // Deep clean: remove any leftover 'openCourseBuilderBtn' if present
+    const oldBtn = document.getElementById('openCourseBuilderBtn');
+    if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.remove();
 });
 // Firebase imports - These are provided globally by the Canvas environment
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
