@@ -105,9 +105,21 @@ function showGeneratedCourse(course) {
     if (!courseViewSection) {
         courseViewSection = document.createElement('section');
         courseViewSection.id = 'aiGeneratedCourseView';
-        courseViewSection.className = 'fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col items-center justify-center';
         document.body.appendChild(courseViewSection);
     }
+    // Always force full viewport and remove any className that could override it
+    courseViewSection.removeAttribute('class');
+    courseViewSection.style.position = 'fixed';
+    courseViewSection.style.inset = '0';
+    courseViewSection.style.zIndex = '9999';
+    courseViewSection.style.background = 'rgba(0,0,0,0.95)';
+    courseViewSection.style.display = 'flex';
+    courseViewSection.style.flexDirection = 'column';
+    courseViewSection.style.justifyContent = 'center';
+    courseViewSection.style.alignItems = 'center';
+    courseViewSection.style.width = '100vw';
+    courseViewSection.style.height = '100vh';
+    courseViewSection.style.overflow = 'auto';
         courseViewSection.innerHTML = `
             <div style="width:100vw;height:100vh;min-height:100vh;min-width:100vw;max-width:100vw;max-height:100vh;display:flex;flex-direction:column;background:rgba(17,24,39,0.98);border-radius:0;box-shadow:0 0 40px #000;">
                 <div class="flex items-center justify-between p-4 border-b border-gray-700 sticky top-0 bg-gray-900 bg-opacity-95 z-10">
