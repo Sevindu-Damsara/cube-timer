@@ -168,8 +168,10 @@ def generate_insight(request_json):
 
 def handle_lesson_chat(request_json):
     """Handles conversational chat for lesson creation or in-lesson queries."""
+
     chat_history = request_json.get('chatHistory', [])
-    cube_type = request_json.get('cubeType', '3x3') # Default, can be refined by chat
+    cube_type = request_json.get('cubeType', '3x3')
+    user_history = request_json.get('userHistory', [])  # New: Accept user history from frontend
 
     # Extract the most recent user message to check for explicit commands
     latest_user_message = ""
@@ -181,11 +183,9 @@ def handle_lesson_chat(request_json):
                 latest_user_message = msg['parts'][0]['text'].lower()
                 break
 
-    # Define explicit generation commands
     explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
     should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
 
-    # If explicit generate command is given, proceed to generate course
     if should_generate_explicitly:
         response_payload = {
             'action': "generate_course",
@@ -194,11 +194,9 @@ def handle_lesson_chat(request_json):
         print(f"DEBUG: handle_lesson_chat - Returning generate_course action: {response_payload}")
         return jsonify(response_payload), 200
 
-    # Construct prompt for Gemini API using full chat history
+    # Construct prompt for Gemini API using full chat history and user history
     system_instruction = None
     user_messages = []
-
-    # Separate system instructions and user/model messages
     for msg in chat_history:
         if msg.get('role') == 'system':
             system_instruction = msg.get('parts', [{}])[0].get('text', '')
@@ -209,12 +207,18 @@ def handle_lesson_chat(request_json):
     messages_for_gemini = []
     if system_instruction:
         messages_for_gemini.append({"role": "system", "content": system_instruction})
+    # Add user history as a system message for context if available
+    if user_history:
+        user_history_str = json.dumps(user_history)
+        messages_for_gemini.append({
+            "role": "system",
+            "content": f"The following is the user's cubing history and progress: {user_history_str}"
+        })
     for msg in user_messages:
         role = msg.get('role', 'user')
         text = msg.get('parts', [{}])[0].get('text', '')
         messages_for_gemini.append({"role": role, "content": text})
 
-    # Prepare the payload for Gemini API
     headers = {
         'Content-Type': 'application/json',
         'x-goog-api-key': GEMINI_API_KEY
@@ -228,7 +232,6 @@ def handle_lesson_chat(request_json):
         "candidateCount": 1
     }
 
-    # Call Gemini API
     try:
         gemini_response = requests.post(
             f"{GEMINI_API_BASE_URL}/gemini-1.5-chat-bison:generateMessage",

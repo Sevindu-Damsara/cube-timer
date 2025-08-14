@@ -50,6 +50,241 @@ let prevLessonStepBtn, nextLessonStepBtn, completeLessonBtn, lessonCompletionMes
 let openInLessonChatBtn, inLessonChatContainer, closeInLessonChatBtn, inLessonChatMessages, inLessonChatInput, sendInLessonChatBtn, inLessonChatSpinner;
 let lessonHistoryList, noLessonsMessage, historyLoadingSpinner;
 
+// --- AI Lesson State ---
+let aiCurrentLesson = null;
+let aiCurrentStep = 0;
+let aiSavedLessons = [];
+let aiUserHistory = [];
+let aiUser = null;
+let aiSkillLevelSelect, aiLessonTypeSelect, aiGenerateLessonBtn, aiSavedLessonsContainer;
+
+// --- AI Lesson Utility Functions ---
+function aiShowLoading(show) {
+    if (globalLoadingSpinner) globalLoadingSpinner.classList.toggle('hidden', !show);
+}
+
+function aiShowToast(msg, type = "info") {
+    showToast(msg, type); // Use existing toast
+}
+
+function aiRenderLessonSteps(steps) {
+    const lessonStepsList = document.getElementById('lessonStepsList');
+    if (!lessonStepsList) return;
+    lessonStepsList.innerHTML = "";
+    steps.forEach((step, idx) => {
+        const li = document.createElement("div");
+        li.className = `lesson-step-card card ${idx === aiCurrentStep ? "active" : ""}`;
+        li.innerHTML = `<span class='font-bold'>Step ${idx + 1}:</span> ${step.title || step}`;
+        li.onclick = () => {
+            aiCurrentStep = idx;
+            aiRenderCurrentStep();
+        };
+        lessonStepsList.appendChild(li);
+    });
+}
+
+function aiRenderCurrentStep() {
+    if (!aiCurrentLesson || !aiCurrentLesson.steps) return;
+    const step = aiCurrentLesson.steps[aiCurrentStep];
+    const stepContent = document.getElementById('stepContent');
+    if (stepContent) stepContent.innerHTML = step.content || step;
+    const stepCounter = document.getElementById('stepCounter');
+    if (stepCounter) stepCounter.innerText = `${aiCurrentStep + 1} / ${aiCurrentLesson.steps.length}`;
+    aiRenderLessonSteps(aiCurrentLesson.steps);
+}
+
+function aiRenderLessonCard(lesson, opts = {}) {
+    // Card for a lesson (for saved/viewed)
+    const card = document.createElement("div");
+    card.className = "course-card flex flex-col gap-2 mb-4";
+    card.innerHTML = `
+        <div class="flex items-center justify-between">
+            <h3 class="font-bold text-lg">${lesson.title || "AI Lesson"}</h3>
+            <div class="flex gap-2">
+                <button class="favorite-btn" title="Save to Favorites"><i class="fa${lesson.favorite ? 's' : 'r'} fa-heart"></i></button>
+                <button class="share-btn" title="Share Lesson"><i class="fas fa-share-alt"></i></button>
+            </div>
+        </div>
+        <div class="course-description">${lesson.description || ""}</div>
+        <div class="course-meta">
+            <span><i class="fas fa-layer-group"></i> ${lesson.skillLevel || "-"}</span>
+            <span><i class="fas fa-cube"></i> ${lesson.lessonType || "-"}</span>
+        </div>
+        <button class="button-primary view-btn">View Lesson</button>
+    `;
+    card.querySelector(".favorite-btn").onclick = (e) => {
+        e.stopPropagation();
+        aiToggleFavoriteLesson(lesson);
+    };
+    card.querySelector(".share-btn").onclick = (e) => {
+        e.stopPropagation();
+        aiShareLesson(lesson);
+    };
+    card.querySelector(".view-btn").onclick = () => {
+        aiViewLesson(lesson);
+    };
+    return card;
+}
+
+function aiRenderSavedLessons() {
+    if (!aiSavedLessonsContainer) return;
+    aiSavedLessonsContainer.innerHTML = `<h2 class="text-2xl font-bold mb-4 text-gradient">Saved Lessons</h2>`;
+    if (!aiSavedLessons.length) {
+        aiSavedLessonsContainer.innerHTML += `<div class="text-gray-400">No saved lessons yet.</div>`;
+        return;
+    }
+    aiSavedLessons.forEach(lesson => {
+        aiSavedLessonsContainer.appendChild(aiRenderLessonCard(lesson));
+    });
+}
+
+function aiToggleFavoriteLesson(lesson) {
+    if (!aiUser) return aiShowToast("Sign in to save lessons", "error");
+    lesson.favorite = !lesson.favorite;
+    if (lesson.favorite) {
+        aiSavedLessons.push(lesson);
+        aiSaveLessonToFirebase(lesson);
+        aiShowToast("Lesson saved!", "success");
+    } else {
+        aiSavedLessons = aiSavedLessons.filter(l => l.id !== lesson.id);
+        aiRemoveLessonFromFirebase(lesson);
+        aiShowToast("Lesson removed from favorites", "info");
+    }
+    aiRenderSavedLessons();
+}
+
+function aiShareLesson(lesson) {
+    // Share via link and social
+    const url = `${window.location.origin}/lessons.html?lessonId=${lesson.id}`;
+    if (navigator.share) {
+        navigator.share({ title: lesson.title, text: lesson.description, url });
+    } else {
+        navigator.clipboard.writeText(url);
+        aiShowToast("Lesson link copied!", "success");
+    }
+}
+
+function aiViewLesson(lesson) {
+    aiCurrentLesson = lesson;
+    aiCurrentStep = 0;
+    if (lessonHub) lessonHub.classList.add("hidden");
+    if (lessonViewer) lessonViewer.classList.remove("hidden");
+    if (lessonTitle) lessonTitle.innerText = lesson.title;
+    aiRenderCurrentStep();
+}
+
+function aiCloseLessonViewer() {
+    if (lessonViewer) lessonViewer.classList.add("hidden");
+    if (lessonHub) lessonHub.classList.remove("hidden");
+}
+
+// --- Firebase Integration for AI Lessons ---
+async function aiFetchUserHistory(uid) {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data().history || [];
+    }
+    return [];
+}
+
+async function aiSaveLessonToFirebase(lesson) {
+    if (!aiUser) return;
+    const userRef = doc(db, "users", aiUser.uid);
+    await updateDoc(userRef, { savedLessons: arrayUnion(lesson) });
+}
+
+async function aiRemoveLessonFromFirebase(lesson) {
+    if (!aiUser) return;
+    // Remove lesson by id (requires a cloud function or manual update for array removal)
+    // For demo, just reload saved lessons
+    await aiLoadSavedLessons();
+}
+
+async function aiLoadSavedLessons() {
+    if (!aiUser) return;
+    const docRef = doc(db, "users", aiUser.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        aiSavedLessons = (docSnap.data().savedLessons || []).map(l => ({ ...l, favorite: true }));
+    } else {
+        aiSavedLessons = [];
+    }
+    aiRenderSavedLessons();
+}
+
+// --- AI Lesson Generation ---
+async function aiGeneratePersonalizedLesson() {
+    if (!aiUser) return aiShowToast("Sign in to generate personalized lessons", "error");
+    aiShowLoading(true);
+    try {
+        // Fetch user history for personalization
+        aiUserHistory = await aiFetchUserHistory(aiUser.uid);
+        const skillLevel = aiSkillLevelSelect.value;
+        const lessonType = aiLessonTypeSelect.value;
+        // Compose prompt for Gemini
+        const prompt = `Generate a personalized Rubik's Cube lesson for a user with the following history: ${JSON.stringify(aiUserHistory)}. Skill level: ${skillLevel}. Lesson type: ${lessonType}. Return a JSON with title, description, and steps (each step with title and content).`;
+        const response = await fetch("/api/gemini-nlu.py", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+        });
+        if (!response.ok) throw new Error("AI lesson generation failed");
+        const data = await response.json();
+        if (!data || !data.title || !data.steps) throw new Error("Invalid lesson format");
+        // Assign a unique id for saving/sharing
+        const lesson = {
+            ...data,
+            id: `lesson_${Date.now()}`,
+            skillLevel,
+            lessonType,
+            favorite: false
+        };
+        aiCurrentLesson = lesson;
+        aiCurrentStep = 0;
+        aiViewLesson(lesson);
+        aiShowToast("Lesson generated!", "success");
+    } catch (err) {
+        aiShowToast(err.message, "error");
+    } finally {
+        aiShowLoading(false);
+    }
+}
+
+// --- Auth State for AI Lessons ---
+onAuthStateChanged(getAuth(), async (u) => {
+    aiUser = u;
+    if (aiUser) {
+        await aiLoadSavedLessons();
+    } else {
+        aiSavedLessons = [];
+        aiRenderSavedLessons();
+    }
+});
+
+// --- AI Lesson Event Listeners ---
+window.addEventListener("DOMContentLoaded", () => {
+    aiSkillLevelSelect = document.getElementById("skillLevelSelect");
+    aiLessonTypeSelect = document.getElementById("lessonTypeSelect");
+    aiGenerateLessonBtn = document.getElementById("generateLessonBtn");
+    aiSavedLessonsContainer = document.getElementById("savedLessonsContainer");
+    if (!aiSavedLessonsContainer) {
+        aiSavedLessonsContainer = document.createElement("section");
+        aiSavedLessonsContainer.id = "savedLessonsContainer";
+        aiSavedLessonsContainer.className = "container mx-auto p-4 md:p-8";
+        if (lessonHub && lessonHub.parentNode) lessonHub.parentNode.insertBefore(aiSavedLessonsContainer, lessonHub.nextSibling);
+    }
+    if (aiGenerateLessonBtn) aiGenerateLessonBtn.onclick = aiGeneratePersonalizedLesson;
+    // Add navigation for steps
+    const prevStepBtn = document.getElementById("prevStepBtn");
+    const nextStepBtn = document.getElementById("nextStepBtn");
+    const closeLessonBtn = document.getElementById("closeLessonBtn");
+    if (prevStepBtn) prevStepBtn.onclick = () => { if (aiCurrentStep > 0) { aiCurrentStep--; aiRenderCurrentStep(); } };
+    if (nextStepBtn) nextStepBtn.onclick = () => { if (aiCurrentLesson && aiCurrentStep < aiCurrentLesson.steps.length - 1) { aiCurrentStep++; aiRenderCurrentStep(); } };
+    if (closeLessonBtn) closeLessonBtn.onclick = aiCloseLessonViewer;
+    aiRenderSavedLessons();
+});
+
 // State variables
 let currentCourse = null;
 let currentModuleIndex = 0;
@@ -1207,17 +1442,32 @@ async function sendInLessonChatPrompt(prompt) {
     // The chat history to send to the serverless function
     const chatHistoryToSend = [...inLessonChatHistory, { role: "user", parts: [{ text: prompt }] }];
 
+    // Fetch user history for personalization (if authenticated)
+    let userHistory = [];
+    try {
+        if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
+            const docRef = doc(db, "users", auth.currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                userHistory = docSnap.data().history || [];
+            }
+        }
+    } catch (e) {
+        // Ignore errors, fallback to empty history
+    }
+
     try {
         const payload = {
-            type: 'lesson_chat', // Indicate to the serverless function that this is a lesson chat request
+            type: 'lesson_chat',
             chatHistory: chatHistoryToSend,
             cubeType: currentCourse.cubeType,
             userLevel: currentCourse.level,
             currentLessonContext: currentLessonContext,
+            userHistory: userHistory
         };
 
         // The client-side makes a request to YOUR Vercel serverless function
-        const apiUrl = '/api/gemini-insight'; 
+        const apiUrl = '/api/gemini-insight';
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1233,17 +1483,15 @@ async function sendInLessonChatPrompt(prompt) {
         const result = await response.json();
         console.log("[DEBUG] Vercel Serverless Function response (in-lesson chat):", result);
 
-        if (result.message) { // Check for successful response from your serverless function
+        if (result.message) {
             const jarvisResponse = result.message;
             displayInLessonChatMessage('jarvis', jarvisResponse);
-            // Update client-side chat history only if response was successful
             inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
             inLessonChatHistory.push({ role: "model", parts: [{ text: jarvisResponse }] });
             speakAsJarvis(jarvisResponse);
         } else {
             const errorMessage = result.error || "I am unable to provide assistance at this moment, Sir Sevindu. Please try again.";
             displayInLessonChatMessage('jarvis', errorMessage);
-            // Update client-side chat history even if there was an error, to keep context
             inLessonChatHistory.push({ role: "user", parts: [{ text: prompt }] });
             inLessonChatHistory.push({ role: "model", parts: [{ text: errorMessage }] });
         }
