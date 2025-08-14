@@ -74,7 +74,7 @@
                             </select>
                         </div>
                         <div id="courseListContainer">
-                            <div id="historyLoadingSpinner" class="spinner mx-auto my-8 hidden"></div>
+                            <div id="historyLoadingSpinner" class="spinner mx-auto my-8 hidden"><span style="color:red;position:absolute;top:50px;left:0;right:0;text-align:center;font-size:12px;">historyLoadingSpinner</span></div>
                             <p id="noCoursesMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No courses found. Click "Create New Course" to get started!</p>
                             <div id="courseList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                 <!-- Dynamic Course Cards will be injected here -->
@@ -118,7 +118,7 @@
                             <div class="flex mt-4 items-center gap-2">
                                 <textarea id="courseChatInput" placeholder="Describe the course you want to create..." class="input-field flex-grow resize-none" rows="1"></textarea>
                                 <button id="sendCourseChatBtn" class="button-primary !rounded-lg !p-3"><i class="fas fa-paper-plane"></i></button>
-                                <div id="courseChatSpinner" class="spinner hidden"></div>
+                                <div id="courseChatSpinner" class="spinner hidden"><span style="color:red;position:absolute;top:50px;left:0;right:0;text-align:center;font-size:12px;">courseChatSpinner</span></div>
                             </div>
                         </div>
                     </div>
@@ -210,14 +210,14 @@
             <div class="flex items-center gap-2">
                 <input type="text" id="inLessonChatInput" placeholder="Ask about this lesson..." class="input-field flex-grow">
                 <button id="sendInLessonChatBtn" class="button-primary !rounded-lg !p-3"><i class="fas fa-paper-plane"></i></button>
-                <div id="inLessonChatSpinner" class="spinner hidden"></div>
+                <div id="inLessonChatSpinner" class="spinner hidden"><span style="color:red;position:absolute;top:50px;left:0;right:0;text-align:center;font-size:12px;">inLessonChatSpinner</span></div>
             </div>
         </div>
     </div>
 
     <!-- Global Loading Spinner -->
     <div id="globalLoadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[9999] hidden">
-        <div class="spinner"></div>
+    <div class="spinner"><span style="color:red;position:absolute;top:50px;left:0;right:0;text-align:center;font-size:12px;">globalLoadingSpinner</span></div>
     </div>
 
     <!-- Toast Notification Container -->
