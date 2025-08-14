@@ -7,7 +7,6 @@ let courseBuilderChatSection, openCourseBuilderBtn, closeCourseBuilderBtn, cours
 function showCourseBuilderChat() {
     // Hide all main sections
     document.getElementById('lessonHub').style.display = 'none';
-    document.getElementById('savedLessonsContainer').style.display = 'none';
     if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = 'none';
     // Show chat
     courseBuilderChatSection.classList.remove('hidden');
@@ -17,7 +16,6 @@ function showCourseBuilderChat() {
 function hideCourseBuilderChat() {
     // Show main sections
     document.getElementById('lessonHub').style.display = '';
-    document.getElementById('savedLessonsContainer').style.display = '';
     if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = '';
     // Hide chat
     courseBuilderChatSection.classList.add('hidden');
@@ -137,12 +135,13 @@ function showGeneratedCourse(course) {
 // --- AI Course Builder Chat Event Listeners ---
 window.addEventListener('DOMContentLoaded', () => {
     courseBuilderChatSection = document.getElementById('aiCourseBuilderChat');
-    openCourseBuilderBtn = document.getElementById('openCourseBuilderBtn');
     closeCourseBuilderBtn = document.getElementById('closeCourseBuilderBtn');
     courseBuilderChatMessages = document.getElementById('courseBuilderChatMessages');
     courseBuilderChatInput = document.getElementById('courseBuilderChatInput');
     sendCourseBuilderChatBtn = document.getElementById('sendCourseBuilderChatBtn');
-    if (openCourseBuilderBtn) openCourseBuilderBtn.onclick = showCourseBuilderChat;
+    // Make 'Create New Course' button open the chat interface
+    const startNewCourseBtn = document.getElementById('startNewCourseBtn');
+    if (startNewCourseBtn) startNewCourseBtn.onclick = showCourseBuilderChat;
     if (closeCourseBuilderBtn) closeCourseBuilderBtn.onclick = hideCourseBuilderChat;
     if (sendCourseBuilderChatBtn) sendCourseBuilderChatBtn.onclick = () => sendCourseBuilderChatPrompt(courseBuilderChatInput.value);
     if (courseBuilderChatInput) courseBuilderChatInput.addEventListener('keypress', (e) => {
@@ -206,10 +205,7 @@ let lessonHistoryList, noLessonsMessage, historyLoadingSpinner;
 // --- AI Lesson State ---
 let aiCurrentLesson = null;
 let aiCurrentStep = 0;
-let aiSavedLessons = [];
-let aiUserHistory = [];
-let aiUser = null;
-let aiSkillLevelSelect, aiLessonTypeSelect, aiGenerateLessonBtn, aiSavedLessonsContainer;
+
 
 // --- AI Lesson Utility Functions ---
 function aiShowLoading(show) {
@@ -279,17 +275,7 @@ function aiRenderLessonCard(lesson, opts = {}) {
     return card;
 }
 
-function aiRenderSavedLessons() {
-    if (!aiSavedLessonsContainer) return;
-    aiSavedLessonsContainer.innerHTML = `<h2 class="text-2xl font-bold mb-4 text-gradient">Saved Lessons</h2>`;
-    if (!aiSavedLessons.length) {
-        aiSavedLessonsContainer.innerHTML += `<div class="text-gray-400">No saved lessons yet.</div>`;
-        return;
-    }
-    aiSavedLessons.forEach(lesson => {
-        aiSavedLessonsContainer.appendChild(aiRenderLessonCard(lesson));
-    });
-}
+
 
 function aiToggleFavoriteLesson(lesson) {
     if (!aiUser) return aiShowToast("Sign in to save lessons", "error");
@@ -404,44 +390,10 @@ async function aiGeneratePersonalizedLesson() {
     }
 }
 
-// --- Auth State for AI Lessons ---
-function setupAiAuthListener() {
-    if (!auth) return;
-    onAuthStateChanged(auth, async (u) => {
-        aiUser = u;
-        if (aiUser) {
-            await aiLoadSavedLessons();
-        } else {
-            aiSavedLessons = [];
-            aiRenderSavedLessons();
-        }
-    });
-}
+
 
 // --- AI Lesson Event Listeners ---
-window.addEventListener("DOMContentLoaded", () => {
-    aiSkillLevelSelect = document.getElementById("skillLevelSelect");
-    aiLessonTypeSelect = document.getElementById("lessonTypeSelect");
-    aiGenerateLessonBtn = document.getElementById("generateLessonBtn");
-    aiSavedLessonsContainer = document.getElementById("savedLessonsContainer");
-    if (!aiSavedLessonsContainer) {
-        aiSavedLessonsContainer = document.createElement("section");
-        aiSavedLessonsContainer.id = "savedLessonsContainer";
-        aiSavedLessonsContainer.className = "container mx-auto p-4 md:p-8";
-        if (lessonHub && lessonHub.parentNode) lessonHub.parentNode.insertBefore(aiSavedLessonsContainer, lessonHub.nextSibling);
-    }
-    if (aiGenerateLessonBtn) aiGenerateLessonBtn.onclick = aiGeneratePersonalizedLesson;
-    // Add navigation for steps
-    const prevStepBtn = document.getElementById("prevStepBtn");
-    const nextStepBtn = document.getElementById("nextStepBtn");
-    const closeLessonBtn = document.getElementById("closeLessonBtn");
-    if (prevStepBtn) prevStepBtn.onclick = () => { if (aiCurrentStep > 0) { aiCurrentStep--; aiRenderCurrentStep(); } };
-    if (nextStepBtn) nextStepBtn.onclick = () => { if (aiCurrentLesson && aiCurrentStep < aiCurrentLesson.steps.length - 1) { aiCurrentStep++; aiRenderCurrentStep(); } };
-    if (closeLessonBtn) closeLessonBtn.onclick = aiCloseLessonViewer;
-    aiRenderSavedLessons();
-    // Setup AI auth listener after main Firebase is initialized
-    setupAiAuthListener();
-});
+
 
 // State variables
 let currentCourse = null;

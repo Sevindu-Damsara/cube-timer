@@ -83,10 +83,8 @@
                     </div>
                 </section>
 
-                <!-- AI Saved Lessons Section (for AI-powered lessons) -->
-                <section id="savedLessonsContainer" class="container mx-auto p-4 md:p-8">
-                    <!-- AI Saved Lessons will be rendered here by JS -->
-                </section>
+
+                <!-- Removed AI Saved Lessons Section -->
 
                 <!-- AI Course Builder Button -->
                 <section id="aiCourseBuilderBtnSection" class="glass-panel p-6 md:p-8 mt-6 text-center">
@@ -164,11 +162,7 @@
                             <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                                 <!-- Lesson Content (takes up more space) -->
                                 <div class="xl:col-span-2 glass-panel p-6 flex flex-col min-h-[500px]">
-                                    <div id="lessonContentDisplay" class="prose prose-invert max-w-none text-gray-300 flex-grow overflow-y-auto custom-scrollbar"></div>
-                                    <div id="lessonEditorContainer" class="hidden flex-grow flex flex-col">
-                                        <textarea id="lessonMarkdownEditor"></textarea>
-                                        <div class="flex justify-end gap-2 mt-3">
-                                            <button id="cancelEditLessonBtn" class="button-secondary">Cancel</button>
+
                                             <button id="saveLessonContentBtn" class="button-primary">Save Content</button>
                                         </div>
                                     </div>
