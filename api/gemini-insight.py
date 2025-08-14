@@ -1,9 +1,68 @@
 # api/gemini-insight.py inside your Vercel project's 'api' directory
 # This function specifies Python dependencies for your Vercel Cloud Function.
-# This function generates AI insight and now AI lessons using Gemini API.
+# This function generates AI insight and now AI lessons using Gemini API    # Format chat history for Gemini
+    formatted_chat = []
+    
+    # Add a system message that defines the AI's role and capabilities
+    system_message = {
+        "role": "system",
+        "parts": [{
+            "text": f"""You are Jarvis, an expert AI cubing coach specializing in teaching {cube_type} cube techniques to {skill_level} level cubers.
 
-import os
-import requests
+Your expertise includes:
+- Breaking down complex cubing concepts into digestible steps
+- Providing clear, actionable instructions
+- Adapting teaching style to the student's skill level
+- Using standard cubing notation when relevant
+- Creating personalized practice plans
+
+Guidelines:
+1. Be friendly and encouraging
+2. Ask clarifying questions when needed
+3. Use examples to illustrate concepts
+4. Break down complex moves into simpler steps
+5. Only generate a full course when explicitly requested"""
+        }]
+    }
+    formatted_chat.append(system_message)
+    
+    # Add the chat history
+    for msg in chat_history:
+        if isinstance(msg, dict) and msg.get('parts'):
+            role = msg.get('role', 'user')
+            text = msg['parts'][0] if isinstance(msg['parts'][0], str) else msg['parts'][0].get('text', '')
+            formatted_chat.append({"role": role, "parts": [{"text": text}]})   try:
+        # Structure the payload according to Gemini API requirements
+        gemini_payload = {
+            "contents": formatted_chat,
+            "generationConfig": {
+                "temperature": 0.7,
+                "candidateCount": 1,
+                "maxOutputTokens": 2048,
+                "topP": 0.8,
+                "topK": 40
+            },
+            "safetySettings": [
+                {
+                    "category": "HARM_CATEGORY_DEROGATORY",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_TOXICITY",
+                    "threshold": "BLOCK_NONE"
+                }
+            ]
+        }
+        
+        # Add debug logging for payload
+        print(f"DEBUG: Sending payload to Gemini: {json.dumps(gemini_payload, indent=2)}")
+        
+        gemini_response = requests.post(
+            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            headers=headers,
+            json=gemini_payload,
+            timeout=30
+        )uests
 import json
 import uuid # Import uuid for generating unique lesson IDs
 import re   # Import regex module
@@ -140,7 +199,7 @@ def generate_insight(request_json):
     clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
     try:
-        gemini_response = requests.post(f"{clean_base_url}/gemini-2.5-flash-lite:generateContent", headers=headers, json=payload, timeout=30)
+        gemini_response = requests.post(f"{clean_base_url}/gemini-pro:generateContent", headers=headers, json=payload, timeout=30)
         gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         
         response_data = gemini_response.json()
@@ -235,7 +294,7 @@ def handle_lesson_chat(request_json):
         }
         
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent",
             headers=headers,
             json=gemini_payload,
             timeout=30
@@ -521,7 +580,7 @@ def handle_generate_course(request_json):
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
         gemini_response = requests.post(
-            f"{clean_base_url}/gemini-2.5-flash-lite:generateContent",
+            f"{clean_base_url}/gemini-pro:generateContent",
             headers=headers,
             json=payload,
             timeout=120 

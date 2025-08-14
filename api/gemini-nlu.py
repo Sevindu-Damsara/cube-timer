@@ -44,7 +44,7 @@ def gemini_nlu_handler():
             'Content-Type': 'application/json',
             'x-goog-api-key': gemini_api_key
         }
-        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent"
+        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
 
         # MODIFIED PROMPT: To distinguish between commands and general questions,
         # and to explicitly include web application related questions for 'general_query'.
