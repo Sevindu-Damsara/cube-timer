@@ -83,11 +83,11 @@ async function appendCourseBuilderMessage(sender, text, animate = false) {
                 lineDiv.className = 'flex items-start gap-2 mb-1';
                 lineDiv.innerHTML = `
                     <span class="text-xl">${line.match(/^\d️⃣/)[0]}</span>
-                    <span>${line.replace(/^\d️⃣\s*/, '')}</span>
+                    <span>${marked.parse(line.replace(/^\d️⃣\s*/, ''))}</span>
                 `;
             } else {
                 lineDiv.className = 'mb-2';
-                lineDiv.textContent = line;
+                lineDiv.innerHTML = marked.parse(line);
             }
             
             contentDiv.appendChild(lineDiv);
@@ -104,18 +104,7 @@ async function appendCourseBuilderMessage(sender, text, animate = false) {
         }
     } else {
         // Without animation, show all lines immediately
-        const formattedHtml = text.split('\n')
-            .map(line => {
-                if (line.match(/^\d️⃣/)) {
-                    return `<div class="flex items-start gap-2 mb-1">
-                        <span class="text-xl">${line.match(/^\d️⃣/)[0]}</span>
-                        <span>${line.replace(/^\d️⃣\s*/, '')}</span>
-                    </div>`;
-                }
-                return line ? `<div class="mb-2">${line}</div>` : '<div class="h-2"></div>';
-            })
-            .join('');
-        contentDiv.innerHTML = formattedHtml;
+        contentDiv.innerHTML = marked.parse(text);
     }
 
     // Scroll to bottom smoothly
