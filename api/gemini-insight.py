@@ -194,12 +194,10 @@ def handle_lesson_chat(request_json):
             formatted_chat.append({"role": role, "parts": [{"text": text}]})
 
     system_instruction = {
-        "role": "system",
         "parts": [{
             "text": f"You are Jarvis, an AI cubing coach. You're helping create a {cube_type} cube course for a {skill_level} level cuber. Be friendly and conversational. Ask clarifying questions if needed. Only generate a course when explicitly asked."
         }]
     }
-    formatted_chat.insert(0, system_instruction)
 
     explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
     if any(cmd in latest_user_message for cmd in explicit_generate_commands):
@@ -212,7 +210,10 @@ def handle_lesson_chat(request_json):
         'Content-Type': 'application/json',
         'x-goog-api-key': GEMINI_API_KEY
     }
-    payload = {"contents": formatted_chat}
+    payload = {
+        "contents": formatted_chat,
+        "systemInstruction": system_instruction
+    }
 
     try:
         gemini_response = requests.post(
