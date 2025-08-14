@@ -1,4 +1,124 @@
-// Course creation is now handled by the new courseCreationSection code
+// --- AI Course Builder Chat State ---
+let courseBuilderChatHistory = [];
+let isCourseBuilderActive = false;
+let isCourseGenerationInProgress = false;
+let courseBuilderChatSection, openCourseBuilderBtn, closeCourseBuilderBtn, courseBuilderChatMessages, courseBuilderChatInput, sendCourseBuilderChatBtn;
+
+function showCourseBuilderChat() {
+    // Hide all main sections
+    document.getElementById('lessonHub').style.display = 'none';
+    if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = 'none';
+    // Show chat
+    courseBuilderChatSection.classList.remove('hidden');
+    isCourseBuilderActive = true;
+}
+
+function hideCourseBuilderChat() {
+    // Show main sections
+    document.getElementById('lessonHub').style.display = '';
+    if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = '';
+    // Hide chat
+    courseBuilderChatSection.classList.add('hidden');
+    isCourseBuilderActive = false;
+    resetCourseBuilderChat();
+}
+
+function resetCourseBuilderChat() {
+    courseBuilderChatHistory = [];
+    courseBuilderChatMessages.innerHTML = '';
+    courseBuilderChatInput.value = '';
+    isCourseGenerationInProgress = false;
+}
+
+function appendCourseBuilderMessage(sender, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'} p-3 rounded-lg mb-2 ${sender === 'user' ? 'bg-blue-700 text-white self-end' : 'bg-gray-800 text-gray-200 self-start'}`;
+    msgDiv.innerHTML = `<span>${text}</span>`;
+    courseBuilderChatMessages.appendChild(msgDiv);
+    courseBuilderChatMessages.scrollTop = courseBuilderChatMessages.scrollHeight;
+}
+
+async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
+    if (!prompt.trim() || isCourseGenerationInProgress) return;
+    appendCourseBuilderMessage('user', prompt);
+    courseBuilderChatInput.value = '';
+    courseBuilderChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
+    
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second delay between retries
+    
+    // Send to backend for AI response
+    try {
+        const payload = {
+            type: 'lesson_chat',
+            chatHistory: courseBuilderChatHistory,
+            context: {
+                cubeType: '3x3x3',
+                skillLevel: 'beginner',
+                focusArea: 'F2L'
+            }
+        };
+        const response = await fetch('/api/gemini-insight', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+        }
+        
+        const result = await response.json();
+        if (result.action === 'generate_course') {
+            // AI is ready to generate the course
+            isCourseGenerationInProgress = true;
+            appendCourseBuilderMessage('ai', result.message || 'Generating your custom course...');
+            await generateCourseFromChat();
+        } else if (result.message) {
+            appendCourseBuilderMessage('ai', result.message);
+            courseBuilderChatHistory.push({ role: 'model', parts: [{ text: result.message }] });
+        } else if (result.error) {
+            throw new Error(result.error);
+        }
+    } catch (e) {
+        console.error('Chat API Error:', e);
+        if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying request (${retryCount + 1}/${MAX_RETRIES})...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return sendCourseBuilderChatPrompt(prompt, retryCount + 1);
+        }
+        appendCourseBuilderMessage('ai', 'I apologize, but I\'m having trouble connecting to the AI service. Please try again in a moment. If you\'re asking about F2L, I can provide some basic guidance: F2L (First Two Layers) is a crucial step in the CFOP method. Would you like me to explain the basic concepts while we wait for the AI service to recover?');
+    }
+}
+
+async function generateCourseFromChat() {
+    // Send a request to actually generate the course using the chat history
+    try {
+        const payload = {
+            type: 'generate_course',
+            chatHistory: courseBuilderChatHistory
+        };
+        const response = await fetch('/api/gemini-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result && result.title && result.modules) {
+            // Show the generated course in a full-screen view (reuse or create a new section)
+            showGeneratedCourse(result);
+        } else {
+            appendCourseBuilderMessage('ai', 'Sorry, I could not generate a course. Please try again.');
+        }
+    } catch (e) {
+        appendCourseBuilderMessage('ai', 'Sorry, there was a problem generating your course.');
+    } finally {
+        isCourseGenerationInProgress = false;
+    }
+}
 
 function showGeneratedCourse(course) {
     // Hide chat, show a full-screen course view (reuse lessonViewer or create a new section)
@@ -62,14 +182,20 @@ window.addEventListener('DOMContentLoaded', () => {
     closeCourseBuilderBtn = document.getElementById('closeCourseBuilderBtn');
     courseBuilderChatMessages = document.getElementById('courseBuilderChatMessages');
     courseBuilderChatInput = document.getElementById('courseBuilderChatInput');
-    // Create New Course button now opens the courseCreationSection
+    sendCourseBuilderChatBtn = document.getElementById('sendCourseBuilderChatBtn');
+    // Make 'Create New Course' button open the chat interface
     const startNewCourseBtn = document.getElementById('startNewCourseBtn');
-    if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', () => {
-        showSection(courseCreationSection);
-        courseChatHistory = [];
-        courseChatMessages.innerHTML = '';
-        displayCourseChatMessage('jarvis', "Greetings, Sir Sevindu. I am ready to assist you in designing a new cubing course. Please tell me what type of cube (e.g., 3x3, Pyraminx), what skill level (e.g., beginner, advanced), and any specific topics or methods you would like to include.");
+    if (startNewCourseBtn) startNewCourseBtn.onclick = showCourseBuilderChat;
+    if (closeCourseBuilderBtn) closeCourseBuilderBtn.onclick = hideCourseBuilderChat;
+    if (sendCourseBuilderChatBtn) sendCourseBuilderChatBtn.onclick = () => sendCourseBuilderChatPrompt(courseBuilderChatInput.value);
+    if (courseBuilderChatInput) courseBuilderChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && courseBuilderChatInput.value.trim() !== '') {
+            sendCourseBuilderChatPrompt(courseBuilderChatInput.value);
+        }
     });
+    // Deep clean: remove any leftover 'openCourseBuilderBtn' if present
+    const oldBtn = document.getElementById('openCourseBuilderBtn');
+    if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.remove();
 });
 // Firebase imports - These are provided globally by the Canvas environment
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -114,7 +240,7 @@ let scramble3DViewer;
 let globalLoadingSpinner;
 let lessonHub, lessonViewer, lessonHistorySection;
 let startNewCourseBtn, courseTypeFilter, courseLevelFilter, courseList, noCoursesMessage;
-let courseCreationSection, backToCoursesBtn, courseChatContainer, courseChatMessages, courseChatInput, sendCourseChatBtn, courseChatSpinner; // Renamed from courseCreationModal
+// Course creation is handled by aiCourseBuilderChat variables
 let courseNavigationSidebar, currentCourseTitle, courseProgressBarContainer, courseProgressBar, moduleList;
 let lessonTitle, lessonStepCounter, editLessonBtn, lessonContentDisplay, lessonEditorContainer, lessonMarkdownEditor, cancelEditLessonBtn, saveLessonContentBtn;
 let scramble3DContainer, playPreviewBtn, pausePreviewBtn, stepBackwardBtn, stepForwardBtn, resetAlgBtn, applyScrambleBtn;
