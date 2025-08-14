@@ -1752,18 +1752,19 @@ function setupEventListeners() {
 
     // Event Listeners
     if (startNewCourseBtn) startNewCourseBtn.addEventListener('click', async () => {
-        // Resume AudioContext on user gesture
-        if (Tone.context.state !== 'running') {
-            await Tone.start();
-            console.log("[DEBUG] Tone.js AudioContext resumed.");
-        }
-        showCourseBuilderChat();
-    });
-                processCourseChatInput(courseChatInput.value);
-                courseChatInput.style.height = 'auto'; // Reset height after sending
+        try {
+            // Resume AudioContext on user gesture
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+                console.log("[DEBUG] Tone.js AudioContext resumed.");
             }
-        });
-    }
+            showCourseBuilderChat();
+        } catch (err) {
+            console.log("[DEBUG] Error starting Tone.js:", err);
+            // Still show chat even if audio fails
+            showCourseBuilderChat();
+        }
+    });
 
     if (courseTypeFilter) courseTypeFilter.addEventListener('change', loadCourseList);
     if (courseLevelFilter) courseLevelFilter.addEventListener('change', loadCourseList);
@@ -1870,14 +1871,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners(); // Assign DOM elements and add listeners
     await initializeFirebaseAndAuth(); // Initialize Firebase and authentication
 
-    // Tone.js Synth initialization is now handled on first user gesture (e.g., clicking 'Create New Course')
-    // This resolves the "AudioContext was not allowed to start" warning.
-    // Defer Tone.js initialization until user interaction
+    // Initialize Tone.js in a safer way
     synth = null;
     async function initToneJs() {
         if (synth) return; // Already initialized
         try {
-            await Tone.start();
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+            }
             synth = new Tone.Synth().toDestination();
             console.log("[DEBUG] Tone.js Synth initialized successfully");
         } catch (e) {
@@ -1886,5 +1887,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     // Add click listener to document to initialize Tone.js on first interaction
-    document.addEventListener('click', initToneJs, { once: true });
+    document.body.addEventListener('click', initToneJs, { once: true, capture: true });
 });
