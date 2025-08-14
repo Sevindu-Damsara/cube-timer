@@ -107,38 +107,48 @@ function showGeneratedCourse(course) {
         courseViewSection.id = 'aiGeneratedCourseView';
         document.body.appendChild(courseViewSection);
     }
-    // Always force full viewport and remove any className that could override it
+    // Remove all classes and force full viewport with inline styles
     courseViewSection.removeAttribute('class');
-    courseViewSection.style.position = 'fixed';
-    courseViewSection.style.inset = '0';
-    courseViewSection.style.zIndex = '9999';
-    courseViewSection.style.background = 'rgba(0,0,0,0.95)';
-    courseViewSection.style.display = 'flex';
-    courseViewSection.style.flexDirection = 'column';
-    courseViewSection.style.justifyContent = 'center';
-    courseViewSection.style.alignItems = 'center';
-    courseViewSection.style.width = '100vw';
-    courseViewSection.style.height = '100vh';
-    courseViewSection.style.overflow = 'auto';
-        courseViewSection.innerHTML = `
-            <div style="width:100vw;height:100vh;min-height:100vh;min-width:100vw;max-width:100vw;max-height:100vh;display:flex;flex-direction:column;background:rgba(17,24,39,0.98);border-radius:0;box-shadow:0 0 40px #000;">
-                <div class="flex items-center justify-between p-4 border-b border-gray-700 sticky top-0 bg-gray-900 bg-opacity-95 z-10">
-                    <h2 class="text-2xl font-bold text-gradient">${course.title}</h2>
-                    <button id="closeGeneratedCourseBtn" class="button-secondary"><i class="fas fa-arrow-left"></i> Back</button>
-                </div>
-                <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-                    <div class="text-lg text-gray-200 mb-2">${course.description || ''}</div>
-                    ${course.modules.map(module => `
-                        <div class="mb-6">
-                            <h3 class="text-xl font-bold text-gradient mb-2">${module.module_title}</h3>
-                            <ul class="list-disc ml-6">
-                                ${module.lessons.map(lesson => `<li class="mb-2"><span class="font-semibold">${lesson.lesson_title}:</span> ${lesson.content || ''}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `).join('')}
-                </div>
+    Object.assign(courseViewSection.style, {
+        position: 'fixed',
+        inset: '0',
+        zIndex: '9998', // below spinner overlay
+        background: 'rgba(0,0,0,0.95)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100vw',
+        height: '100vh',
+        minWidth: '100vw',
+        minHeight: '100vh',
+        maxWidth: '100vw',
+        maxHeight: '100vh',
+        overflow: 'auto',
+        borderRadius: '0',
+        boxShadow: '0 0 40px #000',
+        padding: '0',
+        margin: '0',
+    });
+    courseViewSection.innerHTML = `
+        <div style="width:100vw;height:100vh;min-height:100vh;min-width:100vw;max-width:100vw;max-height:100vh;display:flex;flex-direction:column;background:rgba(17,24,39,0.98);border-radius:0;box-shadow:0 0 40px #000;">
+            <div class="flex items-center justify-between p-4 border-b border-gray-700 sticky top-0 bg-gray-900 bg-opacity-95 z-10">
+                <h2 class="text-2xl font-bold text-gradient">${course.title}</h2>
+                <button id="closeGeneratedCourseBtn" class="button-secondary"><i class="fas fa-arrow-left"></i> Back</button>
             </div>
-        `;
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                <div class="text-lg text-gray-200 mb-2">${course.description || ''}</div>
+                ${course.modules.map(module => `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gradient mb-2">${module.module_title}</h3>
+                        <ul class="list-disc ml-6">
+                            ${module.lessons.map(lesson => `<li class="mb-2"><span class="font-semibold">${lesson.lesson_title}:</span> ${lesson.content || ''}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
     courseViewSection.querySelector('#closeGeneratedCourseBtn').onclick = () => {
         courseViewSection.remove();
         courseBuilderChatSection.classList.remove('hidden');
@@ -504,8 +514,26 @@ function speakAsJarvis(text) {
  */
 function showGlobalLoadingSpinner(show) {
     if (globalLoadingSpinner) {
+        // Always force full viewport and z-index above course view
         globalLoadingSpinner.classList.toggle('hidden', !show);
         globalLoadingSpinner.classList.toggle('flex', show);
+        Object.assign(globalLoadingSpinner.style, {
+            position: 'fixed',
+            inset: '0',
+            zIndex: '9999',
+            width: '100vw',
+            height: '100vh',
+            minWidth: '100vw',
+            minHeight: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            display: show ? 'flex' : 'none',
+            justifyContent: 'center',
+            alignItems: 'center',
+            background: 'rgba(0,0,0,0.5)',
+            margin: '0',
+            padding: '0',
+        });
     }
 }
 
