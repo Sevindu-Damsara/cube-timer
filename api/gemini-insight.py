@@ -233,6 +233,20 @@ def handle_lesson_chat(request_json):
 
         if response_data.get('candidates') and response_data['candidates'][0].get('content'):
             ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
+
+            # Check if the AI's response indicates it's ready to generate the course
+            generation_triggers = [
+                "i have enough information",
+                "build your course now",
+                "assemble it for you",
+                "creating your course"
+            ]
+            if any(trigger in ai_message.lower() for trigger in generation_triggers):
+                return jsonify({
+                    'action': "generate_course",
+                    'message': ai_message
+                }), 200
+
             return jsonify({'message': ai_message}), 200
         else:
             print(f"ERROR: Invalid response format from Gemini API: {response_data}")
