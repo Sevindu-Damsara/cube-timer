@@ -138,7 +138,7 @@ def generate_insight(request_json):
     clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
     try:
-        gemini_response = requests.post(f"{clean_base_url}/gemini-2.0-flash:generateContent", headers=headers, json=payload, timeout=30)
+        gemini_response = requests.post(f"{clean_base_url}/gemini-2.5-flash-lite:generateContent", headers=headers, json=payload, timeout=30)
         gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         
         response_data = gemini_response.json()
@@ -519,7 +519,7 @@ def handle_generate_course(request_json):
         clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
 
         gemini_response = requests.post(
-            f"{clean_base_url}/gemini-1.5-flash-latest:generateContent",
+            f"{clean_base_url}/gemini-2.5-flash-lite:generateContent",
             headers=headers,
             json=payload,
             timeout=120 
