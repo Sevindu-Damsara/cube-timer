@@ -252,15 +252,18 @@ async function aiGeneratePersonalizedLesson() {
 }
 
 // --- Auth State for AI Lessons ---
-onAuthStateChanged(getAuth(), async (u) => {
-    aiUser = u;
-    if (aiUser) {
-        await aiLoadSavedLessons();
-    } else {
-        aiSavedLessons = [];
-        aiRenderSavedLessons();
-    }
-});
+function setupAiAuthListener() {
+    if (!auth) return;
+    onAuthStateChanged(auth, async (u) => {
+        aiUser = u;
+        if (aiUser) {
+            await aiLoadSavedLessons();
+        } else {
+            aiSavedLessons = [];
+            aiRenderSavedLessons();
+        }
+    });
+}
 
 // --- AI Lesson Event Listeners ---
 window.addEventListener("DOMContentLoaded", () => {
@@ -283,6 +286,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (nextStepBtn) nextStepBtn.onclick = () => { if (aiCurrentLesson && aiCurrentStep < aiCurrentLesson.steps.length - 1) { aiCurrentStep++; aiRenderCurrentStep(); } };
     if (closeLessonBtn) closeLessonBtn.onclick = aiCloseLessonViewer;
     aiRenderSavedLessons();
+    // Setup AI auth listener after main Firebase is initialized
+    setupAiAuthListener();
 });
 
 // State variables
