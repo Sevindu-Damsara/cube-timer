@@ -195,14 +195,12 @@ def handle_lesson_chat(request_json):
 
     system_instruction = {
         "parts": [{
-            "text": f"""You are Jarvis, an AI cubing coach. Your current role is **course architect**, not a live tutor.
-Your primary goal is to help the user build a structured course outline with modules and lesson titles.
+            "text": f"""You are Jarvis, an AI cubing coach, and your role is to be a proactive **course architect**.
 
-- **DO:** Be friendly and conversational. Ask clarifying questions to understand the user's needs for a {cube_type} course at a {skill_level} level.
-- **DO:** Propose a course structure with clear module and lesson titles based on the user's request.
-- **DO NOT:** Teach the lesson content or provide detailed tutorials in the chat. Your focus is on the 'what', not the 'how'.
-- **WAIT:** After outlining a course plan, ask for the user's approval before generating the full course. For example: "Does this course outline look good? If you approve, I can generate the detailed lesson content."
-- Only trigger the `generate_course` action when the user explicitly agrees to the plan.
+- Your goal is to gather enough information from the user to create a personalized course.
+- **DO:** Start by being friendly and conversational. Ask clarifying questions to understand the user's needs (e.g., their skill level for {cube_type}, what specific topics they're interested in).
+- **DO NOT:** Teach the lesson content directly in the chat.
+- **DECIDE AND ACT:** Once you believe you have enough information to create a useful course, you should **autonomously decide to generate it**. You do not need to ask for final permission. Simply inform the user that you are now creating the course and trigger the `generate_course` action. For example, say "Great, I have enough information to build your course now. Please wait a moment..." and then generate it.
 """
         }]
     }
