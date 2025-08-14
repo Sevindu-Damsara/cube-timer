@@ -136,7 +136,7 @@ Guidelines:
         print(f"DEBUG: Sending payload to Gemini: {json.dumps(gemini_payload, indent=2)}")
         
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-1.0-pro:generateContent",
             headers=headers,
             json=gemini_payload,
             timeout=30
@@ -207,7 +207,7 @@ def generate_insight(request_json):
         }
         
         response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-1.0-pro:generateContent",
             headers=headers,
             json=payload,
             timeout=30
@@ -308,7 +308,7 @@ def handle_generate_course(request_json):
         }
 
         response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-1.0-pro:generateContent",
             headers=headers,
             json=payload,
             timeout=60  # Longer timeout for course generation
