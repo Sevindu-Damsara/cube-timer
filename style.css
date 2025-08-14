@@ -1,7 +1,9 @@
 #courseListContainer {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
+    flex-basis: 100% !important;
+    align-self: stretch !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
 }
 #courseList {
     width: 100% !important;
