@@ -707,9 +707,8 @@ function getUserCollectionRef(collectionName) {
  */
 async function loadCourseList() {
     console.log("[DEBUG] loadCourseList() called.");
-    // Defensive: always hide spinner before starting
-    historyLoadingSpinner.classList.add('hidden');
-    showGlobalLoadingSpinner(true);
+    // Show spinner before loading
+    historyLoadingSpinner.classList.remove('hidden');
     noCoursesMessage.classList.add('hidden');
     courseList.innerHTML = '';
     courseList.style.visibility = 'hidden';
