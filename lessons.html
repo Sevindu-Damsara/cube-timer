@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Cubing Lessons - Cubically AI Edition</title>
     <!-- Tailwind CSS -->
-    <link href="/dist/output.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tone.js for sound effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <!-- Cubing.js for 3D scramble visualization -->
@@ -155,10 +155,14 @@
                             </div>
 
                             <!-- Main Content Area -->
-                            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
                                 <!-- Lesson Content (takes up more space) -->
                                 <div class="xl:col-span-2 glass-panel p-6 flex flex-col min-h-[500px]">
-
+                                    <div class="flex flex-col h-full">
+                                        <div class="flex-grow">
+                                            <div id="lessonContent" class="prose prose-invert max-w-none"></div>
+                                        </div>
+                                        <div class="mt-4">
                                             <button id="saveLessonContentBtn" class="button-primary">Save Content</button>
                                         </div>
                                     </div>
