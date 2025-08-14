@@ -59,50 +59,52 @@ async function appendCourseBuilderMessage(sender, text, animate = false) {
         sender === 'user' ? 'bg-blue-700 text-white ml-12' : 'bg-gray-800 text-gray-200 mr-12'
     } opacity-0 transform translate-y-2 transition-all duration-300`;
     
-    // Split text into lines for processing
-    const lines = text.split('\n');
-    let formattedHtml = '';
-
-    // Create the message container but start empty
-    msgDiv.innerHTML = '';
+    // Create the message container with a content div inside
+    const contentDiv = document.createElement('div');
+    msgDiv.appendChild(contentDiv);
     courseBuilderChatMessages.appendChild(msgDiv);
 
-    // Fade in the message div
+    // Fade in the message container
     setTimeout(() => {
         msgDiv.classList.remove('opacity-0', 'translate-y-2');
     }, 100);
 
     if (animate && sender === 'ai') {
-        // Process each line with animation
-        for (const line of lines) {
-            let formattedLine = '';
+        // Process and animate each line
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const lineDiv = document.createElement('div');
+            lineDiv.style.opacity = '0';
+            lineDiv.style.transform = 'translateY(10px)';
+            lineDiv.style.transition = 'all 0.3s ease';
+            
             if (line.match(/^\d️⃣/)) {
-                formattedLine = `<div class="flex items-start gap-2 mb-1 opacity-0 transform translate-y-1">
+                lineDiv.className = 'flex items-start gap-2 mb-1';
+                lineDiv.innerHTML = `
                     <span class="text-xl">${line.match(/^\d️⃣/)[0]}</span>
                     <span>${line.replace(/^\d️⃣\s*/, '')}</span>
-                </div>`;
+                `;
             } else {
-                formattedLine = line ? `<p class="mb-2 opacity-0 transform translate-y-1">${line}</p>` : '<div class="h-2"></div>';
+                lineDiv.className = 'mb-2';
+                lineDiv.textContent = line;
             }
-
-            formattedHtml += formattedLine;
-            msgDiv.innerHTML = formattedHtml;
-
-            // Animate each line
-            const elements = msgDiv.querySelectorAll('.opacity-0');
-            const lastElement = elements[elements.length - 1];
             
-            if (lastElement) {
-                await new Promise(resolve => setTimeout(resolve, 50)); // Brief pause before showing
-                lastElement.classList.add('transition-all', 'duration-300');
-                await new Promise(resolve => setTimeout(resolve, 50)); // Wait for transition classes
-                lastElement.classList.remove('opacity-0', 'transform', 'translate-y-1');
-                await new Promise(resolve => setTimeout(resolve, 300)); // Wait for animation
-            }
+            contentDiv.appendChild(lineDiv);
+            
+            // Brief pause before animating
+            await new Promise(resolve => setTimeout(resolve, 30));
+            
+            // Animate the line
+            lineDiv.style.opacity = '1';
+            lineDiv.style.transform = 'translateY(0)';
+            
+            // Wait for animation to complete
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     } else {
-        // Without animation, just format and show immediately
-        formattedHtml = lines
+        // Without animation, show all lines immediately
+        const formattedHtml = text.split('\n')
             .map(line => {
                 if (line.match(/^\d️⃣/)) {
                     return `<div class="flex items-start gap-2 mb-1">
@@ -110,13 +112,13 @@ async function appendCourseBuilderMessage(sender, text, animate = false) {
                         <span>${line.replace(/^\d️⃣\s*/, '')}</span>
                     </div>`;
                 }
-                return line ? `<p class="mb-2">${line}</p>` : '<div class="h-2"></div>';
+                return line ? `<div class="mb-2">${line}</div>` : '<div class="h-2"></div>';
             })
             .join('');
-        msgDiv.innerHTML = formattedHtml;
+        contentDiv.innerHTML = formattedHtml;
     }
 
-    // Scroll to bottom with smooth animation
+    // Scroll to bottom smoothly
     courseBuilderChatMessages.scrollTo({
         top: courseBuilderChatMessages.scrollHeight,
         behavior: 'smooth'
