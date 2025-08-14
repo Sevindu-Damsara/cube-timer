@@ -11,6 +11,24 @@ function showCourseBuilderChat() {
     // Show chat
     courseBuilderChatSection.classList.remove('hidden');
     isCourseBuilderActive = true;
+
+    // Add welcome message if chat is empty
+    if (!courseBuilderChatMessages.hasChildNodes()) {
+        const welcomeMessage = `👋 Welcome to the AI Course Builder! I'm here to help you create a personalized cubing course.
+
+Here's how we can get started:
+
+1️⃣ Tell me what type of cube you want to learn (e.g., 3x3, 2x2, Pyraminx)
+2️⃣ Let me know your skill level (beginner, intermediate, advanced)
+3️⃣ Mention any specific topics or methods you're interested in
+
+For example, you could say:
+"I want to learn F2L for 3x3" or "Create a beginner's course for Pyraminx"
+
+Feel free to ask questions, and I'll guide you through the process! 🎯`;
+
+        appendCourseBuilderMessage('ai', welcomeMessage);
+    }
 }
 
 function hideCourseBuilderChat() {
@@ -32,8 +50,27 @@ function resetCourseBuilderChat() {
 
 function appendCourseBuilderMessage(sender, text) {
     const msgDiv = document.createElement('div');
-    msgDiv.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'} p-3 rounded-lg mb-2 ${sender === 'user' ? 'bg-blue-700 text-white self-end' : 'bg-gray-800 text-gray-200 self-start'}`;
-    msgDiv.innerHTML = `<span>${text}</span>`;
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'} p-4 rounded-lg mb-2 ${
+        sender === 'user' ? 'bg-blue-700 text-white ml-12' : 'bg-gray-800 text-gray-200 mr-12'
+    }`;
+    
+    // Convert numbered lists and emojis to proper formatting
+    const formattedText = text
+        .split('\n')
+        .map(line => {
+            // Convert numbered lists with emojis to styled format
+            if (line.match(/^\d️⃣/)) {
+                return `<div class="flex items-start gap-2 mb-1">
+                    <span class="text-xl">${line.match(/^\d️⃣/)[0]}</span>
+                    <span>${line.replace(/^\d️⃣\s*/, '')}</span>
+                </div>`;
+            }
+            // Add spacing between paragraphs
+            return line ? `<p class="mb-2">${line}</p>` : '<div class="h-2"></div>';
+        })
+        .join('');
+
+    msgDiv.innerHTML = formattedText;
     courseBuilderChatMessages.appendChild(msgDiv);
     courseBuilderChatMessages.scrollTop = courseBuilderChatMessages.scrollHeight;
 }
