@@ -109,7 +109,7 @@ function showGeneratedCourse(course) {
         document.body.appendChild(courseViewSection);
     }
     courseViewSection.innerHTML = `
-        <div class="w-full max-w-3xl mx-auto bg-gray-900 bg-opacity-95 rounded-2xl shadow-2xl flex flex-col h-[90vh]">
+        <div class="w-full h-full max-w-5xl mx-auto bg-gray-900 bg-opacity-95 rounded-none md:rounded-2xl shadow-2xl flex flex-col" style="min-height:100vh;">
             <div class="flex items-center justify-between p-4 border-b border-gray-700">
                 <h2 class="text-2xl font-bold text-gradient">${course.title}</h2>
                 <button id="closeGeneratedCourseBtn" class="button-secondary"><i class="fas fa-arrow-left"></i> Back</button>
