@@ -19,7 +19,7 @@ CORS(app) # Enable CORS for all origins for development. Restrict for production
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1/models"
 
 # Constants for exponential backoff (no longer used for retries, but kept for reference if needed)
 # MAX_RETRIES = 5
@@ -291,10 +291,10 @@ def handle_lesson_chat(request_json):
         # Convert messages to the correct format for gemini-2.5-flash-lite
         formatted_contents = []
         for msg in messages_for_gemini:
-            formatted_contents.append({
-                "role": msg["role"],
-                "parts": [{"text": msg["content"]}]
-            })
+            if msg["role"] != "system":  # Only include non-system messages
+                formatted_contents.append({
+                    "parts": [{"text": msg["content"]}]
+                })
         
         gemini_payload = {
             "contents": formatted_contents,
