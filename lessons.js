@@ -1,3 +1,156 @@
+// --- AI Course Builder Chat State ---
+let courseBuilderChatHistory = [];
+let isCourseBuilderActive = false;
+let isCourseGenerationInProgress = false;
+let courseBuilderChatSection, openCourseBuilderBtn, closeCourseBuilderBtn, courseBuilderChatMessages, courseBuilderChatInput, sendCourseBuilderChatBtn;
+
+function showCourseBuilderChat() {
+    // Hide all main sections
+    document.getElementById('lessonHub').style.display = 'none';
+    document.getElementById('savedLessonsContainer').style.display = 'none';
+    if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = 'none';
+    // Show chat
+    courseBuilderChatSection.classList.remove('hidden');
+    isCourseBuilderActive = true;
+}
+
+function hideCourseBuilderChat() {
+    // Show main sections
+    document.getElementById('lessonHub').style.display = '';
+    document.getElementById('savedLessonsContainer').style.display = '';
+    if (document.getElementById('aiCourseBuilderBtnSection')) document.getElementById('aiCourseBuilderBtnSection').style.display = '';
+    // Hide chat
+    courseBuilderChatSection.classList.add('hidden');
+    isCourseBuilderActive = false;
+    resetCourseBuilderChat();
+}
+
+function resetCourseBuilderChat() {
+    courseBuilderChatHistory = [];
+    courseBuilderChatMessages.innerHTML = '';
+    courseBuilderChatInput.value = '';
+    isCourseGenerationInProgress = false;
+}
+
+function appendCourseBuilderMessage(sender, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'} p-3 rounded-lg mb-2 ${sender === 'user' ? 'bg-blue-700 text-white self-end' : 'bg-gray-800 text-gray-200 self-start'}`;
+    msgDiv.innerHTML = `<span>${text}</span>`;
+    courseBuilderChatMessages.appendChild(msgDiv);
+    courseBuilderChatMessages.scrollTop = courseBuilderChatMessages.scrollHeight;
+}
+
+async function sendCourseBuilderChatPrompt(prompt) {
+    if (!prompt.trim() || isCourseGenerationInProgress) return;
+    appendCourseBuilderMessage('user', prompt);
+    courseBuilderChatInput.value = '';
+    courseBuilderChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
+    // Send to backend for AI response
+    try {
+        const payload = {
+            type: 'lesson_chat',
+            chatHistory: courseBuilderChatHistory,
+            // Optionally add userHistory, cubeType, etc. for more context
+        };
+        const response = await fetch('/api/gemini-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.action === 'generate_course') {
+            // AI is ready to generate the course
+            isCourseGenerationInProgress = true;
+            appendCourseBuilderMessage('ai', result.message || 'Generating your custom course...');
+            await generateCourseFromChat();
+        } else if (result.message) {
+            appendCourseBuilderMessage('ai', result.message);
+            courseBuilderChatHistory.push({ role: 'model', parts: [{ text: result.message }] });
+        } else if (result.error) {
+            appendCourseBuilderMessage('ai', result.error);
+        }
+    } catch (e) {
+        appendCourseBuilderMessage('ai', 'Sorry, there was a problem connecting to the AI service.');
+    }
+}
+
+async function generateCourseFromChat() {
+    // Send a request to actually generate the course using the chat history
+    try {
+        const payload = {
+            type: 'generate_course',
+            chatHistory: courseBuilderChatHistory
+        };
+        const response = await fetch('/api/gemini-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result && result.title && result.modules) {
+            // Show the generated course in a full-screen view (reuse or create a new section)
+            showGeneratedCourse(result);
+        } else {
+            appendCourseBuilderMessage('ai', 'Sorry, I could not generate a course. Please try again.');
+        }
+    } catch (e) {
+        appendCourseBuilderMessage('ai', 'Sorry, there was a problem generating your course.');
+    } finally {
+        isCourseGenerationInProgress = false;
+    }
+}
+
+function showGeneratedCourse(course) {
+    // Hide chat, show a full-screen course view (reuse lessonViewer or create a new section)
+    courseBuilderChatSection.classList.add('hidden');
+    let courseViewSection = document.getElementById('aiGeneratedCourseView');
+    if (!courseViewSection) {
+        courseViewSection = document.createElement('section');
+        courseViewSection.id = 'aiGeneratedCourseView';
+        courseViewSection.className = 'fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col items-center justify-center';
+        document.body.appendChild(courseViewSection);
+    }
+    courseViewSection.innerHTML = `
+        <div class="w-full max-w-3xl mx-auto bg-gray-900 bg-opacity-95 rounded-2xl shadow-2xl flex flex-col h-[90vh]">
+            <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                <h2 class="text-2xl font-bold text-gradient">${course.title}</h2>
+                <button id="closeGeneratedCourseBtn" class="button-secondary"><i class="fas fa-arrow-left"></i> Back</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                <div class="text-lg text-gray-200 mb-2">${course.description || ''}</div>
+                ${course.modules.map(module => `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gradient mb-2">${module.module_title}</h3>
+                        <ul class="list-disc ml-6">
+                            ${module.lessons.map(lesson => `<li class="mb-2"><span class="font-semibold">${lesson.lesson_title}:</span> ${lesson.content || ''}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    courseViewSection.querySelector('#closeGeneratedCourseBtn').onclick = () => {
+        courseViewSection.remove();
+        courseBuilderChatSection.classList.remove('hidden');
+    };
+}
+// --- AI Course Builder Chat Event Listeners ---
+window.addEventListener('DOMContentLoaded', () => {
+    courseBuilderChatSection = document.getElementById('aiCourseBuilderChat');
+    openCourseBuilderBtn = document.getElementById('openCourseBuilderBtn');
+    closeCourseBuilderBtn = document.getElementById('closeCourseBuilderBtn');
+    courseBuilderChatMessages = document.getElementById('courseBuilderChatMessages');
+    courseBuilderChatInput = document.getElementById('courseBuilderChatInput');
+    sendCourseBuilderChatBtn = document.getElementById('sendCourseBuilderChatBtn');
+    if (openCourseBuilderBtn) openCourseBuilderBtn.onclick = showCourseBuilderChat;
+    if (closeCourseBuilderBtn) closeCourseBuilderBtn.onclick = hideCourseBuilderChat;
+    if (sendCourseBuilderChatBtn) sendCourseBuilderChatBtn.onclick = () => sendCourseBuilderChatPrompt(courseBuilderChatInput.value);
+    if (courseBuilderChatInput) courseBuilderChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && courseBuilderChatInput.value.trim() !== '') {
+            sendCourseBuilderChatPrompt(courseBuilderChatInput.value);
+        }
+    });
+});
 // Firebase imports - These are provided globally by the Canvas environment
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
