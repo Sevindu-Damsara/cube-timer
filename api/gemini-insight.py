@@ -5,15 +5,10 @@
 import os
 import requests
 import json
-import uuid  # Import for generating unique lesson IDs
-            json=gemini_payload,
-            timeout=30
-        )for generating unique lesson IDs
-import re   # Import regex module
-# import time # Removed: time is no longer needed for sleep function
-
+import uuid
+import re
 from flask import Flask, request, jsonify
-from flask_cors import CORS # Required for handling CORS in Flask functions
+from flask_cors import CORS
 
 # Initialize the Flask app for Vercel.
 app = Flask(__name__)
@@ -136,14 +131,15 @@ def generate_insight(request_json):
         }
     }
     
-    # Clean the base URL before use
-    clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
-    clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
-
     try:
-        gemini_response = requests.post(f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent", headers=headers, json=payload, timeout=30)
-        gemini_response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
-        
+        gemini_response = requests.post(
+            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        gemini_response.raise_for_status()
+
         response_data = gemini_response.json()
         print(f"DEBUG: Gemini API response: {response_data}")
 
@@ -169,14 +165,13 @@ def generate_insight(request_json):
         print(f"CRITICAL ERROR: Unexpected error in generate_insight: {e}")
         return jsonify({"error": f"An unexpected error occurred during insight generation: {e}"}), 500
 
+
 def handle_lesson_chat(request_json):
     """Handles conversational chat for lesson creation or in-lesson queries."""
-
     chat_history = request_json.get('chatHistory', [])
     cube_type = request_json.get('cubeType', '3x3')
     skill_level = request_json.get('skillLevel', 'beginner')
 
-    # Extract the most recent user message to check for explicit commands
     latest_user_message = ""
     if chat_history and isinstance(chat_history, list) and len(chat_history) > 0:
         for msg in reversed(chat_history):
@@ -188,7 +183,6 @@ def handle_lesson_chat(request_json):
                     latest_user_message = msg['parts'][0].lower()
                 break
 
-    # Format chat history for Gemini API
     formatted_chat = []
     for msg in chat_history:
         if isinstance(msg, dict) and msg.get('parts'):
@@ -196,114 +190,46 @@ def handle_lesson_chat(request_json):
             text = msg['parts'][0] if isinstance(msg['parts'][0], str) else msg['parts'][0].get('text', '')
             formatted_chat.append({"role": role, "parts": [{"text": text}]})
 
-    # Prepare the system instruction
     system_instruction = {
         "role": "system",
         "parts": [{
             "text": f"You are Jarvis, an AI cubing coach. You're helping create a {cube_type} cube course for a {skill_level} level cuber. Be friendly and conversational. Ask clarifying questions if needed. Only generate a course when explicitly asked."
         }]
     }
-
-    # Add system instruction at the start
     formatted_chat.insert(0, system_instruction)
 
     explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
-    should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
-
-    if should_generate_explicitly:
-        response_payload = {
+    if any(cmd in latest_user_message for cmd in explicit_generate_commands):
+        return jsonify({
             'action': "generate_course",
-            'message': "Understood, Sir Sevindu. I am now generating your personalized cubing course. This may take a moment."
-        }
-        print(f"DEBUG: handle_lesson_chat - Returning generate_course action: {response_payload}")
-        return jsonify(response_payload), 200
+            'message': "Understood. I am now generating your personalized cubing course. This may take a moment."
+        }), 200
 
-    # Make the API call to Gemini
     headers = {
         'Content-Type': 'application/json',
         'x-goog-api-key': GEMINI_API_KEY
     }
+    payload = {"contents": formatted_chat}
 
     try:
         gemini_response = requests.post(
             f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
-            headers=headers,
-            json={"contents": formatted_chat},
-            timeout=30
-        )
-        gemini_response.raise_for_status()
-        
-        response_data = gemini_response.json()
-        if response_data.get('candidates') and response_data['candidates'][0].get('content'):
-            ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
-            return jsonify({
-                'message': ai_message
-            }), 200
-        else:
-            print(f"ERROR: Invalid response format from Gemini API: {response_data}")
-            return jsonify({"error": "Failed to get a valid response from the AI service"}), 500
-
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: Failed to get response from Gemini API: {e}")
-        return jsonify({"error": f"Failed to get response from AI service: {e}"}), 500
-        if msg.get('role') == 'system':
-            system_instruction = msg.get('parts', [{}])[0].get('text', '')
-        else:
-            user_messages.append(msg)
-
-    # Build the messages list for Gemini API
-    messages_for_gemini = []
-    if system_instruction:
-        messages_for_gemini.append({"role": "system", "content": system_instruction})
-    # Add user history as a system message for context if available
-    if user_history:
-        user_history_str = json.dumps(user_history)
-        messages_for_gemini.append({
-            "role": "system",
-            "content": f"The following is the user's cubing history and progress: {user_history_str}"
-        })
-    for msg in user_messages:
-        role = msg.get('role', 'user')
-        text = msg.get('parts', [{}])[0].get('text', '')
-        messages_for_gemini.append({"role": role, "content": text})
-
-    headers = {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_API_KEY
-    }
-    payload = {
-        "messages": messages_for_gemini,
-        "temperature": 0.7,
-        "maxOutputTokens": 512,
-        "topP": 0.8,
-        "topK": 40,
-        "candidateCount": 1
-    }
-
-    try:
-        gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-1.5-chat-bison:generateMessage",
             headers=headers,
             json=payload,
             timeout=30
         )
         gemini_response.raise_for_status()
         response_data = gemini_response.json()
-        print(f"DEBUG: Gemini API response for lesson chat: {response_data}")
 
-        if response_data and 'candidates' in response_data and len(response_data['candidates']) > 0:
-            ai_message = response_data['candidates'][0]['message']['content']
-            response_payload = {
-                'action': "continue_chat",
-                'message': ai_message
-            }
-            return jsonify(response_payload), 200
+        if response_data.get('candidates') and response_data['candidates'][0].get('content'):
+            ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
+            return jsonify({'message': ai_message}), 200
         else:
-            print("ERROR: Gemini API response missing candidates or content.")
-            return jsonify({"error": "AI service did not return a valid response."}), 500
+            print(f"ERROR: Invalid response format from Gemini API: {response_data}")
+            return jsonify({"error": "Failed to get a valid response from the AI service"}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API failed: {e}")
+        print(f"ERROR: Failed to get response from Gemini API: {e}")
         return jsonify({"error": f"Failed to get response from AI service: {e}"}), 500
 
 
@@ -496,40 +422,28 @@ def handle_generate_course(request_json):
     }
 
     try:
-        clean_base_url = re.sub(r'\[(.*?)\]\((.*?)\)', r'\1', GEMINI_API_BASE_URL)
-        clean_base_url = clean_base_url.replace('[', '').replace(']', '').replace('(', '').replace(')', '')
-
         gemini_response = requests.post(
             f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
             headers=headers,
             json=payload,
-            timeout=120 
+            timeout=120
         )
-        gemini_response.raise_for_status() 
-        
+        gemini_response.raise_for_status()
         response_data = gemini_response.json()
         print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
 
         if response_data and response_data.get('candidates'):
             ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            
-            # Since responseMimeType is application/json, expect direct JSON
             generated_course = json.loads(ai_response_text)
-            
-            # Add UUIDs if not present (this part is from original code)
-            if 'course_id' not in generated_course or not generated_course['course_id']:
-                generated_course['course_id'] = str(uuid.uuid4())
+
+            generated_course.setdefault('course_id', str(uuid.uuid4()))
             for module in generated_course.get('modules', []):
-                if 'module_id' not in module or not module['module_id']:
-                    module['module_id'] = str(uuid.uuid4())
-                for lesson in module.get('lessons', []): 
-                    if 'lesson_id' not in lesson or not lesson['lesson_id']:
-                        lesson['lesson_id'] = str(uuid.uuid4())
-                    # Ensure steps have UUIDs if present
+                module.setdefault('module_id', str(uuid.uuid4()))
+                for lesson in module.get('lessons', []):
+                    lesson.setdefault('lesson_id', str(uuid.uuid4()))
                     for step in lesson.get('steps', []):
-                        if 'step_id' not in step or not step['step_id']:
-                            step['step_id'] = str(uuid.uuid4())
-            
+                        step.setdefault('step_id', str(uuid.uuid4()))
+
             return jsonify(generated_course), 200
         else:
             print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
