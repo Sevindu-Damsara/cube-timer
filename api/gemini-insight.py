@@ -297,13 +297,7 @@ def handle_lesson_chat(request_json):
                 })
         
         gemini_payload = {
-            "contents": formatted_contents,
-            "generationConfig": {
-                "temperature": 0.7,
-                "maxOutputTokens": 512,
-                "topP": 0.8,
-                "topK": 40
-            }
+            "contents": formatted_contents
         }
         
         gemini_response = requests.post(
