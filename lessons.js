@@ -38,23 +38,39 @@ function appendCourseBuilderMessage(sender, text) {
     courseBuilderChatMessages.scrollTop = courseBuilderChatMessages.scrollHeight;
 }
 
-async function sendCourseBuilderChatPrompt(prompt) {
+async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
     if (!prompt.trim() || isCourseGenerationInProgress) return;
     appendCourseBuilderMessage('user', prompt);
     courseBuilderChatInput.value = '';
     courseBuilderChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
+    
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second delay between retries
+    
     // Send to backend for AI response
     try {
         const payload = {
             type: 'lesson_chat',
             chatHistory: courseBuilderChatHistory,
-            // Optionally add userHistory, cubeType, etc. for more context
+            context: {
+                cubeType: '3x3x3',
+                skillLevel: 'beginner',
+                focusArea: 'F2L'
+            }
         };
         const response = await fetch('/api/gemini-insight', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
             body: JSON.stringify(payload)
         });
+        
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+        }
+        
         const result = await response.json();
         if (result.action === 'generate_course') {
             // AI is ready to generate the course
@@ -65,10 +81,16 @@ async function sendCourseBuilderChatPrompt(prompt) {
             appendCourseBuilderMessage('ai', result.message);
             courseBuilderChatHistory.push({ role: 'model', parts: [{ text: result.message }] });
         } else if (result.error) {
-            appendCourseBuilderMessage('ai', result.error);
+            throw new Error(result.error);
         }
     } catch (e) {
-        appendCourseBuilderMessage('ai', 'Sorry, there was a problem connecting to the AI service.');
+        console.error('Chat API Error:', e);
+        if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying request (${retryCount + 1}/${MAX_RETRIES})...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return sendCourseBuilderChatPrompt(prompt, retryCount + 1);
+        }
+        appendCourseBuilderMessage('ai', 'I apologize, but I\'m having trouble connecting to the AI service. Please try again in a moment. If you\'re asking about F2L, I can provide some basic guidance: F2L (First Two Layers) is a crucial step in the CFOP method. Would you like me to explain the basic concepts while we wait for the AI service to recover?');
     }
 }
 
@@ -1875,12 +1897,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Tone.js Synth initialization is now handled on first user gesture (e.g., clicking 'Create New Course')
     // This resolves the "AudioContext was not allowed to start" warning.
-    try {
-        synth = new Tone.Synth().toDestination();
-        // Do NOT call Tone.start() here. It will be called on first user interaction.
-        console.log("[DEBUG] Tone.js Synth initialized (but not yet started).");
-    } catch (e) {
-        console.warn("[WARN] Tone.js initialization failed:", e.message);
-        showToast("Audio playback may not work. Please interact with the page.", "info");
+    // Defer Tone.js initialization until user interaction
+    synth = null;
+    async function initToneJs() {
+        if (synth) return; // Already initialized
+        try {
+            await Tone.start();
+            synth = new Tone.Synth().toDestination();
+            console.log("[DEBUG] Tone.js Synth initialized successfully");
+        } catch (e) {
+            console.warn("[WARN] Tone.js initialization failed:", e.message);
+            showToast("Audio playback may not work", "info");
+        }
     }
+    // Add click listener to document to initialize Tone.js on first interaction
+    document.addEventListener('click', initToneJs, { once: true });
 });
