@@ -13,9 +13,12 @@ function showCourseBuilderChat() {
     courseBuilderChatSection.classList.remove('hidden');
     isCourseBuilderActive = true;
 
-    // Add welcome message if chat is empty
-    if (!courseBuilderChatMessages.hasChildNodes()) {
-        const welcomeMessage = `👋 Welcome to the AI Course Builder! I'm here to help you create a personalized cubing course.
+    // Reset chat history and show welcome message
+    courseBuilderChatHistory = [];
+    courseBuilderChatMessages.innerHTML = '';
+
+    // Add welcome message with typing animation
+    const welcomeMessage = `👋 Welcome to the AI Course Builder! I'm here to help you create a personalized cubing course.
 
 Here's how we can get started:
 
@@ -28,8 +31,8 @@ For example, you could say:
 
 Feel free to ask questions, and I'll guide you through the process! 🎯`;
 
-        appendCourseBuilderMessage('ai', welcomeMessage);
-    }
+    // Show welcome message with animation
+    appendCourseBuilderMessage('ai', welcomeMessage, true);
 }
 
 function hideCourseBuilderChat() {
@@ -50,31 +53,74 @@ function resetCourseBuilderChat() {
     isCourseGenerationInProgress = false;
 }
 
-function appendCourseBuilderMessage(sender, text) {
+async function appendCourseBuilderMessage(sender, text, animate = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-message ${sender === 'user' ? 'user-message' : 'ai-message'} p-4 rounded-lg mb-2 ${
         sender === 'user' ? 'bg-blue-700 text-white ml-12' : 'bg-gray-800 text-gray-200 mr-12'
-    }`;
+    } opacity-0 transform translate-y-2 transition-all duration-300`;
     
-    // Convert numbered lists and emojis to proper formatting
-    const formattedText = text
-        .split('\n')
-        .map(line => {
-            // Convert numbered lists with emojis to styled format
+    // Split text into lines for processing
+    const lines = text.split('\n');
+    let formattedHtml = '';
+
+    // Create the message container but start empty
+    msgDiv.innerHTML = '';
+    courseBuilderChatMessages.appendChild(msgDiv);
+
+    // Fade in the message div
+    setTimeout(() => {
+        msgDiv.classList.remove('opacity-0', 'translate-y-2');
+    }, 100);
+
+    if (animate && sender === 'ai') {
+        // Process each line with animation
+        for (const line of lines) {
+            let formattedLine = '';
             if (line.match(/^\d️⃣/)) {
-                return `<div class="flex items-start gap-2 mb-1">
+                formattedLine = `<div class="flex items-start gap-2 mb-1 opacity-0 transform translate-y-1">
                     <span class="text-xl">${line.match(/^\d️⃣/)[0]}</span>
                     <span>${line.replace(/^\d️⃣\s*/, '')}</span>
                 </div>`;
+            } else {
+                formattedLine = line ? `<p class="mb-2 opacity-0 transform translate-y-1">${line}</p>` : '<div class="h-2"></div>';
             }
-            // Add spacing between paragraphs
-            return line ? `<p class="mb-2">${line}</p>` : '<div class="h-2"></div>';
-        })
-        .join('');
 
-    msgDiv.innerHTML = formattedText;
-    courseBuilderChatMessages.appendChild(msgDiv);
-    courseBuilderChatMessages.scrollTop = courseBuilderChatMessages.scrollHeight;
+            formattedHtml += formattedLine;
+            msgDiv.innerHTML = formattedHtml;
+
+            // Animate each line
+            const elements = msgDiv.querySelectorAll('.opacity-0');
+            const lastElement = elements[elements.length - 1];
+            
+            if (lastElement) {
+                await new Promise(resolve => setTimeout(resolve, 50)); // Brief pause before showing
+                lastElement.classList.add('transition-all', 'duration-300');
+                await new Promise(resolve => setTimeout(resolve, 50)); // Wait for transition classes
+                lastElement.classList.remove('opacity-0', 'transform', 'translate-y-1');
+                await new Promise(resolve => setTimeout(resolve, 300)); // Wait for animation
+            }
+        }
+    } else {
+        // Without animation, just format and show immediately
+        formattedHtml = lines
+            .map(line => {
+                if (line.match(/^\d️⃣/)) {
+                    return `<div class="flex items-start gap-2 mb-1">
+                        <span class="text-xl">${line.match(/^\d️⃣/)[0]}</span>
+                        <span>${line.replace(/^\d️⃣\s*/, '')}</span>
+                    </div>`;
+                }
+                return line ? `<p class="mb-2">${line}</p>` : '<div class="h-2"></div>';
+            })
+            .join('');
+        msgDiv.innerHTML = formattedHtml;
+    }
+
+    // Scroll to bottom with smooth animation
+    courseBuilderChatMessages.scrollTo({
+        top: courseBuilderChatMessages.scrollHeight,
+        behavior: 'smooth'
+    });
 }
 
 async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
@@ -114,10 +160,10 @@ async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
         if (result.action === 'generate_course') {
             // AI is ready to generate the course
             isCourseGenerationInProgress = true;
-            appendCourseBuilderMessage('ai', result.message || 'Generating your custom course...');
+            await appendCourseBuilderMessage('ai', result.message || 'Generating your custom course...', true);
             await generateCourseFromChat();
         } else if (result.message) {
-            appendCourseBuilderMessage('ai', result.message);
+            await appendCourseBuilderMessage('ai', result.message, true);
             courseBuilderChatHistory.push({ role: 'model', parts: [{ text: result.message }] });
         } else if (result.error) {
             throw new Error(result.error);
