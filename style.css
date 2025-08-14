@@ -1,3 +1,15 @@
+.lessons-page-container {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+}
+.glass-panel {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+}
 #courseListContainer {
     flex-basis: 100% !important;
     align-self: stretch !important;
