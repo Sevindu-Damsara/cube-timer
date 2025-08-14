@@ -127,9 +127,13 @@ async function appendCourseBuilderMessage(sender, text, animate = false) {
 
 async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
     if (!prompt.trim() || isCourseGenerationInProgress) return;
-    appendCourseBuilderMessage('user', prompt);
-    courseBuilderChatInput.value = '';
-    courseBuilderChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
+    
+    // Only add user message once at the start
+    if (retryCount === 0) {
+        await appendCourseBuilderMessage('user', prompt);
+        courseBuilderChatInput.value = '';
+        courseBuilderChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
+    }
     
     const MAX_RETRIES = 3;
     const RETRY_DELAY = 1000; // 1 second delay between retries
@@ -177,7 +181,7 @@ async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
             return sendCourseBuilderChatPrompt(prompt, retryCount + 1);
         }
-        appendCourseBuilderMessage('ai', 'I apologize, but I\'m having trouble connecting to the AI service. Please try again in a moment. If you\'re asking about F2L, I can provide some basic guidance: F2L (First Two Layers) is a crucial step in the CFOP method. Would you like me to explain the basic concepts while we wait for the AI service to recover?');
+        await appendCourseBuilderMessage('ai', 'An internal error has occurred. It\'s not you, it\'s us. Please try again later.', true);
     }
 }
 
