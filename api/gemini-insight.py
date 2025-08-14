@@ -152,8 +152,11 @@ def generate_insight(request_json):
             return jsonify({"error": "AI service did not return a valid insight."}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API failed: {e}")
-        return jsonify({"error": f"Failed to get insight from AI service: {e}"}), 500
+        error_message = f"Failed to get insight from AI service: {e}"
+        if hasattr(e, 'response') and e.response is not None:
+            error_message += f" | Details: {e.response.text}"
+        print(f"ERROR: Request to Gemini API failed: {error_message}")
+        return jsonify({"error": error_message}), 500
     except json.JSONDecodeError as e:
         print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
         if 'gemini_response' in locals() and gemini_response is not None:
@@ -185,8 +188,8 @@ def handle_lesson_chat(request_json):
 
     formatted_chat = []
     for msg in chat_history:
-        if isinstance(msg, dict) and msg.get('parts'):
-            role = msg.get('role', 'user')
+        if isinstance(msg, dict) and msg.get('parts') and msg.get('role'):
+            role = msg.get('role') # Correctly get the role from the message
             text = msg['parts'][0] if isinstance(msg['parts'][0], str) else msg['parts'][0].get('text', '')
             formatted_chat.append({"role": role, "parts": [{"text": text}]})
 
@@ -229,8 +232,11 @@ def handle_lesson_chat(request_json):
             return jsonify({"error": "Failed to get a valid response from the AI service"}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Failed to get response from Gemini API: {e}")
-        return jsonify({"error": f"Failed to get response from AI service: {e}"}), 500
+        error_message = f"Failed to get response from AI service: {e}"
+        if hasattr(e, 'response') and e.response is not None:
+            error_message += f" | Details: {e.response.text}"
+        print(f"ERROR: Failed to get response from Gemini API: {error_message}")
+        return jsonify({"error": error_message}), 500
 
 
 def handle_generate_course(request_json):
@@ -450,8 +456,11 @@ def handle_generate_course(request_json):
             return jsonify({"error": "AI service did not return a valid course structure."}), 500
 
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Request to Gemini API for course generation failed: {e}")
-        return jsonify({"error": f"Failed to generate course from AI service: {e}"}), 500
+        error_message = f"Failed to generate course from AI service: {e}"
+        if hasattr(e, 'response') and e.response is not None:
+            error_message += f" | Details: {e.response.text}"
+        print(f"ERROR: Request to Gemini API for course generation failed: {error_message}")
+        return jsonify({"error": error_message}), 500
     except json.JSONDecodeError as e:
         print(f"ERROR: Failed to parse Gemini API's text response as JSON: {e}")
         if 'ai_response_text' in locals():
