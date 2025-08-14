@@ -115,6 +115,7 @@ Guidelines:
             }
             print(f"DEBUG: handle_lesson_chat - Returning generate_course action: {response_payload}")
             return jsonify(response_payload), 200
+
         # Make the API call to Gemini
         headers = {
             'Content-Type': 'application/json',
@@ -158,37 +159,6 @@ Guidelines:
     except Exception as e:
         print(f"CRITICAL ERROR in handle_lesson_chat: {e}")
         return jsonify({"error": f"Server error in chat handler: {str(e)}"}), 500
-
-@app.route('/api/gemini-insight', methods=['POST', 'OPTIONS'])
-def gemini_insight_handler():
-    """HTTP endpoint that generates AI insight or AI lessons using Gemini API."""
-    print("DEBUG: === gemini_insight_handler received a request. ===")
-
-    if request.method == 'OPTIONS':
-        print("DEBUG: Handling OPTIONS (preflight) request.")
-        return '', 204
-
-    try:
-        request_json = request.get_json(silent=True)
-        print(f"DEBUG: Received request JSON: {request_json}")
-
-        if not request_json:
-            print("ERROR: Invalid JSON body.")
-            return jsonify({"error": "Invalid JSON body or empty request."}), 400
-
-        request_type = request_json.get('type')
-        if request_type == 'lesson_chat':
-            return handle_lesson_chat(request_json)
-        elif request_type == 'generate_course':
-            return handle_generate_course(request_json)
-        else:
-            return generate_insight(request_json)
-
-    except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"CRITICAL ERROR: An unexpected error occurred: {str(e)}\n{error_trace}")
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 def generate_insight(request_json):
     """Generate insights for a solve."""
