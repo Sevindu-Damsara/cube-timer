@@ -222,10 +222,20 @@ def handle_lesson_chat(request_json):
     }
 
     try:
+        gemini_payload = {
+            "contents": formatted_chat,
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 512,
+                "topP": 0.8,
+                "topK": 40
+            }
+        }
+        
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-1.5-chat-bison:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
             headers=headers,
-            json={"contents": formatted_chat},
+            json=gemini_payload,
             timeout=30
         )
         gemini_response.raise_for_status()
@@ -278,18 +288,36 @@ def handle_lesson_chat(request_json):
     }
 
     try:
+        # Convert messages to the correct format for gemini-2.5-flash-lite
+        formatted_contents = []
+        for msg in messages_for_gemini:
+            formatted_contents.append({
+                "role": msg["role"],
+                "parts": [{"text": msg["content"]}]
+            })
+        
+        gemini_payload = {
+            "contents": formatted_contents,
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 512,
+                "topP": 0.8,
+                "topK": 40
+            }
+        }
+        
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-1.5-chat-bison:generateMessage",
+            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
             headers=headers,
-            json=payload,
+            json=gemini_payload,
             timeout=30
         )
         gemini_response.raise_for_status()
         response_data = gemini_response.json()
         print(f"DEBUG: Gemini API response for lesson chat: {response_data}")
 
-        if response_data and 'candidates' in response_data and len(response_data['candidates']) > 0:
-            ai_message = response_data['candidates'][0]['message']['content']
+        if response_data.get('candidates') and response_data['candidates'][0].get('content'):
+            ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
             response_payload = {
                 'action': "continue_chat",
                 'message': ai_message
