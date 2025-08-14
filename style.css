@@ -1444,26 +1444,7 @@ body.theme-vibrant #aiInsightModal .modal-content {
 
 /* Additional CSS fixes for lessons page */
 
-/* Fix spinner size to prevent layout shifts */
-#historyLoadingSpinner {
-    width: 40px;
-    height: 40px;
-    margin: 0 auto;
-    display: block; /* Ensure it takes space even when hidden */
-    visibility: hidden; /* Hide visually but keep space */
-    opacity: 0;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: 10 !important;
-}
 
-#historyLoadingSpinner:not(.hidden) {
-    visibility: visible;
-    opacity: 1;
-}
 
 /* Auto-expand chat input textarea height */
 #courseChatInput {
