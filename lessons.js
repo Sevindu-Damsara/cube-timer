@@ -143,11 +143,8 @@ async function sendCourseBuilderChatPrompt(prompt, retryCount = 0) {
         const payload = {
             type: 'lesson_chat',
             chatHistory: courseBuilderChatHistory,
-            context: {
-                cubeType: '3x3x3',
-                skillLevel: 'beginner',
-                focusArea: 'F2L'
-            }
+            cubeType: courseTypeFilter ? courseTypeFilter.value : '3x3x3',
+            skillLevel: courseLevelFilter ? courseLevelFilter.value : 'beginner'
         };
         const response = await fetch('/api/gemini-insight', {
             method: 'POST',

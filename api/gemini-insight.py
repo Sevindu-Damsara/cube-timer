@@ -171,17 +171,38 @@ def handle_lesson_chat(request_json):
 
     chat_history = request_json.get('chatHistory', [])
     cube_type = request_json.get('cubeType', '3x3')
-    user_history = request_json.get('userHistory', [])  # New: Accept user history from frontend
+    skill_level = request_json.get('skillLevel', 'beginner')
 
     # Extract the most recent user message to check for explicit commands
     latest_user_message = ""
     if chat_history and isinstance(chat_history, list) and len(chat_history) > 0:
         for msg in reversed(chat_history):
             if isinstance(msg, dict) and msg.get('role') == 'user' and \
-               isinstance(msg.get('parts'), list) and len(msg['parts']) > 0 and \
-               isinstance(msg['parts'][0], dict) and msg['parts'][0].get('text') is not None:
-                latest_user_message = msg['parts'][0]['text'].lower()
+               isinstance(msg.get('parts'), list) and len(msg['parts']) > 0:
+                if isinstance(msg['parts'][0], dict):
+                    latest_user_message = msg['parts'][0].get('text', '').lower()
+                elif isinstance(msg['parts'][0], str):
+                    latest_user_message = msg['parts'][0].lower()
                 break
+
+    # Format chat history for Gemini API
+    formatted_chat = []
+    for msg in chat_history:
+        if isinstance(msg, dict) and msg.get('parts'):
+            role = msg.get('role', 'user')
+            text = msg['parts'][0] if isinstance(msg['parts'][0], str) else msg['parts'][0].get('text', '')
+            formatted_chat.append({"role": role, "parts": [{"text": text}]})
+
+    # Prepare the system instruction
+    system_instruction = {
+        "role": "system",
+        "parts": [{
+            "text": f"You are Jarvis, an AI cubing coach. You're helping create a {cube_type} cube course for a {skill_level} level cuber. Be friendly and conversational. Ask clarifying questions if needed. Only generate a course when explicitly asked."
+        }]
+    }
+
+    # Add system instruction at the start
+    formatted_chat.insert(0, system_instruction)
 
     explicit_generate_commands = ["generate course", "create course", "make the course", "generate the course now"]
     should_generate_explicitly = any(cmd in latest_user_message for cmd in explicit_generate_commands)
@@ -194,10 +215,34 @@ def handle_lesson_chat(request_json):
         print(f"DEBUG: handle_lesson_chat - Returning generate_course action: {response_payload}")
         return jsonify(response_payload), 200
 
-    # Construct prompt for Gemini API using full chat history and user history
-    system_instruction = None
-    user_messages = []
-    for msg in chat_history:
+    # Make the API call to Gemini
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
+    }
+
+    try:
+        gemini_response = requests.post(
+            f"{GEMINI_API_BASE_URL}/gemini-1.5-chat-bison:generateContent",
+            headers=headers,
+            json={"contents": formatted_chat},
+            timeout=30
+        )
+        gemini_response.raise_for_status()
+        
+        response_data = gemini_response.json()
+        if response_data.get('candidates') and response_data['candidates'][0].get('content'):
+            ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
+            return jsonify({
+                'message': ai_message
+            }), 200
+        else:
+            print(f"ERROR: Invalid response format from Gemini API: {response_data}")
+            return jsonify({"error": "Failed to get a valid response from the AI service"}), 500
+
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Failed to get response from Gemini API: {e}")
+        return jsonify({"error": f"Failed to get response from AI service: {e}"}), 500
         if msg.get('role') == 'system':
             system_instruction = msg.get('parts', [{}])[0].get('text', '')
         else:
