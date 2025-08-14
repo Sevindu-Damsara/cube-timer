@@ -1,20 +1,31 @@
-/* Fix: Always center and overlay the course card loading spinner, never shrink the card */
+#courseListContainer {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+#courseList {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+/* Fix spinner size to prevent layout shifts */
 #historyLoadingSpinner {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+    display: block; /* Ensure it takes space even when hidden */
+    visibility: hidden; /* Hide visually but keep space */
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     position: absolute !important;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    width: 40px !important;
-    height: 40px !important;
-    z-index: 20 !important;
-    display: none !important;
+    z-index: 10 !important;
 }
 #historyLoadingSpinner:not(.hidden) {
-    display: block !important;
-}
-#courseListContainer {
-    position: relative !important;
-    min-height: 500px !important;
+    visibility: visible;
+    opacity: 1;
 }
 /* Custom CSS for a modern, colorful look */
 /* BASE STYLES: These apply by default, effectively serving as the DESKTOP-FIRST layout. */
