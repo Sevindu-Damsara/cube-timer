@@ -1313,36 +1313,40 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
     lessonContentDisplay.innerHTML = marked.parse(step.content || 'No content for this step.');
 
     // Handle 3D visualizer
-    if (step.scramble || step.algorithm) {
-        scramble3DContainer.classList.remove('hidden');
-        scramble3DContainer.classList.add('flex');
-        scramble3DViewer.puzzle = currentCourse.cubeType || '3x3x3'; // Set puzzle type
-        scramble3DViewer.alg = step.scramble || ''; // Set scramble
-        scramble3DViewer.alg = step.algorithm || ''; // Set algorithm (will override scramble if both exist)
-        // Reset player state
-        scramble3DViewer.reset();
-        playPreviewBtn.style.display = 'inline-block';
-        pausePreviewBtn.style.display = 'none';
-    } else {
-        scramble3DContainer.classList.add('hidden');
-        scramble3DContainer.classList.remove('flex');
+    if (scramble3DContainer && scramble3DViewer && playPreviewBtn && pausePreviewBtn) {
+        if (step.scramble || step.algorithm) {
+            scramble3DContainer.classList.remove('hidden');
+            scramble3DContainer.classList.add('flex');
+            scramble3DViewer.puzzle = currentCourse.cubeType || '3x3x3'; // Set puzzle type
+            scramble3DViewer.alg = step.scramble || ''; // Set scramble
+            scramble3DViewer.alg = step.algorithm || ''; // Set algorithm (will override scramble if both exist)
+            // Reset player state
+            scramble3DViewer.reset();
+            playPreviewBtn.style.display = 'inline-block';
+            pausePreviewBtn.style.display = 'none';
+        } else {
+            scramble3DContainer.classList.add('hidden');
+            scramble3DContainer.classList.remove('flex');
+        }
     }
 
     // Handle Quiz
-    if (step.quiz && step.quiz.length > 0) {
-        quizArea.classList.remove('hidden');
-        quizArea.classList.add('flex');
-        renderQuiz(step.quiz);
-    } else {
-        quizArea.classList.add('hidden');
-        quizArea.classList.remove('flex');
+    if (quizArea) {
+        if (step.quiz && step.quiz.length > 0) {
+            quizArea.classList.remove('hidden');
+            quizArea.classList.add('flex');
+            renderQuiz(step.quiz);
+        } else {
+            quizArea.classList.add('hidden');
+            quizArea.classList.remove('flex');
+        }
     }
 
     // Update navigation buttons visibility
-    prevLessonStepBtn.style.display = (stepIndex === 0 && lessonIndex === 0 && modIndex === 0) ? 'none' : 'inline-flex';
-    nextLessonStepBtn.style.display = 'inline-flex';
-    completeLessonBtn.style.display = 'none';
-    lessonCompletionMessage.style.display = 'none';
+    if (prevLessonStepBtn) prevLessonStepBtn.style.display = (stepIndex === 0 && lessonIndex === 0 && modIndex === 0) ? 'none' : 'inline-flex';
+    if (nextLessonStepBtn) nextLessonStepBtn.style.display = 'inline-flex';
+    if (completeLessonBtn) completeLessonBtn.style.display = 'none';
+    if (lessonCompletionMessage) lessonCompletionMessage.style.display = 'none';
 
     // If it's the last step of the last lesson of the last module
     const lastModuleIndex = currentCourse.modules.length - 1;
@@ -1350,8 +1354,8 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
     const lastStepIndex = currentCourse.modules[lastModuleIndex].lessons[lastLessonIndex].steps.length - 1;
 
     if (modIndex === lastModuleIndex && lessonIndex === lastLessonIndex && stepIndex === lastStepIndex) {
-        nextLessonStepBtn.style.display = 'none';
-        completeLessonBtn.style.display = 'inline-flex';
+        if (nextLessonStepBtn) nextLessonStepBtn.style.display = 'none';
+        if (completeLessonBtn) completeLessonBtn.style.display = 'inline-flex';
     }
 
     highlightCurrentLesson();
