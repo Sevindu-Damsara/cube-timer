@@ -1135,7 +1135,6 @@ async function saveCourse(courseData) {
         }
         // Ensure courseData includes necessary top-level fields for Firestore
         const dataToSave = {
-            id: courseData.course_id, // Correctly reference course_id from the backend
             title: courseData.title,
             description: courseData.description,
             cubeType: courseData.cubeType,
@@ -1967,4 +1966,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     // Add click listener to document to initialize Tone.js on first interaction
     document.body.addEventListener('click', initToneJs, { once: true, capture: true });
+
+    // Expose functions for testing
+    window.showGlobalLoadingSpinner = showGlobalLoadingSpinner;
 });
