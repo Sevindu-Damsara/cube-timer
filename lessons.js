@@ -185,8 +185,10 @@ async function generateCourseFromChat() {
         });
         const result = await response.json();
         if (result && result.title && result.modules) {
-            // Show the generated course in a full-screen view (reuse or create a new section)
-            showGeneratedCourse(result);
+            // Save the course to Firestore so it appears in the main list
+            await saveCourse(result);
+            // Hide the chat and return to the hub, where the new course will appear.
+            hideCourseBuilderChat();
         } else {
             appendCourseBuilderMessage('ai', 'Sorry, I could not generate a course. Please try again.');
         }
