@@ -1564,3 +1564,81 @@ body.theme-vibrant #aiInsightModal .modal-content {
     border-color: var(--input-focus-border) !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
+
+.lesson-viewer-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.5rem;
+    width: 100%;
+    height: 100%;
+}
+
+.course-navigation-sidebar {
+    background-color: var(--bg-color-secondary);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.sidebar-header {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-course-info {
+    flex-grow: 1;
+}
+
+.module-list-container {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.lesson-content-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.lesson-header {
+    background-color: var(--bg-color-secondary);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.lesson-controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.lesson-body {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    flex-grow: 1;
+}
+
+.lesson-content-panel,
+.lesson-interactive-panel {
+    background-color: var(--bg-color-secondary);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.lesson-footer {
+    background-color: var(--bg-color-secondary);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}

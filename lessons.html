@@ -121,54 +121,45 @@
 
                 <!-- View 3: Lesson Viewer -->
                 <section id="lessonViewer" class="hidden w-full">
-                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="lesson-viewer-grid">
                         <!-- Left Sidebar: Course Navigation -->
-                        <aside id="courseNavigationSidebar" class="lg:col-span-1 glass-panel p-4 flex flex-col">
-                            <div class="flex justify-start mb-4">
+                        <aside id="courseNavigationSidebar" class="course-navigation-sidebar">
+                            <div class="sidebar-header">
                                 <button id="backToHubFromViewerBtn" class="button-secondary w-full"><i class="fas fa-arrow-left mr-2"></i> Back to Hub</button>
                             </div>
-                            <h3 id="currentCourseTitle" class="text-xl font-bold text-gradient mb-2 truncate"></h3>
-                            <div id="courseProgressBarContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4" title="Course Progress">
-                                <div id="courseProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                            <div class="sidebar-course-info">
+                                <h3 id="currentCourseTitle" class="text-xl font-bold text-gradient mb-2 truncate"></h3>
+                                <div id="courseProgressBarContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4" title="Course Progress">
+                                    <div id="courseProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                                </div>
                             </div>
-                            <div id="moduleList" class="flex-grow overflow-y-auto custom-scrollbar pr-2">
+                            <div id="moduleList" class="module-list-container">
                                 <!-- Modules and Lessons will be dynamically loaded here -->
                             </div>
                         </aside>
 
                         <!-- Right Side: Main Content -->
-                        <div class="lg:col-span-3 flex flex-col gap-6">
-                            <!-- Top Panel: Lesson Title & Controls -->
-                            <div class="glass-panel p-4">
-                                <div class="flex justify-between items-center">
-                                    <h2 id="lessonTitle" class="text-2xl font-bold text-white"></h2>
-                                    <div class="flex items-center gap-4">
-                                        <button id="editLessonBtn" class="button-secondary text-sm"><i class="fas fa-pencil-alt mr-2"></i>Edit</button>
-                                        <button id="openInLessonChatBtn" class="button-secondary text-sm"><i class="fas fa-comment-dots mr-2"></i>AI Chat</button>
-                                    </div>
+                        <div class="lesson-content-area">
+                            <div class="lesson-header">
+                                <h2 id="lessonTitle" class="text-2xl font-bold text-white"></h2>
+                                <div class="lesson-controls">
+                                    <button id="editLessonBtn" class="button-secondary text-sm"><i class="fas fa-pencil-alt mr-2"></i>Edit</button>
+                                    <button id="openInLessonChatBtn" class="button-secondary text-sm"><i class="fas fa-comment-dots mr-2"></i>AI Chat</button>
                                 </div>
                             </div>
 
-                            <!-- Main Content Area -->
-                            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
-                                <!-- Lesson Content (takes up more space) -->
-                                <div class="xl:col-span-2 glass-panel p-6 flex flex-col min-h-[500px]">
-                                    <div class="flex flex-col h-full">
-                                        <div class="flex-grow">
-                                            <div id="lessonContent" class="prose prose-invert max-w-none"></div>
-                                            <div id="lessonEditorContainer" class="hidden">
-                                                <textarea id="lessonMarkdownEditor"></textarea>
-                                                <button id="cancelEditLessonBtn" class="button-secondary">Cancel</button>
-                                            </div>
-                                        </div>
-                                        <div class="mt-4">
-                                            <button id="saveLessonContentBtn" class="button-primary">Save Content</button>
-                                        </div>
+                            <div class="lesson-body">
+                                <div class="lesson-content-panel">
+                                    <div id="lessonContent" class="prose prose-invert max-w-none"></div>
+                                    <div id="lessonEditorContainer" class="hidden">
+                                        <textarea id="lessonMarkdownEditor"></textarea>
+                                        <button id="cancelEditLessonBtn" class="button-secondary">Cancel</button>
+                                    </div>
+                                    <div class="mt-4">
+                                        <button id="saveLessonContentBtn" class="button-primary">Save Content</button>
                                     </div>
                                 </div>
-
-                                <!-- Interactive Panel (3D Viewer or Quiz) -->
-                                <div class="xl:col-span-1 glass-panel p-4 flex flex-col gap-4">
+                                <div class="lesson-interactive-panel">
                                     <div id="scramble3DContainer" class="hidden flex-col items-center justify-center flex-grow">
                                         <h3 class="text-lg font-bold text-gradient mb-2">3D Visualizer</h3>
                                         <twisty-player id="scramble3DViewer" class="w-full h-64 rounded-lg overflow-hidden" style="display: block;" background="#0f172a" control-panel="none"></twisty-player>
@@ -187,8 +178,7 @@
                                 </div>
                             </div>
 
-                            <!-- Bottom Navigation -->
-                            <div class="glass-panel p-4 flex justify-between items-center">
+                            <div class="lesson-footer">
                                 <button id="prevLessonStepBtn" class="button-secondary"><i class="fas fa-chevron-left mr-2"></i> Previous</button>
                                 <span id="lessonStepCounter" class="text-gray-400 text-sm"></span>
                                 <button id="nextLessonStepBtn" class="button-primary">Next <i class="fas fa-chevron-right ml-2"></i></button>
