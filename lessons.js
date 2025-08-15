@@ -1224,7 +1224,7 @@ function renderModuleList() {
         moduleItem.innerHTML = `
             <div class="module-title flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-700 transition-colors">
                 <i class="fas fa-chevron-right mr-2 transition-transform"></i>
-                <span>${module.moduleTitle}</span>
+                <span>${module.module_title}</span>
             </div>
             <ul class="lesson-list hidden space-y-1"></ul>
         `;
@@ -1236,7 +1236,7 @@ function renderModuleList() {
             module.lessons.forEach((lesson, lessonIndex) => {
                 const lessonItem = document.createElement('li');
                 lessonItem.className = 'lesson-item text-gray-400 hover:text-white hover:bg-gray-700 px-3 py-1 rounded-md transition-colors';
-                lessonItem.textContent = lesson.lessonTitle;
+                lessonItem.textContent = lesson.lesson_title;
                 lessonItem.dataset.modIndex = modIndex;
                 lessonItem.dataset.lessonIndex = lessonIndex;
                 lessonItem.addEventListener('click', async () => {
@@ -1308,7 +1308,7 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
     const lesson = currentCourse.modules[modIndex].lessons[lessonIndex];
     const step = lesson.steps[stepIndex];
 
-    lessonTitle.textContent = lesson.lessonTitle;
+    lessonTitle.textContent = lesson.lesson_title;
     lessonStepCounter.textContent = `Step ${stepIndex + 1} of ${lesson.steps.length}`;
     lessonContentDisplay.innerHTML = marked.parse(step.content || 'No content for this step.');
 
@@ -1318,8 +1318,7 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
             scramble3DContainer.classList.remove('hidden');
             scramble3DContainer.classList.add('flex');
             scramble3DViewer.puzzle = currentCourse.cubeType || '3x3x3'; // Set puzzle type
-            scramble3DViewer.alg = step.scramble || ''; // Set scramble
-            scramble3DViewer.alg = step.algorithm || ''; // Set algorithm (will override scramble if both exist)
+            scramble3DViewer.alg = step.algorithm || step.scramble || ''; // Use algorithm if available, otherwise scramble
             // Reset player state
             scramble3DViewer.reset();
             playPreviewBtn.style.display = 'inline-block';

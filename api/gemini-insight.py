@@ -7,12 +7,20 @@ import requests
 import json
 import uuid
 import re
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 # Initialize the Flask app for Vercel.
-app = Flask(__name__)
+app = Flask(__name__, static_folder='..', static_url_path='')
 CORS(app) # Enable CORS for all origins for development. Restrict for production if necessary.
+
+@app.route('/')
+def root():
+    return app.send_static_file('index.html')
+
+@app.route('/<path:path>')
+def static_proxy(path):
+    return app.send_static_file(path)
 
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
