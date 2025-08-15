@@ -1813,7 +1813,7 @@ function setupEventListeners() {
 
     prevLessonStepBtn = document.getElementById('prevLessonStepBtn');
     nextLessonStepBtn = document.getElementById('nextLessonStepBtn');
-    completeLessonBtn = document.getElementById('completeLessonBtn');
+    completeLessonBtn = document.getElementById('completeCourseBtn');
     lessonCompletionMessage = document.getElementById('lessonCompletionMessage');
 
     openInLessonChatBtn = document.getElementById('openInLessonChatBtn');
