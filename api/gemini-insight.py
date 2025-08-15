@@ -234,18 +234,20 @@ def handle_lesson_chat(request_json):
         if response_data.get('candidates') and response_data['candidates'][0].get('content'):
             ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
 
-            # First, check if the AI returned a JSON action object
+            # First, check if the AI returned a JSON action object, even if it's embedded in other text.
             try:
-                parsed_json = json.loads(ai_message)
-                if isinstance(parsed_json, dict) and parsed_json.get('action') == 'generate_course':
-                    print("DEBUG: AI returned a JSON action to generate course.")
-                    # Return a standardized message to the user, not the raw JSON.
-                    return jsonify({
-                        'action': 'generate_course',
-                        'message': 'Great, I have enough information to build your course now. Please wait a moment...'
-                    }), 200
+                json_match = re.search(r'\{.*\}', ai_message, re.DOTALL)
+                if json_match:
+                    possible_json = json_match.group(0)
+                    parsed_json = json.loads(possible_json)
+                    if isinstance(parsed_json, dict) and parsed_json.get('action') == 'generate_course':
+                        print("DEBUG: AI returned a JSON action to generate course.")
+                        return jsonify({
+                            'action': 'generate_course',
+                            'message': 'Great, I have enough information to build your course now. Please wait a moment...'
+                        }), 200
             except json.JSONDecodeError:
-                # Not a JSON response, so treat it as a regular chat message.
+                # The extracted string was not valid JSON, treat it as a regular chat message.
                 pass
 
             # Fallback: check for natural language triggers if not a JSON action
@@ -485,8 +487,16 @@ def handle_generate_course(request_json):
                 module.setdefault('module_id', str(uuid.uuid4()))
                 for lesson in module.get('lessons', []):
                     lesson.setdefault('lesson_id', str(uuid.uuid4()))
-                    for step in lesson.get('steps', []):
-                        step.setdefault('step_id', str(uuid.uuid4()))
+                    # Defensively add a steps array if it's missing.
+                    if 'steps' not in lesson or not lesson['steps']:
+                        lesson['steps'] = [{
+                            'step_id': str(uuid.uuid4()),
+                            'title': lesson.get('lesson_title', 'Introduction'),
+                            'content': lesson.get('content', 'No content available for this step.')
+                        }]
+                    else:
+                        for step in lesson.get('steps', []):
+                            step.setdefault('step_id', str(uuid.uuid4()))
 
             return jsonify(generated_course), 200
         else:
