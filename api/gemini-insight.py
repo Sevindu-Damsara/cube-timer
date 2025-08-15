@@ -200,7 +200,7 @@ def handle_lesson_chat(request_json):
 - Your goal is to gather enough information from the user to create a personalized course.
 - **DO:** Start by being friendly and conversational. Ask clarifying questions to understand the user's needs (e.g., their skill level for {cube_type}, what specific topics they're interested in).
 - **DO NOT:** Teach the lesson content directly in the chat.
-- **DECIDE AND ACT:** Once you believe you have enough information, your **ONLY** response should be a single, clean JSON object: `{"action": "generate_course"}`. Do not include any other text, explanation, or conversational filler in that specific response. The application will handle the user notification.
+- **DECIDE AND ACT:** Once you believe you have enough information, your **ONLY** response should be a single, clean JSON object: `{{\"action\": \"generate_course\"}}`. Do not include any other text, explanation, or conversational filler in that specific response. The application will handle the user notification.
 """
         }]
     }
