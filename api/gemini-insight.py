@@ -528,9 +528,10 @@ def handle_generate_course(request_json):
         print(f"CRITICAL ERROR: Unexpected error in handle_generate_course: {e}")
         return jsonify({"error": f"An unexpected error occurred during course generation: {e}"}), 500
 
+import argparse
+
 if __name__ == '__main__':
-    # This block is for local development and will not run on Vercel.
-    # On Vercel, the 'app' object is directly used by the Vercel server.
-    # It's good practice to keep this for local testing.
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=5000)
+    args = parser.parse_args()
+    app.run(host='0.0.0.0', port=args.port, debug=True)

@@ -1566,122 +1566,44 @@ body.theme-vibrant #aiInsightModal .modal-content {
 }
 
 /* Vibrant Course Viewer Theme */
-.theme-vibrant #lessonViewer .lesson-viewer-grid {
+.theme-vibrant .lesson-viewer-grid {
     background-color: var(--bg-color-primary);
     color: var(--text-color-primary);
 }
 
-.theme-vibrant #lessonViewer .course-navigation-sidebar,
-.theme-vibrant #lessonViewer .lesson-header,
-.theme-vibrant #lessonViewer .lesson-content-panel,
-.theme-vibrant #lessonViewer .lesson-interactive-panel,
-.theme-vibrant #lessonViewer .lesson-footer {
+.theme-vibrant .course-navigation-sidebar,
+.theme-vibrant .lesson-header,
+.theme-vibrant .lesson-content-panel,
+.theme-vibrant .lesson-interactive-panel,
+.theme-vibrant .lesson-footer {
     background-color: var(--bg-color-secondary);
     border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow);
 }
 
-.theme-vibrant #lessonViewer .button-primary {
+.theme-vibrant .button-primary {
     background: linear-gradient(145deg, #c084fc, #f87171);
     color: white;
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-.theme-vibrant #lessonViewer .button-secondary {
+.theme-vibrant .button-secondary {
     background-color: transparent;
     border: 1px solid #c084fc;
     color: #c084fc;
 }
 
-.theme-vibrant #lessonViewer .text-gradient {
+.theme-vibrant .text-gradient {
     background: linear-gradient(90deg, #c084fc, #f87171, #fbbf24);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-.theme-vibrant #lessonViewer .module-title:hover {
+.theme-vibrant .module-title:hover {
     color: #c084fc;
 }
 
-.theme-vibrant #lessonViewer .lesson-item.active {
+.theme-vibrant .lesson-item.active {
     background-color: rgba(192, 132, 252, 0.2);
     border-left-color: #c084fc;
-}
-
-.lesson-viewer-grid {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 1.5rem;
-    width: 100%;
-    height: 100%;
-}
-
-.course-navigation-sidebar {
-    background-color: var(--bg-color-secondary);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    border: 1px solid var(--border-color);
-}
-
-.sidebar-header {
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.sidebar-course-info {
-    flex-grow: 1;
-}
-
-.module-list-container {
-    overflow-y: auto;
-    flex-grow: 1;
-}
-
-.lesson-content-area {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.lesson-header {
-    background-color: var(--bg-color-secondary);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid var(--border-color);
-}
-
-.lesson-controls {
-    display: flex;
-    gap: 1rem;
-}
-
-.lesson-body {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 1.5rem;
-    flex-grow: 1;
-}
-
-.lesson-content-panel,
-.lesson-interactive-panel {
-    background-color: var(--bg-color-secondary);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    border: 1px solid var(--border-color);
-}
-
-.lesson-footer {
-    background-color: var(--bg-color-secondary);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid var(--border-color);
 }
