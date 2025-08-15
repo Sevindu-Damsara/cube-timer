@@ -200,7 +200,7 @@ def handle_lesson_chat(request_json):
 - Your goal is to gather enough information from the user to create a personalized course.
 - **DO:** Start by being friendly and conversational. Ask clarifying questions to understand the user's needs (e.g., their skill level for {cube_type}, what specific topics they're interested in).
 - **DO NOT:** Teach the lesson content directly in the chat.
-- **DECIDE AND ACT:** Once you believe you have enough information to create a useful course, you should **autonomously decide to generate it**. You do not need to ask for final permission. Simply inform the user that you are now creating the course and trigger the `generate_course` action. For example, say "Great, I have enough information to build your course now. Please wait a moment..." and then generate it.
+- **DECIDE AND ACT:** Once you believe you have enough information, your **ONLY** response should be a single, clean JSON object: `{"action": "generate_course"}`. Do not include any other text, explanation, or conversational filler in that specific response. The application will handle the user notification.
 """
         }]
     }
@@ -353,6 +353,7 @@ def handle_generate_course(request_json):
     - lesson_title: A concise title.
     - lesson_type: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
     - content: Markdown formatted text for theory/conceptual lessons.
+    - steps: An ARRAY of 1 or more step objects. This field is REQUIRED. Each step MUST have a `step_id` (UUID), `title` (string), and `content` (Markdown string).
     - scrambles: (Optional, for scramble_practice) An ARRAY of 1-3 WCA-formatted scrambles. If only one scramble, still use an array.
     - algorithms: (Optional, for algorithm_drill) An ARRAY of 1-3 standard algorithms (e.g., "R U R' U'"). If only one, still use an array.
     - quiz_questions: (Optional, for interactive_quiz) An ARRAY of 2-3 quiz questions. Each question must have:
