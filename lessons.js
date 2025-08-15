@@ -1234,7 +1234,7 @@ function renderModuleList() {
         moduleItem.innerHTML = `
             <div class="module-title flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-700 transition-colors">
                 <i class="fas fa-chevron-right mr-2 transition-transform"></i>
-                <span>${module.moduleTitle}</span>
+                <span>${module.module_title}</span>
             </div>
             <ul class="lesson-list hidden space-y-1"></ul>
         `;
@@ -1246,7 +1246,7 @@ function renderModuleList() {
             module.lessons.forEach((lesson, lessonIndex) => {
                 const lessonItem = document.createElement('li');
                 lessonItem.className = 'lesson-item text-gray-400 hover:text-white hover:bg-gray-700 px-3 py-1 rounded-md transition-colors';
-                lessonItem.textContent = lesson.lessonTitle;
+                lessonItem.textContent = lesson.lesson_title;
                 lessonItem.dataset.modIndex = modIndex;
                 lessonItem.dataset.lessonIndex = lessonIndex;
                 lessonItem.addEventListener('click', async () => {
@@ -1318,7 +1318,7 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
     const lesson = currentCourse.modules[modIndex].lessons[lessonIndex];
     const step = lesson.steps[stepIndex];
 
-    lessonTitle.textContent = lesson.lessonTitle;
+    lessonTitle.textContent = lesson.lesson_title;
     lessonStepCounter.textContent = `Step ${stepIndex + 1} of ${lesson.steps.length}`;
     lessonContentDisplay.innerHTML = marked.parse(step.content || 'No content for this step.');
 
@@ -1692,7 +1692,7 @@ async function sendInLessonChatPrompt(prompt) {
 
     // Include current lesson context in the chat history
     const currentLessonContext = {
-        lessonTitle: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lessonTitle,
+        lessonTitle: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lesson_title,
         lessonType: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].lesson_type, // Assuming lesson_type exists
         content: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].content,
         scramble: currentCourse.modules[currentModuleIndex].lessons[currentLessonIndex].steps[currentLessonStepIndex].scramble,
