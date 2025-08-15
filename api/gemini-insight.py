@@ -234,7 +234,21 @@ def handle_lesson_chat(request_json):
         if response_data.get('candidates') and response_data['candidates'][0].get('content'):
             ai_message = response_data['candidates'][0]['content']['parts'][0]['text']
 
-            # Check if the AI's response indicates it's ready to generate the course
+            # First, check if the AI returned a JSON action object
+            try:
+                parsed_json = json.loads(ai_message)
+                if isinstance(parsed_json, dict) and parsed_json.get('action') == 'generate_course':
+                    print("DEBUG: AI returned a JSON action to generate course.")
+                    # Return a standardized message to the user, not the raw JSON.
+                    return jsonify({
+                        'action': 'generate_course',
+                        'message': 'Great, I have enough information to build your course now. Please wait a moment...'
+                    }), 200
+            except json.JSONDecodeError:
+                # Not a JSON response, so treat it as a regular chat message.
+                pass
+
+            # Fallback: check for natural language triggers if not a JSON action
             generation_triggers = [
                 "i have enough information",
                 "build your course now",
@@ -242,11 +256,13 @@ def handle_lesson_chat(request_json):
                 "creating your course"
             ]
             if any(trigger in ai_message.lower() for trigger in generation_triggers):
+                print("DEBUG: AI returned a natural language trigger to generate course.")
                 return jsonify({
                     'action': "generate_course",
                     'message': ai_message
                 }), 200
 
+            # If neither of the above, it's a regular chat message.
             return jsonify({'message': ai_message}), 200
         else:
             print(f"ERROR: Invalid response format from Gemini API: {response_data}")
