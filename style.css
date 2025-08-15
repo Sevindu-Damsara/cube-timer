@@ -1565,6 +1565,58 @@ body.theme-vibrant #aiInsightModal .modal-content {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
 
+/* Futuristic Theme */
+.theme-futuristic .lesson-viewer-grid {
+    background-color: #0d0d0d;
+    color: #e0e0e0;
+}
+
+.theme-futuristic .course-navigation-sidebar,
+.theme-futuristic .lesson-header,
+.theme-futuristic .lesson-content-panel,
+.theme-futuristic .lesson-interactive-panel,
+.theme-futuristic .lesson-footer {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.theme-futuristic .course-navigation-sidebar:hover,
+.theme-futuristic .lesson-header:hover,
+.theme-futuristic .lesson-content-panel:hover,
+.theme-futuristic .lesson-interactive-panel:hover,
+.theme-futuristic .lesson-footer:hover {
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+}
+
+.theme-futuristic .button-primary {
+    background: linear-gradient(145deg, #7b2cbf, #9c36f0);
+    color: #f8f9fa;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.theme-futuristic .button-secondary {
+    background-color: transparent;
+    border: 1px solid #7b2cbf;
+    color: #7b2cbf;
+}
+
+.theme-futuristic .text-gradient {
+    background: linear-gradient(90deg, #7b2cbf, #c084fc, #f87171);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.theme-futuristic .module-title:hover {
+    color: #c084fc;
+}
+
+.theme-futuristic .lesson-item.active {
+    background-color: rgba(123, 44, 191, 0.2);
+    border-left-color: #7b2cbf;
+}
+
 .lesson-viewer-grid {
     display: grid;
     grid-template-columns: 300px 1fr;
