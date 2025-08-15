@@ -1360,9 +1360,9 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
 
     highlightCurrentLesson();
     // Ensure editor is hidden when viewing content
-    lessonEditorContainer.classList.add('hidden');
-    lessonContentDisplay.classList.remove('hidden');
-    editLessonBtn.textContent = 'Edit'; // Reset edit button text
+    if (lessonEditorContainer) lessonEditorContainer.classList.add('hidden');
+    if (lessonContentDisplay) lessonContentDisplay.classList.remove('hidden');
+    if (editLessonBtn) editLessonBtn.textContent = 'Edit'; // Reset edit button text
 }
 
 /**
