@@ -46,12 +46,9 @@ def gemini_nlu_handler():
         }
         gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
 
-        # MODIFIED PROMPT: To distinguish between commands and general questions,
-        # and to explicitly include web application related questions for 'general_query'.
-        prompt = f"""
+        system_prompt = """
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.
-        Your task is to interpret user voice commands.
-        The user's transcript is: "{user_transcript}".
+        Your task is to interpret a user's voice command transcript and classify it.
 
         Determine if the transcript is a specific command for the application or a general question.
 
@@ -74,36 +71,39 @@ def gemini_nlu_handler():
         Respond with a JSON object. Ensure the `confidence` score is between 0 and 1.
 
         Example Command Response:
-        {{
+        {
             "canonicalCommand": "set_cube_type",
             "commandValue": "3x3",
             "confidence": 1.0
-        }}
+        }
 
         Example General Question Response:
-        {{
+        {
             "canonicalCommand": "general_query",
             "query": "What is F2L?",
             "confidence": 0.9
-        }}
+        }
 
         Example Question about the app:
-        {{
+        {
             "canonicalCommand": "general_query",
             "query": "How do I change the theme?",
             "confidence": 0.95
-        }}
+        }
 
         Example Unknown Command Response:
-        {{
+        {
             "canonicalCommand": "unknown",
             "commandValue": null,
             "confidence": 0.5
-        }}
+        }
         """
 
         payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": [{"text": user_transcript}]}],
+            "systemInstruction": {
+                "parts": [{"text": system_prompt}]
+            },
             "generationConfig": {
                 "responseMimeType": "application/json"
             }

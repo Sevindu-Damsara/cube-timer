@@ -1141,9 +1141,9 @@ async function saveCourse(courseData) {
             cubeType: courseData.cubeType,
             level: courseData.level,
             modules: courseData.modules,
-            lastAccessedModuleIndex: courseData.lastAccessedModuleIndex,
-            lastAccessedLessonIndex: courseData.lastAccessedLessonIndex,
-            lastAccessedStepIndex: courseData.lastAccessedStepIndex,
+            lastAccessedModuleIndex: courseData.lastAccessedModuleIndex || 0,
+            lastAccessedLessonIndex: courseData.lastAccessedLessonIndex || 0,
+            lastAccessedStepIndex: courseData.lastAccessedStepIndex || 0,
             createdAt: new Date().toISOString()
         };
 
