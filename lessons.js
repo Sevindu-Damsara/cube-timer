@@ -1791,7 +1791,7 @@ function setupEventListeners() {
     lessonTitle = document.getElementById('lessonTitle');
     lessonStepCounter = document.getElementById('lessonStepCounter');
     editLessonBtn = document.getElementById('editLessonBtn');
-    lessonContentDisplay = document.getElementById('lessonContentDisplay');
+    lessonContentDisplay = document.getElementById('lessonContent');
     lessonEditorContainer = document.getElementById('lessonEditorContainer');
     lessonMarkdownEditor = document.getElementById('lessonMarkdownEditor');
     cancelEditLessonBtn = document.getElementById('cancelEditLessonBtn');
