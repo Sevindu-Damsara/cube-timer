@@ -1951,7 +1951,7 @@ async function loadInitialView() {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("[DEBUG] lessons.js: DOMContentLoaded triggered. Assigning DOM elements and initializing.");
     setupEventListeners(); // Assign DOM elements and add listeners
-    await initializeFirebaseAndAuth(); // Initialize Firebase and authentication
+    // await initializeFirebaseAndAuth(); // Initialize Firebase and authentication
 
     // Initialize Tone.js in a safer way
     synth = null;

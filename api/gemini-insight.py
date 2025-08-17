@@ -502,7 +502,16 @@ def handle_generate_course(request_json):
         print(f"DEBUG: Gemini API raw response for course generation: {response_data}")
 
         if response_data and response_data.get('candidates'):
-            ai_response_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            # The response may have multiple parts, concatenate them
+            full_response_text = "".join(part['text'] for part in response_data['candidates'][0]['content']['parts'])
+
+            # Use regex to find the JSON block
+            json_match = re.search(r'\{.*\}', full_response_text, re.DOTALL)
+            if not json_match:
+                print(f"ERROR: No JSON object found in the AI response: {full_response_text}")
+                return jsonify({"error": "AI service did not return a valid course structure in JSON format."}), 500
+
+            ai_response_text = json_match.group(0)
             generated_course = json.loads(ai_response_text)
 
             generated_course.setdefault('course_id', str(uuid.uuid4()))
