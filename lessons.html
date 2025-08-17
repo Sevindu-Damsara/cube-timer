@@ -52,7 +52,7 @@
             <div class="lessons-page-container">
 
                 <!-- View 1: Lesson Hub (Default View) -->
-                <section id="lessonHub" class="hidden w-full">
+                <section id="lessonHub" class="w-full">
                     <div class="glass-panel p-6 md:p-8">
                         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                             <h2 class="text-3xl md:text-4xl font-bold text-gradient">AI Cubing Courses</h2>
@@ -120,7 +120,7 @@
                 <!-- Course creation is now handled by aiCourseBuilderChat -->
 
                 <!-- View 3: Lesson Viewer -->
-                <section id="lessonViewer" class="w-full">
+                <section id="lessonViewer" class="hidden w-full">
                     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         <!-- Left Sidebar: Course Navigation -->
                         <aside id="courseNavigationSidebar" class="lg:col-span-1 glass-panel p-4 flex flex-col">
@@ -227,7 +227,7 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Link to external JavaScript file -->
-    <!-- <script type="module" src="lessons.js"></script> -->
+    <script type="module" src="lessons.js"></script>
 </body>
 
 </html>
