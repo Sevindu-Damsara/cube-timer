@@ -1565,45 +1565,67 @@ body.theme-vibrant #aiInsightModal .modal-content {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
 
-/* Vibrant Course Viewer Theme */
-.theme-vibrant .lesson-viewer-grid {
+.lesson-viewer-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "header header"
+        "sidebar main"
+        "footer footer";
+    gap: 1rem;
+    height: calc(100vh - 4rem); /* Adjust based on your layout's padding/margin */
     background-color: var(--bg-color-primary);
     color: var(--text-color-primary);
+    border-radius: 1rem;
+    overflow: hidden;
 }
 
-.theme-vibrant .course-navigation-sidebar,
-.theme-vibrant .lesson-header,
-.theme-vibrant .lesson-content-panel,
-.theme-vibrant .lesson-interactive-panel,
-.theme-vibrant .lesson-footer {
+.lesson-header {
+    grid-area: header;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
     background-color: var(--bg-color-secondary);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
+    border-bottom: 1px solid var(--border-color);
 }
 
-.theme-vibrant .button-primary {
-    background: linear-gradient(145deg, #c084fc, #f87171);
-    color: white;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+.course-navigation-sidebar {
+    grid-area: sidebar;
+    padding: 1.5rem;
+    background-color: var(--bg-color-secondary);
+    overflow-y: auto;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
 }
 
-.theme-vibrant .button-secondary {
-    background-color: transparent;
-    border: 1px solid #c084fc;
-    color: #c084fc;
+.lesson-content-panel {
+    grid-area: main;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background-color: var(--bg-color-primary);
+    display: flex;
+    flex-direction: column;
 }
 
-.theme-vibrant .text-gradient {
-    background: linear-gradient(90deg, #c084fc, #f87171, #fbbf24);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.lesson-interactive-panel {
+    grid-area: main; /* Overlap with main content, control visibility with JS */
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: none; /* Initially hidden */
+    flex-direction: column;
+    background-color: var(--bg-color-primary);
 }
 
-.theme-vibrant .module-title:hover {
-    color: #c084fc;
-}
 
-.theme-vibrant .lesson-item.active {
-    background-color: rgba(192, 132, 252, 0.2);
-    border-left-color: #c084fc;
+.lesson-footer {
+    grid-area: footer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--bg-color-secondary);
+    border-top: 1px solid var(--border-color);
 }
