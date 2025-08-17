@@ -362,8 +362,9 @@ def handle_generate_course(request_json):
     - lesson_id: A unique UUID.
     - lesson_title: A concise title.
     - lesson_type: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
-    - content: Markdown formatted text for theory/conceptual lessons.
+    - content: **Detailed, multi-paragraph** Markdown formatted text for theory/conceptual lessons. The content should be comprehensive and easy to understand for the target skill level.
     - steps: An ARRAY of 1 or more step objects. This field is REQUIRED. Each step MUST have a `step_id` (UUID), `title` (string), and `content` (Markdown string).
+        - **IMPORTANT**: Within the `content` of a step, if you include a standard cubing algorithm, you **MUST** wrap it in the following special tag: `[ALGORITHM: R U R' U']`. For example: "To solve this case, use the algorithm `[ALGORITHM: R U R' U']`."
     - scrambles: (Optional, for scramble_practice) An ARRAY of 1-3 WCA-formatted scrambles. If only one scramble, still use an array.
     - algorithms: (Optional, for algorithm_drill) An ARRAY of 1-3 standard algorithms (e.g., "R U R' U'"). If only one, still use an array.
     - quiz_questions: (Optional, for interactive_quiz) An ARRAY of 2-3 quiz questions. Each question must have:
@@ -394,6 +395,13 @@ def handle_generate_course(request_json):
                         "lesson_title": "Understanding F2L Pairs",
                         "lesson_type": "theory",
                         "content": "## What is F2L?\\nF2L stands for First Two Layers. It's an intuitive method...",
+                        "steps": [
+                            {{
+                                "step_id": "unique-step-uuid-1",
+                                "title": "Introduction to F2L",
+                                "content": "F2L (First Two Layers) is a method used in speedsolving the 3x3 Rubik's Cube. It involves simultaneously solving a corner and an edge piece from the top layer into their correct positions in the first two layers. For example, to solve a simple case, you might use the algorithm `[ALGORITHM: R U R' U']`."
+                            }}
+                        ],
                         "scrambles": [],
                         "algorithms": [],
                         "quiz_questions": []
@@ -403,6 +411,13 @@ def handle_generate_course(request_json):
                         "lesson_title": "Basic F2L Cases: Slotting Pairs",
                         "lesson_type": "algorithm_drill",
                         "content": "Practice inserting F2L pairs efficiently.",
+                        "steps": [
+                            {{
+                                "step_id": "unique-step-uuid-2",
+                                "title": "Practice Drill",
+                                "content": "Use the following algorithms to practice F2L insertions."
+                            }}
+                        ],
                         "scrambles": [],
                         "algorithms": ["U R U' R'", "U' L' U L"],
                         "quiz_questions": []

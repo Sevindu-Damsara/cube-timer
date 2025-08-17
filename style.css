@@ -1629,3 +1629,11 @@ body.theme-vibrant #aiInsightModal .modal-content {
     background-color: var(--bg-color-secondary);
     border-top: 1px solid var(--border-color);
 }
+
+.inline-twisty-player-container {
+    background-color: var(--bg-color-secondary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid var(--border-color);
+}
