@@ -414,81 +414,57 @@ def handle_generate_course(request_json):
     # The detailed JSON schema is now part of the main prompt text.
     # This guides the model to produce the desired string output.
     prompt_text = f"""
-    Based on the following user preferences and chat history, design a complete cubing course.
-    Cube Type: {cube_type}
-    Skill Level: {skill_level}
-    Learning Style: {learning_style}
-    Focus Area: {focus_area}
-    Sir Sevindu's specific request: "{user_prompt_for_course}"
+    Based on the following user preferences, design a complete cubing course.
+    - Cube Type: {cube_type}
+    - Skill Level: {skill_level}
+    - Learning Style: {learning_style}
+    - Focus Area: {focus_area}
 
-    Generate a course with 3-5 modules. Each module should have 2-4 lessons.
-    Each lesson should have a 'lesson_type' (e.g., 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual').
+    **CRITICAL INSTRUCTIONS:**
+    1. Your entire response MUST be a single, valid JSON object. Do not include any text or markdown formatting outside of the JSON object.
+    2. The JSON object must strictly adhere to the schema provided in the `generationConfig`.
+    3. **ALGORITHM TAGS ARE MANDATORY:** Any time a standard cubing algorithm (like R U R' U') is mentioned in any `content` field, it **MUST** be wrapped in `[ALGORITHM: ...]` tags. For example: "A key algorithm is `[ALGORITHM: F R U R' U' F']`." This is not optional.
+    4. **QUIZZES ARE MANDATORY FOR QUIZ LESSONS:** If a lesson has `lesson_type: "interactive_quiz"`, its `quiz` field MUST NOT be empty. It must contain an array of question objects.
+    5. **STEPS ARE MANDATORY:** Every lesson must contain a `steps` array with at least one step object. Each step must have a `title` and `content`.
+    6. Generate 2-4 modules. Each module should have 1-3 lessons.
+    7. The course title must be descriptive and relevant, like "{focus_area.capitalize()} for {skill_level.capitalize()}s".
 
-    For each lesson:
-    - lesson_id: A unique UUID.
-    - lesson_title: A concise title.
-    - lesson_type: One of 'theory', 'algorithm_drill', 'scramble_practice', 'interactive_quiz', 'conceptual'.
-    - content: **Detailed, multi-paragraph** Markdown formatted text for theory/conceptual lessons. The content should be comprehensive and easy to understand for the target skill level.
-    - steps: An ARRAY of 1 or more step objects. This field is REQUIRED. Each step MUST have a `step_id` (UUID), `title` (string), and `content` (Markdown string).
-        - **IMPORTANT**: Within the `content` of a step, if you include a standard cubing algorithm, you **MUST** wrap it in the following special tag: `[ALGORITHM: R U R' U']`. For example: "To solve this case, use the algorithm `[ALGORITHM: R U R' U']`."
-    - scrambles: (Optional, for scramble_practice) An ARRAY of 1-3 WCA-formatted scrambles. If only one scramble, still use an array.
-    - algorithms: (Optional, for algorithm_drill) An ARRAY of 1-3 standard algorithms (e.g., "R U R' U'"). If only one, still use an array.
-    - quiz_questions: (Optional, for interactive_quiz) An ARRAY of 2-3 quiz questions. Each question must have:
-        - question: The question text.
-        - options: An ARRAY of 3-4 possible answers. If only one, still use an array.
-        - answer: The correct answer(s) (string for single choice, ARRAY of strings for multiple choice).
-
-    Ensure the course progresses logically from foundational concepts to more advanced techniques relevant to the skill level and focus area.
-    Provide a title (for the course), description (for the course), cubeType (e.g., "3x3"), and level (e.g., "beginner") at the top level of the JSON.
-
-    The course title should be descriptive and directly incorporate the focus area and skill level. For example: "{focus_area} {skill_level.capitalize()} Course", "Advanced OLL Techniques", "3x3 Speedcubing Fundamentals". DO NOT include personal names or phrases like 'Guide to' in the course title.
-
-    Return the course structure as a single JSON object. DO NOT OMIT ANY ARRAY FIELDS, EVEN IF EMPTY OR SINGLE ITEM.
-    Example JSON structure:
+    **EXAMPLE of a single lesson object within the `lessons` array:**
     {{
-        "course_id": "unique-course-uuid",
-        "title": "F2L Beginner Course",
-        "description": "Learn the fundamentals of solving the First Two Layers (F2L) for a 3x3 Rubik's Cube.",
-        "cubeType": "3x3",
-        "level": "beginner",
-        "modules": [
+        "lesson_id": "unique-lesson-uuid-1",
+        "lesson_title": "Understanding F2L Pairs",
+        "lesson_type": "conceptual",
+        "content": "F2L (First Two Layers) is a method used in speedsolving the 3x3 Rubik's Cube. It involves simultaneously solving a corner and an edge piece. For example, to solve a simple case, you might use the algorithm `[ALGORITHM: R U R' U']`.",
+        "steps": [
             {{
-                "module_id": "unique-module-uuid-1",
-                "module_title": "Module 1: F2L Introduction",
-                "lessons": [
-                    {{
-                        "lesson_id": "unique-lesson-uuid-1",
-                        "lesson_title": "Understanding F2L Pairs",
-                        "lesson_type": "theory",
-                        "content": "## What is F2L?\\nF2L stands for First Two Layers. It's an intuitive method...",
-                        "steps": [
-                            {{
-                                "step_id": "unique-step-uuid-1",
-                                "title": "Introduction to F2L",
-                                "content": "F2L (First Two Layers) is a method used in speedsolving the 3x3 Rubik's Cube. It involves simultaneously solving a corner and an edge piece from the top layer into their correct positions in the first two layers. For example, to solve a simple case, you might use the algorithm `[ALGORITHM: R U R' U']`."
-                            }}
-                        ],
-                        "scrambles": [],
-                        "algorithms": [],
-                        "quiz_questions": []
-                    }},
-                    {{
-                        "lesson_id": "unique-lesson-uuid-2",
-                        "lesson_title": "Basic F2L Cases: Slotting Pairs",
-                        "lesson_type": "algorithm_drill",
-                        "content": "Practice inserting F2L pairs efficiently.",
-                        "steps": [
-                            {{
-                                "step_id": "unique-step-uuid-2",
-                                "title": "Practice Drill",
-                                "content": "Use the following algorithms to practice F2L insertions."
-                            }}
-                        ],
-                        "scrambles": [],
-                        "algorithms": ["U R U' R'", "U' L' U L"],
-                        "quiz_questions": []
-                    }}
-                ]
+                "step_id": "unique-step-uuid-1",
+                "title": "Introduction to F2L",
+                "content": "F2L is a method used in speedsolving. It involves solving a corner and an edge piece simultaneously. A simple case uses the algorithm `[ALGORITHM: R U R' U']`."
+            }}
+        ],
+        "scrambles": [],
+        "algorithms": [],
+        "quiz": []
+    }},
+    {{
+        "lesson_id": "unique-lesson-uuid-2",
+        "lesson_title": "F2L Quiz",
+        "lesson_type": "interactive_quiz",
+        "content": "Let's test your knowledge on F2L.",
+        "steps": [
+            {{
+                "step_id": "unique-step-uuid-2",
+                "title": "Quiz Step",
+                "content": "Answer the questions below."
+            }}
+        ],
+        "scrambles": [],
+        "algorithms": [],
+        "quiz": [
+            {{
+                "question": "What does F2L stand for?",
+                "options": ["First 2 Layers", "Final 2 Layers", "First 2 Loops"],
+                "answer": "First 2 Layers"
             }}
         ]
     }}
@@ -529,7 +505,7 @@ def handle_generate_course(request_json):
                                             "content": {"type": "STRING"},
                                             "scrambles": {"type": "ARRAY", "items": {"type": "STRING"}, "nullable": True},
                                             "algorithms": {"type": "ARRAY", "items": {"type": "STRING"}, "nullable": True},
-                                            "quiz_questions": {
+                                            "quiz": {
                                                 "type": "ARRAY",
                                                 "items": {
                                                     "type": "OBJECT",
