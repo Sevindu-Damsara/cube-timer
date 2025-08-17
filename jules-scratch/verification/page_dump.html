@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cubing Lessons - Cubically AI Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Cubing.js for 3D scramble visualization -->
+    <script src="https://cdn.cubing.net/v0/js/cubing/twisty" type="module"></script>
+    <!-- SimpleMDE for Markdown editing -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Link to your main stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.fixed{position:fixed}.relative{position:relative}.inset-0{inset:0px}.right-0{right:0px}.top-0{top:0px}.z-50{z-index:50}.z-\[9999\]{z-index:9999}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.ml-2{margin-left:0.5rem}.mr-2{margin-right:0.5rem}.mt-1{margin-top:0.25rem}.mt-3{margin-top:0.75rem}.mt-4{margin-top:1rem}.mt-8{margin-top:2rem}.mr-12{margin-right:3rem}.ml-12{margin-left:3rem}.mb-3{margin-bottom:0.75rem}.mr-1{margin-right:0.25rem}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-2\.5{height:0.625rem}.h-64{height:16rem}.h-\[50px\]{height:50px}.h-\[85vh\]{height:85vh}.h-full{height:100%}.min-h-\[500px\]{min-height:500px}.w-\[50px\]{width:50px}.w-\[90\%\]{width:90%}.w-full{width:100%}.max-w-5xl{max-width:64rem}.max-w-md{max-width:28rem}.max-w-none{max-width:none}.flex-1{flex:1 1 0%}.flex-grow{flex-grow:1}.translate-x-full{--tw-translate-x:100%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.translate-y-2{--tw-translate-y:0.5rem;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-start{justify-content:flex-start}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-x-2 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.5rem * var(--tw-space-x-reverse));margin-left:calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))}.overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.\!rounded-lg{border-radius:0.5rem !important}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-gray-700{--tw-border-opacity:1;border-color:rgb(55 65 81 / var(--tw-border-opacity, 1))}.bg-black{--tw-bg-opacity:1;background-color:rgb(0 0 0 / var(--tw-bg-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-gray-700{--tw-bg-opacity:1;background-color:rgb(55 65 81 / var(--tw-bg-opacity, 1))}.bg-gray-900{--tw-bg-opacity:1;background-color:rgb(17 24 39 / var(--tw-bg-opacity, 1))}.bg-green-600{--tw-bg-opacity:1;background-color:rgb(22 163 74 / var(--tw-bg-opacity, 1))}.bg-gray-800{--tw-bg-opacity:1;background-color:rgb(31 41 55 / var(--tw-bg-opacity, 1))}.bg-blue-700{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.bg-green-500{--tw-bg-opacity:1;background-color:rgb(34 197 94 / var(--tw-bg-opacity, 1))}.bg-opacity-20{--tw-bg-opacity:0.2}.bg-opacity-50{--tw-bg-opacity:0.5}.bg-opacity-80{--tw-bg-opacity:0.8}.bg-opacity-95{--tw-bg-opacity:0.95}.\!p-3{padding:0.75rem !important}.p-2{padding:0.5rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.p-3{padding:0.75rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.pr-12{padding-right:3rem}.pr-2{padding-right:0.5rem}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-semibold{font-weight:600}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-gray-200{--tw-text-opacity:1;color:rgb(229 231 235 / var(--tw-text-opacity, 1))}.text-gray-300{--tw-text-opacity:1;color:rgb(209 213 219 / var(--tw-text-opacity, 1))}.opacity-0{opacity:0}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300{transition-duration:300ms}.duration-500{transition-duration:500ms}.ease-in-out{transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1)}.hover\:bg-gray-700:hover{--tw-bg-opacity:1;background-color:rgb(55 65 81 / var(--tw-bg-opacity, 1))}.hover\:bg-green-700:hover{--tw-bg-opacity:1;background-color:rgb(21 128 61 / var(--tw-bg-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}@media (min-width: 768px){.md\:w-auto{width:auto}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:p-8{padding:2rem}.md\:text-4xl{font-size:2.25rem;line-height:2.5rem}}@media (min-width: 1024px){.lg\:col-span-1{grid-column:span 1 / span 1}.lg\:col-span-3{grid-column:span 3 / span 3}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}}@media (min-width: 1280px){.xl\:col-span-1{grid-column:span 1 / span 1}.xl\:col-span-2{grid-column:span 2 / span 2}.xl\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}}</style></head>
+
+<body class="theme-dark">
+    <!-- Main Layout to contain the sidebar and content -->
+    <div class="main-layout">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar" style="">
+            <nav class="space-y-4">
+                <a href="index.html" class="nav-item">
+                    <i class="fas fa-stopwatch nav-icon"></i>
+                    <span class="nav-text">Timer</span>
+                </a>
+                <a href="lessons.html" class="nav-item active">
+                    <i class="fas fa-book-open nav-icon"></i>
+                    <span class="nav-text">Lessons</span>
+                </a>
+                <a href="history.html" class="nav-item">
+                    <i class="fas fa-history nav-icon"></i>
+                    <span class="nav-text">History</span>
+                </a>
+                <a href="settings.html" id="settingsBtn" class="nav-item">
+                    <i class="fas fa-cog nav-icon"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area for Lessons -->
+        <div class="content-area">
+            <div class="lessons-page-container">
+
+                <!-- View 1: Lesson Hub (Default View) -->
+                <section id="lessonHub" class="w-full" style="">
+                    <div class="glass-panel p-6 md:p-8">
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                            <h2 class="text-3xl md:text-4xl font-bold text-gradient">AI Cubing Courses</h2>
+                            <button id="startNewCourseBtn" class="button-primary w-full md:w-auto"><i class="fas fa-plus-circle mr-2"></i> Create New Course</button>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-4 mb-6 w-full justify-start">
+                            <select id="courseTypeFilter" class="input-field w-full md:w-auto">
+                                <option value="all">All Cube Types</option>
+                                <option value="3x3x3">3x3x3</option>
+                                <option value="2x2x2">2x2x2</option>
+                                <option value="4x4x4">4x4x4</option>
+                                <option value="pyraminx">Pyraminx</option>
+                            </select>
+                            <select id="courseLevelFilter" class="input-field w-full md:w-auto">
+                                <option value="all">All Levels</option>
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                                <option value="expert">Expert</option>
+                            </select>
+                        </div>
+                        <div id="courseListContainer">
+                            <div id="historyLoadingSpinner" class="hidden"></div>
+                            <p id="noCoursesMessage" class="text-center text-gray-400 text-lg mt-8 hidden">No courses found. Click "Create New Course" to get started!</p>
+                            <div id="courseList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" style="visibility: visible;"><div class="course-card glass-panel p-6 rounded-xl shadow-lg border border-gray-700">
+        <h3 class="text-xl font-bold text-gradient mb-2">Beginner's 3x3x3 Course</h3>
+        <p class="text-gray-300 text-sm mb-3">A course for absolute beginners.</p>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-cube mr-1"></i> 3x3x3</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-signal mr-1"></i> beginner</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-layer-group mr-1"></i> 1 Modules</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><i class="fas fa-book mr-1"></i> 1 Lessons</span>
+        </div>
+        <div class="flex justify-end mt-4 space-x-2 course-card-actions">
+            <button class="button-secondary text-sm px-3 py-1.5 rounded-lg delete-course-btn" data-id="zlpuhzoJKHanWAKIWCL8">
+                <i class="fas fa-trash-alt"></i> Delete
+            </button>
+            <button class="button-primary text-sm px-3 py-1.5 rounded-lg start-course-btn" data-id="zlpuhzoJKHanWAKIWCL8">
+                <i class="fas fa-play-circle"></i> Start Course
+            </button>
+        </div>
+    </div></div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- Removed AI Saved Lessons Section -->
+
+
+                <!-- Removed AI Course Builder Button (deep clean) -->
+
+                <!-- Fullscreen AI Course Builder Chat (hidden by default) -->
+                <section id="aiCourseBuilderChat" class="fixed inset-0 z-50 bg-black bg-opacity-95 flex items-center justify-center hidden">
+                    <!-- Main chat interface -->
+                    <div class="w-[90%] max-w-5xl h-[85vh] bg-gray-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-700">
+                        <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                            <h2 class="text-2xl font-bold text-gradient">AI Course Builder</h2>
+                            <button id="closeCourseBuilderBtn" class="hover:bg-gray-700 rounded-full p-2 transition-colors">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div id="courseBuilderChatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar"></div>
+                        <div class="p-4 border-t border-gray-700 bg-gray-900">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-1 relative">
+                                    <input id="courseBuilderChatInput" type="text" class="input-field w-full pr-12 h-[50px]" placeholder="Describe the course you want to create...">
+                                    <div class="text-xs text-gray-400 mt-1">Press Enter to send, Shift+Enter for new line</div>
+                                </div>
+                                <button id="sendCourseBuilderChatBtn" class="button-primary h-[50px] w-[50px] flex items-center justify-center">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Course creation is now handled by aiCourseBuilderChat -->
+
+                <!-- View 3: Lesson Viewer -->
+                <section id="lessonViewer" class="hidden w-full" style="display: none;">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <!-- Left Sidebar: Course Navigation -->
+                        <aside id="courseNavigationSidebar" class="lg:col-span-1 glass-panel p-4 flex flex-col">
+                            <div class="flex justify-start mb-4">
+                                <button id="backToHubFromViewerBtn" class="button-secondary w-full"><i class="fas fa-arrow-left mr-2"></i> Back to Hub</button>
+                            </div>
+                            <h3 id="currentCourseTitle" class="text-xl font-bold text-gradient mb-2 truncate"></h3>
+                            <div id="courseProgressBarContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4" title="Course Progress">
+                                <div id="courseProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                            </div>
+                            <div id="moduleList" class="flex-grow overflow-y-auto custom-scrollbar pr-2">
+                                <!-- Modules and Lessons will be dynamically loaded here -->
+                            </div>
+                        </aside>
+
+                        <!-- Right Side: Main Content -->
+                        <div class="lg:col-span-3 flex flex-col gap-6">
+                            <!-- Top Panel: Lesson Title & Controls -->
+                            <div class="glass-panel p-4">
+                                <div class="flex justify-between items-center">
+                                    <h2 id="lessonTitle" class="text-2xl font-bold text-white"></h2>
+                                    <div class="flex items-center gap-4">
+                                        <button id="editLessonBtn" class="button-secondary text-sm" style="display: none;"><i class="fas fa-pencil-alt mr-2"></i>Edit</button>
+                                        <button id="openInLessonChatBtn" class="button-secondary text-sm" style="display: none;"><i class="fas fa-comment-dots mr-2"></i>AI Chat</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Main Content Area -->
+                            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
+                                <!-- Lesson Content (takes up more space) -->
+                                <div class="xl:col-span-2 glass-panel p-6 flex flex-col min-h-[500px]">
+                                    <div class="flex flex-col h-full">
+                                        <div class="flex-grow">
+                                            <div id="lessonContent" class="prose prose-invert max-w-none"></div>
+                                            <div id="lessonEditorContainer" class="hidden">
+                                                <textarea id="lessonMarkdownEditor"></textarea>
+                                                <button id="cancelEditLessonBtn" class="button-secondary">Cancel</button>
+                                            </div>
+                                        </div>
+                                        <div class="mt-4">
+                                            <button id="saveLessonContentBtn" class="button-primary">Save Content</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Interactive Panel (3D Viewer or Quiz) -->
+                                <div class="xl:col-span-1 glass-panel p-4 flex flex-col gap-4">
+                                    <div id="scramble3DContainer" class="hidden flex-col items-center justify-center flex-grow" style="display: none;">
+                                        <h3 class="text-lg font-bold text-gradient mb-2">3D Visualizer</h3>
+                                        <twisty-player id="scramble3DViewer" class="w-full h-64 rounded-lg overflow-hidden" background="none" control-panel="none"></twisty-player>
+                                        <div class="flex flex-wrap justify-center gap-2 mt-3">
+                                            <button id="playPreviewBtn" class="button-preview-control"><i class="fas fa-play"></i></button>
+                                            <button id="pausePreviewBtn" class="button-preview-control hidden"><i class="fas fa-pause"></i></button>
+                                            <button id="resetAlgBtn" class="button-preview-control"><i class="fas fa-redo"></i></button>
+                                        </div>
+                                    </div>
+                                    <div id="quizArea" class="hidden flex-col flex-grow" style="display: none;">
+                                        <h3 class="text-xl font-bold text-gradient mb-4">Quiz Time!</h3>
+                                        <div id="quizQuestionsContainer" class="space-y-4 mb-4 overflow-y-auto custom-scrollbar flex-grow"></div>
+                                        <p id="quizFeedback" class="text-center font-semibold mb-4"></p>
+                                        <button id="submitQuizBtn" class="button-primary w-full">Submit Quiz</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Navigation -->
+                            <div class="glass-panel p-4 flex justify-between items-center">
+                                <button id="prevLessonStepBtn" class="button-secondary" style="display: none;"><i class="fas fa-chevron-left mr-2"></i> Previous</button>
+                                <span id="lessonStepCounter" class="text-gray-400 text-sm"></span>
+                                <button id="nextLessonStepBtn" class="button-primary" style="display: none;">Next <i class="fas fa-chevron-right ml-2"></i></button>
+                                <button id="completeCourseBtn" class="button-primary hidden w-full bg-green-600 hover:bg-green-700" style="display: none;">Complete Course <i class="fas fa-check-circle ml-2"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- In-Lesson Chat Sidebar (slides in from the right) -->
+    <div id="inLessonChatContainer" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-900 bg-opacity-80 backdrop-blur-md shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out" style="display: none;">
+        <div class="p-6 flex flex-col h-full">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gradient">AI Lesson Assistant</h2>
+                <button id="closeInLessonChatBtn" class="text-gray-400 hover:text-white text-2xl">×</button>
+            </div>
+            <div id="inLessonChatMessages" class="flex-grow overflow-y-auto custom-scrollbar space-y-3 p-2 bg-black bg-opacity-20 rounded-lg mb-4"></div>
+            <div class="flex items-center gap-2">
+                <input type="text" id="inLessonChatInput" placeholder="Ask about this lesson..." class="input-field flex-grow">
+                <button id="sendInLessonChatBtn" class="button-primary !rounded-lg !p-3"><i class="fas fa-paper-plane"></i></button>
+                <div id="inLessonChatSpinner" class="spinner hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Loading Spinner -->
+    <div id="globalLoadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 justify-center items-center z-[9999] hidden" style="position: fixed; inset: 0px; z-index: 9999; width: 100vw; height: 100vh; min-width: 100vw; min-height: 100vh; max-width: 100vw; max-height: 100vh; display: none; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); margin: 0px; padding: 0px;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Link to external JavaScript file -->
+    <script type="module" src="lessons.js"></script>
+
+
+
+</body></html>

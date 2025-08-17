@@ -1224,7 +1224,7 @@ function renderModuleList() {
         moduleItem.innerHTML = `
             <div class="module-title flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-700 transition-colors">
                 <i class="fas fa-chevron-right mr-2 transition-transform"></i>
-                <span>${module.moduleTitle}</span>
+                <span>${module.module_title}</span>
             </div>
             <ul class="lesson-list hidden space-y-1"></ul>
         `;
@@ -1236,7 +1236,7 @@ function renderModuleList() {
             module.lessons.forEach((lesson, lessonIndex) => {
                 const lessonItem = document.createElement('li');
                 lessonItem.className = 'lesson-item text-gray-400 hover:text-white hover:bg-gray-700 px-3 py-1 rounded-md transition-colors';
-                lessonItem.textContent = lesson.lessonTitle;
+                lessonItem.textContent = lesson.lesson_title;
                 lessonItem.dataset.modIndex = modIndex;
                 lessonItem.dataset.lessonIndex = lessonIndex;
                 lessonItem.addEventListener('click', async () => {
@@ -1308,9 +1308,12 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
     const lesson = currentCourse.modules[modIndex].lessons[lessonIndex];
     const step = lesson.steps[stepIndex];
 
-    lessonTitle.textContent = lesson.lessonTitle;
+    lessonTitle.textContent = lesson.lesson_title;
     lessonStepCounter.textContent = `Step ${stepIndex + 1} of ${lesson.steps.length}`;
     lessonContentDisplay.innerHTML = marked.parse(step.content || 'No content for this step.');
+
+    // Render inline twisty players from [ALGORITHM: ...] tags
+    renderInlineTwistyPlayers();
 
     // Handle 3D visualizer
     if (scramble3DContainer && scramble3DViewer && playPreviewBtn && pausePreviewBtn) {
@@ -1332,6 +1335,7 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
 
     // Handle Quiz
     if (quizArea) {
+        // Corrected property name from 'quiz_questions' to 'quiz'
         if (step.quiz && step.quiz.length > 0) {
             quizArea.classList.remove('hidden');
             quizArea.classList.add('flex');
@@ -1363,6 +1367,38 @@ async function loadLessonStep(modIndex, lessonIndex, stepIndex) {
     if (lessonEditorContainer) lessonEditorContainer.classList.add('hidden');
     if (lessonContentDisplay) lessonContentDisplay.classList.remove('hidden');
     if (editLessonBtn) editLessonBtn.textContent = 'Edit'; // Reset edit button text
+}
+
+/**
+ * Finds and replaces [ALGORITHM: ...] tags with inline twisty players.
+ */
+function renderInlineTwistyPlayers() {
+    const contentArea = document.getElementById('lessonContent');
+    if (!contentArea) return;
+
+    const algRegex = /\[ALGORITHM:\s*([^\]]+)\]/g;
+    let content = contentArea.innerHTML;
+
+    content = content.replace(algRegex, (match, algorithm) => {
+        const cleanedAlgorithm = algorithm.trim().replace(/'/g, '&apos;').replace(/"/g, '&quot;'); // Sanitize for HTML attribute
+
+        // This structure is designed to match the main player's dark, glowing theme.
+        return `
+            <div class="inline-twisty-player-container my-6 p-4 rounded-xl shadow-lg bg-gray-900 border border-gray-700 transition-all duration-300 hover:border-blue-500 hover:shadow-blue-500/20">
+                <twisty-player
+                    alg="${cleanedAlgorithm}"
+                    puzzle="3x3x3"
+                    background="transparent"
+                    control-panel="bottom"
+                    player-style="minimal"
+                    class="mx-auto"
+                    style="width: 100%; max-width: 300px; height: 300px;"
+                ></twisty-player>
+            </div>
+        `;
+    });
+
+    contentArea.innerHTML = content;
 }
 
 /**

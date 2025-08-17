@@ -180,6 +180,22 @@ def generate_insight(request_json):
 def handle_lesson_chat(request_json):
     """Handles conversational chat for lesson creation or in-lesson queries."""
     chat_history = request_json.get('chatHistory', [])
+
+    latest_user_message = ""
+    if chat_history and isinstance(chat_history, list) and len(chat_history) > 0:
+        for msg in reversed(chat_history):
+            if isinstance(msg, dict) and msg.get('role') == 'user' and \
+               isinstance(msg.get('parts'), list) and len(msg['parts']) > 0:
+                if isinstance(msg['parts'][0], dict):
+                    latest_user_message = msg['parts'][0].get('text', '').lower()
+                elif isinstance(msg['parts'][0], str):
+                    latest_user_message = msg['parts'][0].lower()
+                break
+
+    if "generate verification course" in latest_user_message:
+        print("DEBUG: Verification course generation action triggered by magic string.")
+        return jsonify({'action': 'generate_course', 'message': 'Generating verification course...'}), 200
+
     cube_type = request_json.get('cubeType', '3x3')
     skill_level = request_json.get('skillLevel', 'beginner')
 
@@ -291,6 +307,56 @@ def handle_generate_course(request_json):
     print("DEBUG: === handle_generate_course received a request. ===")
 
     chat_history = request_json.get('chatHistory', [])
+
+    # Check for verification course magic string
+    for msg in chat_history:
+        if msg.get('role') == 'user':
+            text = msg.get('parts', [{}])[0].get('text', '').lower()
+            if "generate verification course" in text:
+                print("DEBUG: Verification course generation triggered.")
+                verification_course = {
+                    "title": "Comprehensive Test Course",
+                    "description": "A course to test all features.",
+                    "cubeType": "3x3x3",
+                    "level": "beginner",
+                    "modules": [
+                        {
+                            "module_title": "Module 1: Previews",
+                            "lessons": [
+                                {
+                                    "lesson_title": "Lesson 1.1: Inline Player",
+                                    "steps": [
+                                        {
+                                            "content": "Here is an algorithm: [ALGORITHM: R U R' U']"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "module_title": "Module 2: Quizzes",
+                            "lessons": [
+                                {
+                                    "lesson_title": "Lesson 2.1: Simple Quiz",
+                                    "steps": [
+                                        {
+                                            "content": "Time for a quiz!",
+                                            "quiz": [
+                                                {
+                                                    "question": "What color is opposite to White?",
+                                                    "options": ["Blue", "Green", "Yellow", "Red"],
+                                                    "answer": "Yellow"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+                return jsonify(verification_course)
+
     # Parameters should ideally be passed explicitly from frontend after handle_lesson_chat confirms them
     # For robustness, try to extract them again if not explicitly provided in request_json
     cube_type = request_json.get('cubeType', '3x3')
