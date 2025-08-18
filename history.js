@@ -332,7 +332,7 @@ window.getSolveInsight = async function (solveId) {
         type: "get_insight", // Indicate the type of request
         scramble: solve.scramble,
         cubeType: currentCubeType, // Use currentCubeType from settings
-        solveTimeMs: solve.time,
+        time_ms: solve.time,
         penalty: solve.penalty,
         userLevel: userLevel
     };
@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeAiInsightModalBtn = document.getElementById('closeAiInsightModal');
     aiInsightContentDisplay = document.getElementById('aiInsightContent');
     insightMessageElement = document.getElementById('insightMessage');
-    insightSpinner = document.querySelector('#aiInsightModal .spinner');
+    insightSpinner = aiInsightContentDisplay ? aiInsightContentDisplay.querySelector('.spinner') : null;
     scrambleAnalysisDisplay = document.getElementById('scrambleAnalysisDisplay');
     scrambleAnalysisText = document.getElementById('scrambleAnalysisText');
     personalizedTipDisplay = document.getElementById('personalizedTipDisplay');

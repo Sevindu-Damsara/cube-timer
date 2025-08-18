@@ -33,17 +33,7 @@ def gemini_nlu_handler():
             print("ERROR: Invalid JSON body. Missing 'transcript'.")
             return jsonify({"error": "Invalid request: 'transcript' field is required."}), 400
 
-        user_transcript = request_json.get('transcript', '').strip()
-
-        # Add a defensive check for empty or meaningless transcripts
-        if not user_transcript or user_transcript == '.':
-            print("INFO: Received empty or meaningless transcript. Returning 'unknown' command.")
-            return jsonify({
-                "canonicalCommand": "unknown",
-                "commandValue": None,
-                "confidence": 0.1,
-                "query": user_transcript
-            }), 200
+        user_transcript = request_json.get('transcript', '')
 
         gemini_api_key = os.environ.get("GEMINI_API_KEY")
         if not gemini_api_key:
