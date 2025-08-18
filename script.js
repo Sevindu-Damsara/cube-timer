@@ -1004,6 +1004,14 @@ function speakAsJarvis(text) {
 async function processVoiceCommandWithGemini(rawTranscript) {
     console.log(`[DEBUG] Sending raw transcript to Gemini NLU: "${rawTranscript}"`);
 
+    // Prevent sending empty or meaningless transcripts
+    if (!rawTranscript || rawTranscript.trim() === '' || rawTranscript.trim() === '.') {
+        console.log("[DEBUG] processVoiceCommandWithGemini: Ignoring empty or meaningless transcript.");
+        // Optionally, provide feedback that the command was not understood
+        speakAsJarvis("Pardon me, Sir Sevindu, I did not catch that. Please try again.");
+        return;
+    }
+
     if (!geminiNluFunctionUrl || geminiNluFunctionUrl === "YOUR_GEMINI_NLU_VERCEL_FUNCTION_URL") {
         speakAsJarvis("Sir Sevindu, the Natural Language Understanding module is not configured. Please provide its deployment URL.");
         console.error("[ERROR] Gemini NLU Cloud Function URL is not configured.");
@@ -1942,7 +1950,7 @@ function setupEventListeners() {
     closeAiInsightModalBtn = document.getElementById('closeAiInsightModal');
     aiInsightContentDisplay = document.getElementById('aiInsightContent');
     insightMessageElement = document.getElementById('insightMessage');
-    insightSpinner = aiInsightContentDisplay ? aiInsightContentDisplay.querySelector('.spinner') : null; // Safely query
+    insightSpinner = document.querySelector('#aiInsightModal .spinner');
     scrambleAnalysisDisplay = document.getElementById('scrambleAnalysisDisplay'); // NEW
     scrambleAnalysisText = document.getElementById('scrambleAnalysisText');       // NEW
     // Removed optimalSolutionDisplay and optimalSolutionText from assignment
