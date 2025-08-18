@@ -245,7 +245,7 @@ function setupRealtimeSolvesListener() {
         const q = query(solvesCollectionRef, orderBy('timestamp', 'desc')); // Order by timestamp for history page
 
         solves = []; // Clear current solves to repopulate from snapshot
-        if (historyLoadingSpinner) historyLoadingSpinner.style.display = 'block';
+        if (historyLoadingSpinner) historyLoadingSpinner.classList.remove('hidden');
 
         onSnapshot(q, (snapshot) => {
             console.log("[DEBUG] onSnapshot callback triggered for history.js. Processing snapshot changes.");
@@ -255,10 +255,10 @@ function setupRealtimeSolvesListener() {
             });
             console.log(`[DEBUG] Solves updated from Firestore. Total solves: ${solves.length}.`);
             renderSolveHistory();
-            if (historyLoadingSpinner) historyLoadingSpinner.style.display = 'none';
+            if (historyLoadingSpinner) historyLoadingSpinner.classList.add('hidden');
         }, (error) => {
             console.error("[ERROR] Error listening to solves (history.js): ", error);
-            if (historyLoadingSpinner) historyLoadingSpinner.style.display = 'none';
+            if (historyLoadingSpinner) historyLoadingSpinner.classList.add('hidden');
             if (error.code === 'permission-denied') {
                 console.warn("[WARN] Firestore permission denied for solves listener. Falling back to local storage for solves.");
                 isUserAuthenticated = false;
@@ -270,7 +270,7 @@ function setupRealtimeSolvesListener() {
         console.log("[DEBUG] setupRealtimeSolvesListener: Not authenticated, Firestore listener not setup. Loading local solves.");
         loadLocalSolves();
         renderSolveHistory();
-        if (historyLoadingSpinner) historyLoadingSpinner.style.display = 'none';
+        if (historyLoadingSpinner) historyLoadingSpinner.classList.add('hidden');
     }
     console.log("[DEBUG] Exiting setupRealtimeSolvesListener.");
 }
