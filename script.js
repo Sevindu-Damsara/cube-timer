@@ -333,7 +333,7 @@ window.getSolveInsight = async function (solveIdentifier) {
         type: "get_insight", // Indicate the type of request
         scramble: solve.scramble,
         cubeType: cubeType,
-        solveTimeMs: solve.time,
+        time_ms: solve.time,
         penalty: solve.penalty,
         userLevel: userLevel
     };
