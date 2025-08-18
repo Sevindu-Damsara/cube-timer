@@ -20,6 +20,11 @@
     <link rel="stylesheet" href="style.css">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .nav-item.active .nav-icon {
+            color: #8b5cf6;
+        }
+    </style>
 </head>
 
 <body class="theme-dark">
@@ -32,7 +37,7 @@
                     <i class="fas fa-stopwatch nav-icon"></i>
                     <span class="nav-text">Timer</span>
                 </a>
-                <a href="lessons.html" class="nav-item active">
+                <a href="lessons.html" class="nav-item">
                     <i class="fas fa-book-open nav-icon"></i>
                     <span class="nav-text">Lessons</span>
                 </a>
@@ -228,6 +233,7 @@
 
     <!-- Link to external JavaScript file -->
     <script type="module" src="lessons.js"></script>
+    <script src="nav.js"></script>
 </body>
 
 </html>
