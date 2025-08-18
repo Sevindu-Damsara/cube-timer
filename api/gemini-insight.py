@@ -106,13 +106,15 @@ def generate_insight(request_json):
     The solve time was: {time_ms / 1000:.2f} seconds.
     
     Based on this, provide:
-    1.  **Scramble Analysis:** A very brief analysis of the provided scramble, highlighting any obvious features or challenges (e.g., "easy cross," "tricky F2L pair"). Keep this to one sentence.
-    2.  **Personalized Tip:** A single, actionable tip for improvement based on the solve time and the user's level. Focus on one specific area (e.g., "focus on look-ahead," "practice F2L recognition," "improve finger tricks").
-    3.  **Targeted Practice Focus:** Suggest one specific type of practice or drill.
+    1.  **Insight:** A brief, encouraging, one-sentence summary of the performance. This is the general, top-level insight.
+    2.  **Scramble Analysis:** A very brief analysis of the provided scramble, highlighting any obvious features or challenges (e.g., "easy cross," "tricky F2L pair"). Keep this to one sentence.
+    3.  **Personalized Tip:** A single, actionable tip for improvement based on the solve time and the user's level. Focus on one specific area (e.g., "focus on look-ahead," "practice F2L recognition," "improve finger tricks").
+    4.  **Targeted Practice Focus:** Suggest one specific type of practice or drill.
 
-    Format your response as a JSON object with the keys `scrambleAnalysis`, `personalizedTip`, and `targetedPracticeFocus`.
+    Format your response as a JSON object with the keys `insight`, `scrambleAnalysis`, `personalizedTip`, and `targetedPracticeFocus`.
     Example:
     {{
+        "insight": "A solid solve! Your recognition is getting faster.",
         "scrambleAnalysis": "This scramble presented a straightforward cross solution.",
         "personalizedTip": "Consider improving your cross efficiency by planning more moves during inspection.",
         "targetedPracticeFocus": "Practice cross solutions from various angles without looking."
@@ -130,11 +132,12 @@ def generate_insight(request_json):
             "responseSchema": {
                 "type": "OBJECT",
                 "properties": {
+                    "insight": {"type": "STRING"},
                     "scrambleAnalysis": {"type": "STRING"},
                     "personalizedTip": {"type": "STRING"},
                     "targetedPracticeFocus": {"type": "STRING"}
                 },
-                "required": ["scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
+                "required": ["insight", "scrambleAnalysis", "personalizedTip", "targetedPracticeFocus"]
             }
         }
     }
