@@ -288,17 +288,26 @@ function getUserLevel(solveTimeMs, cubeType) {
 
 /**
  * Fetches an AI-generated insight for a specific solve from the Cloud Function.
- * @param {string} solveId - The ID of the solve for which to generate an insight.
+ * Can accept either a solve ID (string) or a solve object.
+ * @param {string|Object} solveIdentifier - The ID of the solve or the solve object itself.
  */
-window.getSolveInsight = async function (solveId) {
-    console.log(`[DEBUG] Requesting AI insight for solve ID: ${solveId}`);
-    const solve = solves.find(s => s.id === solveId);
+window.getSolveInsight = async function (solveIdentifier) {
+    console.log(`[DEBUG] Requesting AI insight for solve:`, solveIdentifier);
+
+    let solve = null;
+    if (typeof solveIdentifier === 'string') {
+        // If it's a string, find the solve in the global array (for history page)
+        solve = solves.find(s => s.id === solveIdentifier);
+    } else if (typeof solveIdentifier === 'object' && solveIdentifier !== null) {
+        // If it's an object, use it directly (for new solves from main page)
+        solve = solveIdentifier;
+    }
 
     if (!solve) {
         if (insightMessageElement) insightMessageElement.textContent = "Error: Solve not found.";
         if (insightSpinner) insightSpinner.style.display = 'none';
         if (aiInsightModal) aiInsightModal.classList.add('open');
-        console.error(`[ERROR] Solve with ID ${solveId} not found.`);
+        console.error(`[ERROR] Solve not found with identifier:`, solveIdentifier);
         return;
     }
 
@@ -1528,7 +1537,7 @@ async function addSolve(time) {
     if (geminiInsightFunctionUrl) {
         speakAsJarvis("Your solve is complete, Sir Sevindu. Analyzing your performance.");
         // Use the latest solve (which is the newSolve just added)
-        getSolveInsight(newSolve.id);
+        getSolveInsight(newSolve);
     } else {
         console.warn("[WARN] Gemini Insight function URL not configured, skipping automatic insight generation.");
     }
