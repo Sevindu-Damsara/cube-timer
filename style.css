@@ -58,7 +58,7 @@ body {
     min-height: 100vh;
     overflow-y: auto;
     /* Allow scrolling for content */
-    padding: 0;
+    padding: 20px;
     /* Desktop padding */
     position: relative;
     /* Needed for positioning absolute children */
@@ -151,10 +151,10 @@ body.theme-vibrant {
 /* NEW: Sidebar Styling */
 .sidebar {
     width: 80px; /* Retracted width */
-    background: linear-gradient(145deg, #6366f1, #818cf8);
+    background-color: var(--bg-color-secondary);
     padding: 1.5rem 0.5rem; /* Adjusted padding for retracted state */
     border-right: 1px solid var(--border-color);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
+    box-shadow: var(--box-shadow);
     display: flex;
     flex-direction: column;
     align-items: center; /* Center items when retracted */
@@ -162,7 +162,7 @@ body.theme-vibrant {
     overflow-y: auto;
     flex-shrink: 0;
     transition: width 0.3s ease-in-out; /* Smooth transition for width */
-    border-radius: 1rem; /* Rounded corners on all sides */
+    border-radius: 0 1rem 1rem 0; /* Rounded corners on the right side */
     min-height: 100vh; /* Ensure it matches the height of the main layout */
 }
 
@@ -188,7 +188,7 @@ body.theme-vibrant {
 }
 
 .sidebar .nav-item.active {
-    background-color: var(--accent-color-blue);
+    background-color: var(--timer-color);
     color: white;
 }
 
