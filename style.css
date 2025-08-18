@@ -1,7 +1,1566 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+.lessons-page-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+.glass-panel {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#courseListContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1;
+}
+#courseList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+/* Only spinner size/position, let .spinner handle animation */
+#historyLoadingSpinner {
+    width: 40px;
+    height: 40px;
+    margin: 2rem auto;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: history-spin 1s linear infinite;
+    will-change: transform;
+    display: block;
+    visibility: visible;
+    z-index: 10;
+}
 
-.nav-item.active .nav-icon {
-    color: #8b5cf6;
+@keyframes history-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+/* Custom CSS for a modern, colorful look */
+/* BASE STYLES: These apply by default, effectively serving as the DESKTOP-FIRST layout. */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color-primary, #0f172a);
+    /* Dark blue-gray background */
+    color: var(--text-color-primary, #e2e8f0);
+    /* Light text color */
+    display: flex; /* Changed to flex for main-layout */
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    overflow-y: auto;
+    /* Allow scrolling for content */
+    padding: 20px;
+    /* Desktop padding */
+    position: relative;
+    /* Needed for positioning absolute children */
+}
+
+/* Variables for theming */
+:root {
+    --bg-color-primary: #0f172a;
+    --bg-color-secondary: #1e293b;
+    --text-color-primary: #e2e8f0;
+    --text-color-secondary: #94a3b8;
+    --accent-color-blue: #3b82f6;
+    --accent-color-green: #22c55e;
+    --accent-color-red: #ef4444;
+    --button-bg-hover: #475569;
+    --border-color: #334155;
+    --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* NEW Theme variables for light and vibrant */
+    --button-secondary-bg: #475569;
+    --button-secondary-text: #e2e8f0;
+    --button-secondary-hover-bg: #64748b;
+    --card-bg: #334155;
+    --timer-color: #818cf8;
+    --scramble-color: #a78bfa;
+    --stats-value-color: #67e8f9;
+    --solve-time-color: #a78bfa;
+
+    /* ADDED for consistency across themes for input fields */
+    --input-bg: #1e293b;
+    --input-text: #e2e8f0;
+    --input-border: #475569;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #0f172a;
+}
+
+/* Light theme - Fully upgraded for a pristine, modern look */
+body.theme-light {
+    --bg-color-primary: #f8f9fa; /* Very light, almost white background */
+    --text-color-primary: #343a40; /* Soft dark gray for primary text */
+    --bg-color-secondary: #ffffff; /* Pure white for the main container */
+    --button-secondary-bg: #e9ecef; /* Very light gray for secondary buttons */
+    --button-secondary-text: #495057; /* Medium dark gray for secondary button text */
+    --button-secondary-hover-bg: #dee2e6; /* Slightly darker light gray for secondary button hover */
+    --card-bg: #ffffff; /* White cards for a clean feel */
+    --timer-color: #007bff; /* Vibrant blue for the timer */
+    --scramble-color: #0056b3; /* Deep blue for scramble text */
+    --stats-value-color: #17a2b8; /* Clear cyan for stats values */
+    --solve-time-color: #0056b3; /* Deep blue for solve times */
+    --border-color: #f1f3f5; /* Extremely subtle light gray border */
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), 0 2px 5px rgba(0, 0, 0, 0.02); /* Softer, more diffused shadow */
+    --input-bg: #ffffff;
+    --input-text: #1a202c;
+    --input-border: #cbd5e1;
+    --input-focus-border: #3b82f6;
+    --chat-bg: #f8fafc;
+}
+
+/* Vibrant theme - Fully upgraded for a rich, deep, and energetic look */
+body.theme-vibrant {
+    --bg-color-primary: #120724; /* Deeper, luxurious dark purple background */
+    --text-color-primary: #f8f9fa; /* Slightly warmer off-white text */
+    --bg-color-secondary: #2c0a52; /* Rich, dark sapphire/amethyst for the main container */
+    --button-secondary-bg: #7b2cbf; /* Vibrant, but not neon, purple for secondary buttons */
+    --button-secondary-text: #f8f9fa; /* Light text for secondary buttons */
+    --button-secondary-hover-bg: #9c36f0; /* Lighter, more saturated purple for secondary button hover */
+    --card-bg: #3a0e6c; /* Medium-dark, rich purple for cards */
+    --timer-color: #c084fc; /* Bright, almost electric lavender for the timer */
+    --scramble-color: #e0f7fa; /* Very light, cool tone for scramble text */
+    --stats-value-color: #20c997; /* Vibrant, slightly deeper teal for stats values */
+    --solve-time-color: #e0f7fa; /* Very light, cool tone for solve times */
+    --border-color: #4a148c; /* More distinct, yet harmonious purple border */
+    --box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 15px 30px -7px rgba(0, 0, 0, 0.4); /* Stronger, more dramatic shadow for depth */
+    --input-bg: #3a0c6a;
+    --input-text: #e0f2fe;
+    --input-border: #7b2cbf;
+    --input-focus-border: #8b5cf6;
+    --chat-bg: #220844;
+}
+
+/* NEW: Main Layout for Sidebar and Content */
+.main-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh; /* Ensure it takes full height */
+    padding: 0; /* Remove body padding, handled by child elements */
+    margin: 0;
+}
+
+/* NEW: Sidebar Styling */
+.sidebar {
+    width: 80px; /* Retracted width */
+    background-color: var(--bg-color-secondary);
+    padding: 1.5rem 0.5rem; /* Adjusted padding for retracted state */
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center items when retracted */
+    gap: 1.5rem;
+    overflow-y: auto;
+    flex-shrink: 0;
+    transition: width 0.3s ease-in-out; /* Smooth transition for width */
+    border-radius: 0 1rem 1rem 0; /* Rounded corners on the right side */
+    min-height: 100vh; /* Ensure it matches the height of the main layout */
+}
+
+.sidebar:hover {
+    width: 200px; /* Expanded width on hover */
+    align-items: flex-start; /* Align items to start when expanded */
+    padding: 1.5rem; /* Restore full padding */
+}
+
+.sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    color: var(--text-color-primary);
+    text-decoration: none;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.sidebar .nav-item:hover {
+    background-color: var(--button-secondary-hover-bg);
+}
+
+.sidebar .nav-item.active {
+    background-color: var(--accent-color-blue);
+    color: white;
+}
+
+.sidebar .nav-icon {
+    font-size: 1.5rem;
+    margin-right: 0; /* No margin when retracted */
+    transition: margin-right 0.3s ease-in-out;
+}
+
+.sidebar:hover .nav-icon {
+    margin-right: 1rem; /* Add margin when expanded */
+}
+
+.sidebar .nav-text {
+    display: none; /* Hidden by default */
+    font-weight: 600;
+    white-space: nowrap; /* Prevent text wrapping */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.sidebar:hover .nav-text {
+    display: block; /* Show on hover */
+    opacity: 1;
+}
+
+/* NEW: Content Area Styling */
+.content-area {
+    flex-grow: 1; /* Take remaining space */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align to top */
+    padding: 20px; /* Padding for the main content timer */
+    overflow-y: auto; /* Allow scrolling for main content */
+}
+
+.container {
+    background-color: var(--bg-color-secondary);
+    border-radius: 1.5rem;
+    /* Large rounded corners */
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+    max-width: 900px; /* Adjusted max-width for main content */
+    width: 90%;
+    /* Desktop relative width */
+    padding: 2.5rem;
+    /* Desktop padding */
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    /* Desktop gap */
+    position: relative;
+    /* For absolute positioning of elements like modals */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* Authentication buttons in the corner */
+.auth-corner-buttons {
+    position: absolute;
+    top: 1.5rem;
+    right: 2.5rem;
+    z-index: 50;
+    /* Ensure they are above other content */
+}
+
+.timer-display {
+    font-size: 6rem;
+    /* Desktop font size for timer */
+    font-weight: 700;
+    color: var(--timer-color);
+    text-shadow: 0 0 15px rgba(129, 140, 248, 0.6);
+    letter-spacing: -0.05em;
+    margin-bottom: 1rem;
+}
+
+.timer-display.inspection {
+    color: #fbbf24;
+    /* Amber for inspection */
+}
+
+.timer-display.ready {
+    color: #22c55e;
+    /* Green when ready */
+}
+
+.button-primary {
+    background: linear-gradient(145deg, #6366f1, #818cf8);
+    /* Gradient button */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    /* Base for desktop */
+}
+
+.button-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
+}
+
+.button-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+}
+
+.button-secondary {
+    background-color: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 3px 10px rgba(71, 85, 105, 0.3); /* This shadow might need to be theme-aware too */
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    /* Base for desktop */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.button-secondary:hover {
+    background-color: var(--button-secondary-hover-bg);
+    transform: translateY(-1px);
+}
+
+.button-secondary:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 5px rgba(71, 85, 105, 0.2);
+}
+
+/* NEW: Styling for preview control buttons to make them colorful */
+.button-preview-control {
+    background: linear-gradient(145deg, #22c55e, #34d399); /* Green gradient */
+    color: white;
+    padding: 0.5rem; /* Smaller padding */
+    border-radius: 50%; /* Circular */
+    width: 40px; /* Fixed size */
+    height: 40px; /* Fixed size */
+    font-size: 1.2rem; /* Icon size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
+    transition: all 0.2s ease-in-out;
+}
+
+.button-preview-control:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(34, 197, 94, 0.6);
+}
+
+.button-preview-control:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(34, 197, 94, 0.3);
+}
+
+.scramble-display {
+    background-color: var(--card-bg);
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1.2rem;
+    /* Desktop font size */
+    font-weight: 500;
+    color: var(--scramble-color);
+    text-align: center;
+    word-break: break-all;
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* 3D Cube Container Styling */
+#cube3DContainer {
+    background-color: var(--bg-color-primary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    /* Desktop height */
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* Twisty player needs a height */
+#scramble3DViewer {
+    height: calc(100% - 60px);
+    width: 100%;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    /* Desktop grid layout */
+    gap: 1rem;
+}
+
+.stat-card {
+    background-color: var(--card-bg);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+.stat-card .value {
+    font-size: 1.8rem;
+    /* Desktop font size */
+    font-weight: 700;
+    color: var(--stats-value-color);
+    /* Cyan */
+    margin-top: 0.5rem;
+}
+
+.solve-history-item {
+    background-color: var(--card-bg);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    /* Default to row for desktop */
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease-in-out;
+    flex-wrap: nowrap;
+    /* Prevent wrapping on desktop */
+    gap: 1rem;
+    /* Desktop gap */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+.solve-history-item:hover {
+    transform: translateX(5px);
+    box-shadow: var(--box-shadow); /* Use theme-defined box-shadow */
+}
+
+.solve-history-item .time {
+    font-size: 1.2rem;
+    /* Desktop font size */
+    font-weight: 600;
+    color: var(--solve-time-color);
+}
+
+.solve-history-item .penalty-buttons {
+    display: flex;
+    gap: 0.5rem;
+    /* Space between penalty buttons */
+    flex-wrap: nowrap;
+    /* Prevent wrapping on desktop */
+    justify-content: flex-end;
+    flex-grow: 1;
+}
+
+.solve-history-item .penalty-buttons button {
+    background-color: #f87171;
+    /* Red for DNF */
+    color: white;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.solve-history-item .penalty-buttons button.plus2 {
+    background-color: #fbbf24;
+    /* Amber for +2 */
+}
+
+.solve-history-item .penalty-buttons button.clear-penalty {
+    background-color: #60a5fa;
+    /* Blue for clear */
+}
+
+.solve-history-item .penalty-buttons button.delete {
+    background-color: #dc2626;
+    /* Strong red for delete */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.solve-history-item .penalty-buttons button.insight-button {
+    background-color: #4CAF50;
+    /* Green for Insight */
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+}
+
+.solve-history-item .penalty-buttons button.insight-button:hover {
+    background-color: #45a049;
+}
+
+/* Voice Command Button Styling (fixed position) */
+#voiceCommandBtn, #openChatBtn {
+    background: linear-gradient(145deg, #6366f1, #818cf8); /* Primary button gradient */
+    color: white;
+    border-radius: 50%; /* Circular */
+    width: 56px; /* Larger touch target */
+    height: 56px; /* Larger touch target */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem; /* Icon size */
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Shadow from primary color */
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    z-index: 100; /* Ensure it's above other content */
+    border: none; /* No border */
+}
+
+#voiceCommandBtn:hover, #openChatBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6);
+}
+
+#voiceCommandBtn:active, #openChatBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+}
+
+#voiceCommandBtn.active {
+    background-color: #dc3545; /* Red when active */
+    animation: pulse-red 1s infinite;
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background-color: var(--bg-color-secondary);
+    padding: 2rem;
+    /* Desktop padding */
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    width: 90%;
+    /* Desktop width */
+    max-width: 500px;
+    /* Desktop max-width */
+    position: relative;
+    color: var(--text-color-primary);
+    max-height: 90vh;
+    /* Prevent content from overflowing screen vertically */
+    overflow-y: auto;
+    /* Allow scrolling within modal if content is too long */
+    border: 1px solid var(--border-color); /* Added border for definition */
+}
+
+/* Specifically for AI Insight Modal to take more width on desktop */
+#aiInsightModal .modal-content {
+    max-width: 700px;
+    color: var(--text-color-primary); /* Ensure text color is theme-aware */
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    /* Default background, overridden by theme-specific rules below */
+    background-color: var(--card-bg);
+}
+
+/* AI Insight Modal specific styling for Light Theme */
+body.theme-light #aiInsightModal .modal-content {
+    background: linear-gradient(135deg, var(--card-bg), #f0f0f0); /* White to very light gray gradient */
+    color: var(--text-color-primary); /* Ensure text is dark */
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+/* AI Insight Modal specific styling for Vibrant Theme */
+body.theme-vibrant #aiInsightModal .modal-content {
+    background: linear-gradient(135deg, var(--card-bg), #2a0b4d); /* Dark purple to slightly darker purple */
+    color: var(--text-color-primary); /* Ensure text is light */
+    border-color: var(--border-color);
+    box-shadow: var(--box-shadow);
+}
+
+
+.modal-close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-color-primary);
+    cursor: pointer;
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #f87171);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* NEW: Voice Feedback Display Styling - Moved to bottom center */
+.voice-feedback-display {
+    position: fixed;
+    bottom: 5%; /* Position from the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust for true horizontal centering */
+    background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque background */
+    backdrop-filter: blur(8px); /* Subtle blur effect */
+    -webkit-backdrop-filter: blur(8px); /* For Safari */
+    color: white;
+    padding: 20px 30px; /* More padding */
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Stronger shadow */
+    font-size: 1.3rem; /* Larger font */
+    font-weight: 600;
+    z-index: 1002; /* Above modals */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out; /* Smooth transitions */
+    display: flex;
+    flex-direction: column; /* Stack text and indicator */
+    align-items: center;
+    gap: 10px; /* Space between text and indicator */
+    min-width: 280px; /* Minimum width for the popup */
+    text-align: center;
+    pointer-events: none; /* Allow clicks to pass through when hidden */
+}
+
+.voice-feedback-display.listening-active {
+    opacity: 1;
+    visibility: visible;
+    /* No Y-transform on activation, only X for centering */
+    transform: translateX(-50%);
+    pointer-events: auto; /* Allow interaction when visible if needed, though usually just for display */
+}
+
+/* Listening Indicator Dots */
+.listening-indicator {
+    display: flex;
+    gap: 8px; /* Larger gap between dots */
+}
+
+.listening-indicator .dot {
+    width: 10px; /* Larger dots */
+    height: 10px; /* Larger dots */
+    background-color: var(--accent-color-green);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.listening-indicator .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+.listening-indicator .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+.listening-indicator .dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.3;
+    }
+    40% {
+    transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* NEW: Speaking Indicator (optional, if we want a different animation when Jarvis is speaking) */
+.voice-feedback-display.speaking .listening-indicator .dot {
+    background-color: var(--accent-color-blue); /* Different color when speaking */
+    animation: pulse-dot 1s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+}
+
+/* NEW: Chat Modal Styling */
+#chatModal .modal-content {
+    max-width: 450px; /* Slightly wider for chat */
+    max-height: 80vh; /* Controlled height */
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #1e293b, #0f172a); /* Darker gradient for chat */
+    border: 1px solid #334155;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+}
+
+#chatHistory {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #1a202c; /* Darker background for chat history */
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    scroll-behavior: smooth; /* Smooth scrolling for new messages */
+    border: 1px solid #2d3748;
+}
+
+.chat-message {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    max-width: 85%; /* Limit width for messages */
+    word-wrap: break-word; /* Ensure long words break */
+}
+
+.user-message {
+    text-align: right;
+    color: #e2e8f0; /* Light text for user */
+    background-color: #3b82f6; /* Blue background for user messages */
+    margin-left: auto; /* Push to right */
+    border-bottom-right-radius: 0; /* Flat corner on sender side */
+}
+
+.jarvis-message {
+    text-align: left;
+    color: #cbd5e1; /* Slightly darker text for Jarvis */
+    background-color: #475569; /* Slate background for Jarvis messages */
+    margin-right: auto; /* Push to left */
+    border-bottom-left-radius: 0; /* Flat corner on sender side */
+}
+
+.chat-message .font-bold {
+    font-weight: 700;
+}
+
+.chat-message .text-indigo-400 {
+    color: #818cf8; /* Jarvis's name color */
+}
+
+.chat-message .text-green-400 {
+    color: #d1fae5; /* Lighter green for user's name on blue background */
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end; /* Align input and button at the bottom */
+}
+
+/* Corrected .input-field styling for general use */
+.input-field {
+    flex-grow: 1;
+    min-height: 40px; /* Minimum height for consistency */
+    padding: 0.75rem;
+    border-radius: 0.75rem; /* More rounded corners for beauty */
+    background-color: var(--input-bg); /* Use theme variable */
+    border: 1px solid var(--input-border); /* Use theme variable */
+    color: var(--input-text); /* Use theme variable */
+    font-size: 1rem;
+    resize: vertical; /* Allow vertical resizing for textareas */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--input-focus-border); /* Use theme variable */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Blue glow on focus */
+}
+
+
+#chatInput { /* Specific overrides for chat input if needed, but .input-field should handle most */
+    max-height: 120px; /* Max height before scrolling */
+}
+
+#chatSendBtn {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem; /* Consistent with input-field */
+    font-size: 1rem;
+}
+
+/* Custom Scrollbar for chat history */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #2d3748; /* Darker track */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4a5568; /* Scrollbar thumb color */
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* Darker on hover */
+}
+
+/* MOBILE-SPECIFIC STYLES: These OVERRIDE desktop styles on smaller screens. */
+/* Targeting screens up to 767px wide (typical for most phones and small tablets) */
+@media (max-width: 767px) {
+    body {
+        padding: 0;
+        /* Reduced padding for mobile */
+    }
+
+    .main-layout {
+        flex-direction: column; /* Stack sidebar and content vertically */
+        padding: 0; /* Handled by child elements */
+    }
+
+    .sidebar {
+        width: 100%; /* Full width on mobile */
+        padding: 1rem 0.5rem; /* Adjusted padding for mobile */
+        border-right: none;
+        border-bottom: 1px solid var(--border-color); /* Separator */
+        box-shadow: none; /* Remove sidebar shadow on mobile */
+        gap: 1rem;
+        flex-direction: row; /* Horizontal layout for mobile nav */
+        justify-content: space-around; /* Distribute items evenly */
+        align-items: center;
+        border-radius: 0; /* No rounded corners on mobile for full width */
+        min-height: auto; /* Allow height to adjust to content */
+        height: auto;
+    }
+
+    .sidebar:hover {
+        width: 100%; /* No width change on hover for mobile */
+        padding: 1rem 0.5rem;
+        align-items: center;
+    }
+
+    .sidebar .nav-item {
+        flex-direction: column; /* Stack icon and text vertically */
+        padding: 0.5rem;
+        font-size: 0.8rem; /* Smaller font for mobile nav text */
+    }
+
+    .sidebar .nav-icon {
+        margin-right: 0 !important; /* No margin on mobile */
+        margin-bottom: 0.25rem; /* Space between icon and text */
+        font-size: 1.2rem; /* Smaller icon size for mobile */
+    }
+
+    .sidebar .nav-text {
+        display: block; /* Always show text on mobile */
+        opacity: 1;
+        font-size: 0.7rem; /* Even smaller for text */
+    }
+
+    .sidebar:hover .nav-text {
+        display: block; /* Still show on hover, but no change */
+        opacity: 1;
+    }
+
+    .content-area {
+        padding: 16px; /* Padding for main content on mobile */
+    }
+
+    .container {
+        padding: 1.5rem;
+        /* Reduced padding for mobile */
+        gap: 1.5rem;
+        /* Reduced gap for mobile */
+        max-width: 100%;
+        /* Take full width on mobile */
+        width: 100%;
+    }
+
+    .auth-corner-buttons {
+        /* On mobile, stack buttons vertically and align to the right, inside the container flow */
+        flex-direction: column;
+        align-items: flex-end;
+        margin-top: 0.5rem;
+        /* Adjust to fit content well */
+        margin-bottom: 0.5rem;
+        position: static; /* Remove absolute positioning on mobile */
+    }
+
+    .auth-corner-buttons button {
+        padding: 0.5rem 1rem;
+        /* Slightly larger touch targets */
+        font-size: 0.875rem;
+        /* Slightly larger font for readability */
+        width: auto;
+        /* Allow buttons to size to content */
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        /* Smaller heading for mobile */
+        margin-bottom: 1rem;
+        /* Adjusted margin */
+    }
+
+    .timer-display {
+        font-size: 4rem;
+        /* Smaller timer font for mobile */
+        margin-bottom: 0.5rem;
+    }
+
+    .scramble-display {
+        font-size: 1rem;
+        /* Smaller scramble font for mobile */
+        padding: 0.8rem 1rem;
+        /* Adjusted padding */
+    }
+
+    #cube3DContainer {
+        height: 250px;
+        /* Adjusted height for mobile */
+    }
+
+    /* Control buttons flex-direction is already column for sm: (which is 640px)
+        but we can specify here for max-width just to be explicit if needed */
+    .flex-col.sm\:flex-row {
+        /* Targeting the control buttons div */
+        flex-direction: column;
+        gap: 0.75rem;
+        /* Adjusted gap */
+    }
+
+    .button-primary,
+    .button-secondary {
+        font-size: 0.9rem;
+        /* Slightly smaller button font */
+        padding: 0.6rem 1rem;
+        /* Reduced padding */
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        /* 2 columns on mobile, adjusts */
+        gap: 0.8rem;
+        /* Smaller gap for stats */
+    }
+
+    .stat-card {
+        padding: 0.7rem;
+        /* Adjusted padding */
+    }
+
+    .stat-card .value {
+        font-size: 1.5rem;
+        /* Smaller stat value font */
+    }
+
+    .solve-history-item {
+        flex-direction: column;
+        /* Stack time and buttons */
+        align-items: flex-start;
+        /* Align contents to start */
+        gap: 0.5rem;
+        /* Gap between time and buttons block */
+        padding: 0.6rem 1rem;
+        /* Smaller padding */
+    }
+
+    .solve-history-item .time {
+        font-size: 1.0rem;
+    }
+
+    .solve-history-item .penalty-buttons {
+        flex-direction: row; /* Ensure buttons stay in a row on mobile */
+        flex-wrap: wrap; /* Allow wrapping if many buttons */
+        justify-content: flex-start; /* Align to start on mobile */
+        width: 100%; /* Take full width to align buttons */
+        margin-left: 0; /* Remove left margin */
+    }
+
+    .solve-history-item .penalty-buttons button {
+        padding: 0.3rem 0.6rem; /* Smaller padding for mobile buttons */
+        font-size: 0.75rem; /* Smaller font for mobile buttons */
+    }
+
+    /* Adjustments for voice feedback and chat on mobile */
+    .voice-feedback-display, .chat-container {
+        bottom: 10px; /* Closer to bottom edge on mobile */
+        left: 10px; /* Adjust left position */
+        right: 10px; /* Adjust right position */
+        transform: none; /* Remove transform for fixed positioning */
+        width: auto; /* Allow width to be determined by left/right */
+        max-width: calc(100% - 20px); /* Max width for mobile */
+        padding: 15px 20px; /* Adjusted padding */
+        font-size: 1rem; /* Smaller font */
+        border-radius: 10px; /* Smaller border radius */
+    }
+
+    .chat-container {
+        height: 60vh; /* Adjust height for mobile chat */
+    }
+
+    #voiceCommandBtn, #openChatBtn {
+        width: 48px; /* Smaller buttons on mobile */
+        height: 48px;
+        font-size: 1.5rem; /* Smaller icon */
+        bottom: 10px; /* Adjust position */
+        right: 10px;
+        left: auto; /* Ensure right alignment */
+    }
+
+    #openChatBtn {
+        left: 10px; /* Align chat button to left */
+        right: auto;
+    }
+}
+
+/* Further adjustments for very small screens (e.g., iPhone SE) */
+@media (max-width: 479px) {
+    .timer-display {
+        font-size: 3rem;
+        /* Even smaller timer font for very small screens */
+    }
+
+    h1 {
+        font-size: 2rem;
+        /* Even smaller heading for very small screens */
+    }
+
+    .scramble-display {
+        font-size: 0.9rem;
+        /* Even smaller scramble font */
+    }
+
+    .stat-card .value {
+        font-size: 1.3rem;
+        /* Even smaller stat value font */
+    }
+
+    .button-primary,
+    .button-secondary {
+        font-size: 0.9rem;
+        /* Slightly smaller button font */
+        padding: 0.6rem 1rem;
+        /* Reduced padding */
+    }
+
+    .solve-history-item .penalty-buttons button {
+        font-size: 0.7rem;
+        /* Smallest penalty button font */
+    }
+}
+
+/* Spinner for loading states */
+.spinner {
+    border: 4px solid #ccc !important;
+    border-top: 4px solid #3b82f6 !important;
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+    animation: spin 1s linear infinite !important;
+    will-change: transform !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 10000 !important;
+    pointer-events: none !important;
+    background: transparent !important;
+}
+
+/* History Loading Spinner - Dedicated styles */
+#historyLoadingSpinner {
+    border: 4px solid #ccc;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: block;
+    position: relative;
+    margin: 2rem auto;
+    animation: spin-history 1s ease infinite;
+    will-change: transform;
+}
+
+#historyLoadingSpinner.hidden {
+    display: none !important;
+}
+
+@keyframes spin-history {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* TOAST NOTIFICATIONS */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    transform: translateY(20px);
+    min-width: 200px;
+    text-align: center;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ================================================================================= */
+/* === LESSONS PAGE SPECIFIC STYLES (OVERHAUL) === */
+/* ================================================================================= */
+
+/* This ensures the content area correctly handles the lessons page layout */
+.lessons-page-container {
+    width: 100%;
+    max-width: 1600px; /* Wider for a more expansive feel */
+    margin: 0 auto;
+    color: var(--text-color-primary);
+    display: flex; /* Use flex to manage showing/hiding sections */
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* General glass-panel style for all major sections within lessons */
+.glass-panel {
+    background-color: rgba(30, 41, 59, 0.6); /* Slightly more transparent */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: all 0.3s ease-in-out;
+}
+
+/* --- Lesson Hub Styles --- */
+#courseListContainer {
+    min-height: 500px; /* Increased min-height to prevent shrinking */
+    border-radius: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    transition: min-height 0.3s ease; /* Smooth transition */
+}
+
+#courseList {
+    min-height: 400px; /* Prevent shrinking */
+    min-width: 100%; /* Ensure full width */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive columns with min width */
+    gap: 1.5rem;
+}
+
+.course-card {
+    background-color: var(--card-bg);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    text-align: left;
+    border: 1px solid transparent; /* Start with transparent border */
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+    border-color: var(--accent-color-blue);
+}
+
+.course-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color-primary);
+    margin-bottom: 0.5rem;
+}
+
+.course-card .course-description {
+    color: var(--text-color-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    flex-grow: 1;
+    margin-bottom: 1rem;
+}
+
+.course-card .course-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-color-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.course-card .course-meta span {
+    background-color: rgba(0,0,0,0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.course-card .course-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+
+/* --- Lesson Viewer Styles --- */
+#lessonViewer {
+    width: 100%;
+}
+
+/* Course Navigation Sidebar */
+#courseNavigationSidebar {
+    min-height: 70vh; /* Good height for the sidebar */
+}
+
+#moduleList .module-item {
+    margin-bottom: 1rem;
+}
+
+#moduleList .module-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color-primary);
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+#moduleList .module-title:hover {
+    color: var(--accent-color-blue);
+    background-color: var(--button-bg-hover);
+}
+
+#moduleList .module-title .module-chevron {
+    transition: transform 0.2s ease;
+}
+
+#moduleList .module-title.expanded .module-chevron {
+    transform: rotate(90deg);
+}
+
+#moduleList .lesson-list {
+    list-style: none;
+    padding-left: 1.5rem;
+    margin-top: 0.5rem;
+    border-left: 2px solid var(--border-color);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out;
+}
+
+#moduleList .lesson-list.open {
+    max-height: 500px; /* Arbitrary large value for smooth expansion */
+}
+
+#moduleList .lesson-item {
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    color: var(--text-color-secondary);
+    transition: color 0.2s ease, background-color 0.2s ease, border-left-color 0.2s ease;
+    border-radius: 0.5rem;
+    position: relative;
+    border-left: 3px solid transparent;
+}
+
+#moduleList .lesson-item:hover {
+    color: var(--text-color-primary);
+    background-color: var(--button-bg-hover);
+}
+
+#moduleList .lesson-item.active {
+    color: white;
+    background-color: var(--accent-color-blue);
+    font-weight: 600;
+    border-left-color: var(--accent-color-green);
+}
+
+/* Lesson Content Display & Editor */
+#lessonContentDisplay {
+    font-size: 1.05rem;
+}
+
+#lessonContentDisplay h1, #lessonContentDisplay h2, #lessonContentDisplay h3 {
+    color: var(--text-color-primary);
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+#lessonContentDisplay h1 { font-size: 2rem; }
+#lessonContentDisplay h2 { font-size: 1.6rem; }
+#lessonContentDisplay h3 { font-size: 1.3rem; }
+
+#lessonContentDisplay code {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+}
+
+#lessonContentDisplay pre {
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 1em;
+    border-radius: 0.5em;
+    overflow-x: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+/* Markdown Editor Styling */
+.CodeMirror, .CodeMirror-scroll {
+    min-height: 400px;
+    border-radius: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+}
+.editor-toolbar {
+    background-color: var(--bg-color-secondary) !important;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    border-bottom: 1px solid var(--input-border) !important;
+}
+.editor-toolbar button:hover {
+    background-color: var(--button-bg-hover) !important;
+    border-color: var(--button-bg-hover) !important;
+}
+
+/* 3D Viewer & Quiz Area */
+#scramble3DContainer .button-preview-control {
+    background-color: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
+    box-shadow: none;
+}
+#scramble3DContainer .button-preview-control:hover {
+    background-color: var(--button-secondary-hover-bg);
+    transform: scale(1.05);
+}
+
+#quizArea {
+    display: flex; /* Ensure it's flex for child elements */
+}
+#quizQuestionsContainer .question-item {
+    background-color: rgba(0,0,0,0.2);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+}
+#quizQuestionsContainer .question-item p {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+#quizQuestionsContainer .answer-option {
+    display: block; /* Use block for label to contain input */
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+#quizQuestionsContainer .answer-option:hover {
+    background-color: var(--button-bg-hover);
+}
+#quizQuestionsContainer .answer-option input {
+    margin-right: 0.75rem;
+    accent-color: var(--accent-color-blue);
+}
+
+/* Quiz feedback styling */
+#quizQuestionsContainer .answer-option.correct {
+    background-color: rgba(34, 197, 94, 0.2);
+    border-color: #22c55e;
+}
+#quizQuestionsContainer .answer-option.incorrect {
+    background-color: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+}
+#quizQuestionsContainer .answer-option.reveal-correct {
+    background-color: rgba(34, 197, 94, 0.3);
+    border-color: #22c55e;
+    font-weight: bold;
+}
+
+/* In-Lesson Chat Sidebar */
+#inLessonChatContainer.open {
+    transform: translateX(0);
+}
+
+/* --- Mobile Responsiveness for Lessons Page --- */
+@media (max-width: 1023px) { /* Tablets and below */
+    #lessonViewer {
+        grid-template-columns: 1fr; /* Stack sidebar and content */
+    }
+    #courseNavigationSidebar {
+        min-height: auto; /* Allow height to adjust */
+    }
+}
+
+@media (max-width: 767px) { /* Mobile phones */
+    .lessons-page-container {
+        padding: 0.5rem;
+    }
+    .glass-panel {
+        padding: 1rem;
+    }
+    #courseList {
+        grid-template-columns: 1fr;
+    }
+    .course-card h3 {
+        font-size: 1.2rem;
+    }
+    #inLessonChatContainer {
+        max-width: 95%;
+    }
+}
+
+/* Additional CSS fixes for lessons page */
+
+
+
+/* Auto-expand chat input textarea height */
+#courseChatInput {
+    overflow-y: hidden; /* Hide scrollbar */
+    min-height: 2.5rem;
+    max-height: 8rem;
+    resize: none;
+}
+
+
+/* Fix for course list container to prevent shrinking and overlapping */
+#courseListContainer {
+    min-height: 500px !important; /* Increased min-height to prevent shrinking */
+    border-radius: 0.75rem;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--input-text);
+    transition: min-height 0.3s ease;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-grow: 1 !important;
+    position: relative !important;
+}
+
+#courseList {
+    min-height: 400px !important; /* Prevent shrinking */
+    min-width: 100% !important; /* Ensure full width */
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important; /* Responsive columns with min width */
+    gap: 1.5rem !important;
+    flex-grow: 1 !important;
+    align-self: stretch !important;
+}
+
+.course-card {
+    min-width: 280px !important; /* Prevent cards from shrinking too small */
+    min-height: 180px !important; /* Ensure cards have enough height */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+
+/* Fix chat container and input to remove unnecessary scrollbar */
+#courseChatContainer {
+    min-height: 60vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background-color: var(--input-bg) !important;
+    border-radius: 0.75rem !important;
+    padding: 1rem !important;
+    overflow: hidden !important; /* Prevent unnecessary scrollbars */
+}
+
+#courseChatMessages {
+    flex-grow: 1 !important;
+    overflow-y: auto !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+#courseChatInput {
+    resize: none !important;
+    min-height: 2.5rem !important;
+    max-height: 5rem !important;
+    overflow-y: auto !important; /* Allow scroll only if content exceeds max height */
+    border-radius: 0.5rem !important;
+    padding: 0.5rem !important;
+    font-size: 1rem !important;
+    border: 1px solid var(--input-border) !important;
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    transition: border-color 0.3s ease !important;
+}
+
+#courseChatInput:focus {
+    outline: none !important;
+    border-color: var(--input-focus-border) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
 }
