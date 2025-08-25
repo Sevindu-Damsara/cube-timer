@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .lessons-page-container {
     width: 100%;
     display: flex;

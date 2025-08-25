@@ -332,7 +332,7 @@ window.getSolveInsight = async function (solveId) {
         type: "get_insight", // Indicate the type of request
         scramble: solve.scramble,
         cubeType: currentCubeType, // Use currentCubeType from settings
-        solveTimeMs: solve.time,
+        time_ms: solve.time,
         penalty: solve.penalty,
         userLevel: userLevel
     };

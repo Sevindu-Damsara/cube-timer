@@ -1,0 +1,22 @@
+{
+  "name": "cubically-ai-timer",
+  "version": "1.0.0",
+  "description": "A Rubik's Cube timer with AI features.",
+  "main": "script.js",
+  "scripts": {
+    "build:css": "node node_modules/tailwindcss/lib/cli.js -i style.css -o dist/style.css --minify"
+  },
+  "keywords": [
+    "rubiks",
+    "cube",
+    "timer",
+    "ai"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.38",
+    "autoprefixer": "^10.4.19"
+  }
+}
