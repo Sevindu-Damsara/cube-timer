@@ -100,13 +100,9 @@ def gemini_nlu_handler():
         """
 
         payload = {
-            "contents": [{"role": "user", "parts": [{"text": user_transcript}]}],
-            "systemInstruction": {
-                "parts": [{"text": system_prompt}]
-            },
-            "generationConfig": {
-                "responseMimeType": "application/json"
-            }
+            "contents": [
+                {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_transcript}]}
+            ]
         }
 
         headers = {
