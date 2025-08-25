@@ -44,7 +44,7 @@ def gemini_nlu_handler():
             'Content-Type': 'application/json',
             'x-goog-api-key': gemini_api_key
         }
-        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent"
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 
         system_prompt = """
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.
