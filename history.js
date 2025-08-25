@@ -363,11 +363,16 @@ window.getSolveInsight = async function (solveId) {
         console.log("[DEBUG] Cloud Function raw response:", result);
 
         // Display insights
-        if (result.insight && insightMessageElement) {
+        // Hide the main insight message area if other, more specific insights are available.
+        if (result.scrambleAnalysis || result.personalizedTip || result.targetedPracticeFocus) {
+            insightMessageElement.style.display = 'none';
+        } else if (result.insight && insightMessageElement) {
             insightMessageElement.textContent = result.insight;
             insightMessageElement.style.display = 'block';
         } else {
+            // Only show this if no other insights are available at all.
             insightMessageElement.textContent = "General insight unavailable.";
+            insightMessageElement.style.display = 'block';
         }
 
         if (result.scrambleAnalysis && scrambleAnalysisText && scrambleAnalysisDisplay) {
