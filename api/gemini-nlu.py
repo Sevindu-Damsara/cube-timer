@@ -147,8 +147,11 @@ def gemini_nlu_handler():
         print(f"ERROR: Timeout error during Gemini API call: {timeout_err}")
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
     except requests.exceptions.RequestException as req_err:
-        print(f"ERROR: General request error during Gemini API call: {req_err}")
-        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
+        error_message = f"An unknown error occurred during the AI service request: {req_err}"
+        if req_err.response is not None:
+            error_message += f" | Details: {req_err.response.text}"
+        print(f"ERROR: General request error during Gemini API call: {error_message}")
+        return jsonify({"error": error_message}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
         print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")

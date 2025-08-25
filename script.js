@@ -399,6 +399,7 @@ window.getSolveInsight = async function (solveId) {
             if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
         }
 
+        if (insightSpinner) insightSpinner.style.display = 'none'; // Explicitly hide spinner after content is processed
         console.log("[DEBUG] Cloud Function response received and displayed.");
 
     } catch (e) {
