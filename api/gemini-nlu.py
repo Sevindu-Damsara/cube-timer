@@ -29,9 +29,39 @@ def gemini_nlu_handler():
         request_json = request.get_json(silent=True)
         print(f"DEBUG: Received NLU request JSON: {request_json}")
 
-        if not request_json or 'transcript' not in request_json:
-            print("ERROR: Invalid JSON body. Missing 'transcript'.")
-            return jsonify({"error": "Invalid request: 'transcript' field is required."}), 400
+        if not request_json or ('transcript' not in request_json and 'query' not in request_json):
+            print("ERROR: Invalid JSON body. Missing 'transcript' or 'query'.")
+            return jsonify({"error": "Invalid request: 'transcript' or 'query' field is required."}), 400
+
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        if not gemini_api_key:
+            print("ERROR: GEMINI_API_KEY environment variable not set.")
+            return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
+
+        if 'query' in request_json:
+            # This is a general knowledge question, not a command classification
+            user_query = request_json.get('query')
+            answer_prompt = f"You are Jarvis, a helpful AI assistant. Answer the following user question concisely and politely. Question: {user_query}"
+
+            headers = {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': gemini_api_key
+            }
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": answer_prompt}]}]
+            }
+
+            gemini_response = requests.post(gemini_url, headers=headers, data=json.dumps(payload))
+            gemini_response.raise_for_status()
+            gemini_result = gemini_response.json()
+
+            if gemini_result and gemini_result.get('candidates'):
+                answer = gemini_result['candidates'][0]['content']['parts'][0].get('text')
+                return jsonify({"answer": answer}), 200
+            else:
+                return jsonify({"error": "Failed to get an answer from the AI service."}), 500
 
         user_transcript = request_json.get('transcript', '')
 

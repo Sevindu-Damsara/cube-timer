@@ -424,7 +424,7 @@ async function getAlgorithmOrExplanation(query) {
         query: query
     };
 
-    const apiUrl = geminiInsightFunctionUrl; // Re-using insight function for now, could be a separate endpoint
+    const apiUrl = geminiNluFunctionUrl; // Corrected to use the NLU function URL
 
     if (!apiUrl || apiUrl === "YOUR_GEMINI_INSIGHT_VERCEL_FUNCTION_URL") {
         console.error("[ERROR] Gemini Insight Cloud Function URL not configured for algorithm lookup.");
