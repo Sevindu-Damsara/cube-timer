@@ -862,7 +862,8 @@ if (recognition) {
             } else if (jarvisIndex !== -1) {
                 // Wake word detected.
                 const commandPart = lowerTranscript.substring(jarvisIndex + 'jarvis'.length).trim();
-                if (commandPart) {
+                // FIX: Check if the command part is more than just punctuation.
+                if (commandPart && /[a-zA-Z0-9]/.test(commandPart)) {
                     // Command immediately follows wake word in the same utterance
                     console.log("[DEBUG] Wake word 'Jarvis' detected with immediate command. Processing command.");
                     speakAsJarvis("At your service, Sir Sevindu. Processing your command.");
@@ -1068,7 +1069,6 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
                 toggleTimer();
             } else {
                 // Removed redundant verbal feedback, rely on visual
-                // speakAsJarvis("The timer is already in progress, Sir Sevindu.");
             }
             break;
         case 'stop_timer':
@@ -1077,7 +1077,6 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
                 toggleTimer(); // This will stop the timer and add solve
             } else {
                 // Removed redundant verbal feedback, rely on visual
-                // speakAsJarvis("The timer is not currently running, Sir Sevindu.");
             }
             break;
         case 'new_scramble':
@@ -1104,17 +1103,44 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
                 speakAsJarvis("There are no solves recorded to analyze, Sir Sevindu.");
             }
             break;
-        // Settings related commands will now be handled on the settings page,
-        // but for voice commands initiated from the main page, we can still process them
-        // and save them, but they won't update the UI on the current page immediately.
-        // It's better to navigate to settings page for these.
+        // MODIFIED: Directly handle settings changes
         case 'toggle_inspection':
+            enableInspection = !enableInspection;
+            speakAsJarvis(`Inspection timer is now ${enableInspection ? 'enabled' : 'disabled'}, Sir Sevindu.`);
+            await saveUserSettings();
+            applySettingsToUI();
+            break;
         case 'toggle_sound_effects':
+            enableSoundEffects = !enableSoundEffects;
+            speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}, Sir Sevindu.`);
+            await saveUserSettings();
+            applySettingsToUI();
+            break;
         case 'set_cube_type':
+            if (value && ['2x2', '3x3', '4x4', 'pyraminx'].includes(value)) {
+                cubeType = value;
+                speakAsJarvis(`Cube type set to ${value}, Sir Sevindu.`);
+                await saveUserSettings();
+                applySettingsToUI(); // This will also generate a new scramble
+            } else {
+                speakAsJarvis(`Pardon me, Sir Sevindu, but '${value}' is not a valid cube type.`);
+            }
+            break;
         case 'set_theme':
+            if (value && ['light', 'dark', 'vibrant'].includes(value)) {
+                currentTheme = value;
+                speakAsJarvis(`Theme set to ${value}, Sir Sevindu.`);
+                await saveUserSettings();
+                applySettingsToUI();
+            } else {
+                speakAsJarvis(`Pardon me, Sir Sevindu, but '${value}' is not a valid theme.`);
+            }
+            break;
         case 'toggle_3d_cube_view':
-            speakAsJarvis(`Sir Sevindu, to modify settings, please navigate to the settings page. I am redirecting you now.`);
-            window.location.href = 'settings.html';
+            show3DCubeView = !show3DCubeView;
+            speakAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}, Sir Sevindu.`);
+            await saveUserSettings();
+            applySettingsToUI();
             break;
         case 'get_best_time':
             speakAsJarvis(`Your best recorded time is ${bestTimeDisplay.textContent}, Sir Sevindu.`);
@@ -1628,6 +1654,42 @@ async function loadUserSettings() {
 }
 
 // Removed saveUserSettings from script.js as it's now primarily in settings.js
+
+/**
+ * Saves current user settings. Uses Firestore for authenticated users, Local Storage for guests.
+ */
+async function saveUserSettings() {
+    console.log("[DEBUG] script.js: Entering saveUserSettings.");
+    const settingsToSave = {
+        enableInspection: enableInspection,
+        enableSoundEffects: enableSoundEffects,
+        cubeType: cubeType,
+        theme: currentTheme,
+        show3DCubeView: show3DCubeView,
+        lastUpdated: Date.now()
+    };
+
+    const settingsKey = `${LOCAL_STORAGE_PREFIX}settings`;
+
+    if (isUserAuthenticated && db && userId) { // Authenticated user
+        console.log("[DEBUG] script.js: Authenticated and Firestore ready. Attempting to save settings.");
+        const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
+        try {
+            await setDoc(userSettingsRef, settingsToSave, { merge: true });
+            console.log("[DEBUG] script.js: User settings saved to Firestore.");
+        } catch (e) {
+            console.error("[ERROR] script.js: Error saving user settings to Firestore: ", e);
+            // Fallback to local save if Firestore fails
+            localStorage.setItem(settingsKey, JSON.stringify(settingsToSave));
+            console.warn("[WARN] script.js: Firestore failed to save settings, saved to local storage instead.");
+        }
+    } else { // Guest user
+        console.log("[DEBUG] script.js: Guest user. Saving settings to local storage.");
+        localStorage.setItem(settingsKey, JSON.stringify(settingsToSave));
+    }
+    console.log("[DEBUG] script.js: Exiting saveUserSettings.");
+}
+
 
 /**
  * Retrieves the hexadecimal color code for the primary background based on the current theme.

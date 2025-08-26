@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .lessons-page-container {
     width: 100%;
     display: flex;
@@ -1383,7 +1387,6 @@ body.theme-vibrant #aiInsightModal .modal-content {
     box-shadow: none;
 }
 #scramble3DContainer .button-preview-control:hover {
-    background-color: var(--button-secondary-hover-bg);
     transform: scale(1.05);
 }
 

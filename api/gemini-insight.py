@@ -58,8 +58,13 @@ def gemini_insight_handler():
             return handle_lesson_chat(request_json)
         elif request_type == 'generate_course':
             return handle_generate_course(request_json)
+        elif request_type == 'get_answer' or request_type == 'get_algorithm':
+            return handle_general_query(request_json)
+        elif request_type == 'get_insight':
+             return generate_insight(request_json)
         else:
             # Fallback to existing insight generation if no specific type is provided
+            print(f"WARN: request_type '{request_type}' not recognized, falling back to insight generation.")
             return generate_insight(request_json)
 
     except requests.exceptions.ConnectionError as conn_err:
@@ -87,6 +92,90 @@ def gemini_insight_handler():
         import traceback
         print(f"CRITICAL ERROR: An unexpected server-side error occurred: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"An unexpected internal server error occurred. Details: {str(e)}."}), 500
+
+def handle_general_query(request_json):
+    """Handles a general query or algorithm request using Gemini."""
+    print("DEBUG: === handle_general_query received a request. ===")
+    query = request_json.get('query')
+    request_type = request_json.get('type') # 'get_answer' or 'get_algorithm'
+
+    if not query:
+        print("ERROR: Missing 'query' in request for general answer/algorithm.")
+        return jsonify({"error": "Missing 'query' in request."}), 400
+
+    if request_type == 'get_algorithm':
+        system_prompt = "You are Jarvis, an AI cubing coach. The user is asking for a specific cubing algorithm or an explanation of a cubing term. Provide a concise and accurate explanation or the algorithm requested. If you provide an algorithm, list the moves clearly. Respond with a single JSON object with the key 'explanation'."
+    else: # 'get_answer'
+        system_prompt = "You are Jarvis, an AI assistant for a Rubik's Cube timer app. The user is asking a general question. It could be about cubing, the app, or a simple greeting. Provide a concise, helpful, and in-character response. Respond with a single JSON object with the key 'answer'."
+
+    headers = {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY
+    }
+
+    # Using a simpler text-generation model might be faster and cheaper for this.
+    # Using gemini-pro for now for consistency.
+    gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": query}]}],
+        "systemInstruction": {
+            "parts": [{"text": system_prompt}]
+        },
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "OBJECT",
+                "properties": {
+                    "answer": {"type": "STRING"}
+                },
+                "required": ["answer"]
+            }
+        }
+    }
+
+    # Adjust schema for algorithm requests
+    if request_type == 'get_algorithm':
+        payload['generationConfig']['responseSchema']['properties'] = {"explanation": {"type": "STRING"}}
+        payload['generationConfig']['responseSchema']['required'] = ["explanation"]
+
+
+    try:
+        gemini_response = requests.post(
+            gemini_url,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        gemini_response.raise_for_status()
+
+        response_data = gemini_response.json()
+        print(f"DEBUG: Gemini API response for general query: {response_data}")
+
+        if response_data and response_data.get('candidates'):
+            json_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            answer = json.loads(json_text)
+            # The key is 'explanation' for algorithms, 'answer' for general queries.
+            # The client-side code handles both `explanation` and `answer` keys, so this is fine.
+            return jsonify(answer), 200
+        else:
+            print(f"ERROR: Gemini API response missing candidates or content: {response_data}")
+            return jsonify({"error": "AI service did not return a valid answer."}), 500
+
+    except requests.exceptions.RequestException as e:
+        error_message = f"Failed to get answer from AI service: {e}"
+        if hasattr(e, 'response') and e.response is not None:
+            error_message += f" | Details: {e.response.text}"
+        print(f"ERROR: Request to Gemini API failed: {error_message}")
+        return jsonify({"error": error_message}), 500
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse Gemini API response as JSON: {e}")
+        if 'gemini_response' in locals() and gemini_response is not None:
+            print(f"Raw response text: {gemini_response.text}")
+        return jsonify({"error": f"AI service returned invalid JSON: {e}"}), 500
+    except Exception as e:
+        print(f"CRITICAL ERROR: Unexpected error in handle_general_query: {e}")
+        return jsonify({"error": f"An unexpected error occurred during query handling: {e}"}), 500
 
 def generate_insight(request_json):
     """Generates AI insight based on scramble, time, and user performance."""
