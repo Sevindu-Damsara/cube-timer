@@ -5,6 +5,7 @@
 import os
 import requests
 import json
+import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
 
@@ -124,12 +125,20 @@ def gemini_nlu_handler():
             if candidate and candidate.get('content') and candidate['content'].get('parts'):
                 gemini_content_str = candidate['content']['parts'][0].get('text')
                 if gemini_content_str:
+                    # Use regex to find the JSON block within the markdown code block
+                    json_match = re.search(r'\{.*\}', gemini_content_str, re.DOTALL)
+                    if not json_match:
+                        print(f"ERROR: No JSON object found in the AI response: {gemini_content_str}")
+                        return jsonify({"error": "AI service did not return a valid JSON object."}), 500
+
+                    json_str_to_parse = json_match.group(0)
+
                     try:
-                        parsed_content = json.loads(gemini_content_str)
+                        parsed_content = json.loads(json_str_to_parse)
                         return jsonify(parsed_content), 200
                     except json.JSONDecodeError as e:
-                        print(f"ERROR: Failed to decode Gemini JSON content string: {e}. Raw content string: '{gemini_content_str}'")
-                        return jsonify({"error": f"AI service returned malformed JSON content: {e}"}), 500
+                        print(f"ERROR: Failed to decode extracted JSON string: {e}. Extracted string: '{json_str_to_parse}'")
+                        return jsonify({"error": f"AI service returned malformed JSON content after extraction: {e}"}), 500
                 else:
                     print("ERROR: Gemini content part 'text' is missing or empty.")
                     return jsonify({"error": "AI service response content is empty."}), 500
