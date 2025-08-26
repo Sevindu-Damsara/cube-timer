@@ -5,7 +5,6 @@
 import os
 import requests
 import json
-import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS # Required for handling CORS in Flask functions
 
@@ -34,17 +33,21 @@ def gemini_nlu_handler():
             print("ERROR: Invalid JSON body. Missing 'transcript' or 'query'.")
             return jsonify({"error": "Invalid request: 'transcript' or 'query' field is required."}), 400
 
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        if not gemini_api_key:
+            print("ERROR: GEMINI_API_KEY environment variable not set.")
+            return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
+
         if 'query' in request_json:
             # This is a general knowledge question, not a command classification
             user_query = request_json.get('query')
             answer_prompt = f"You are Jarvis, a helpful AI assistant. Answer the following user question concisely and politely. Question: {user_query}"
 
-            gemini_api_key = os.environ.get("GEMINI_API_KEY")
             headers = {
                 'Content-Type': 'application/json',
                 'x-goog-api-key': gemini_api_key
             }
-            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
             payload = {
                 "contents": [{"role": "user", "parts": [{"text": answer_prompt}]}]
@@ -71,7 +74,7 @@ def gemini_nlu_handler():
             'Content-Type': 'application/json',
             'x-goog-api-key': gemini_api_key
         }
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
 
         system_prompt = """
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.
@@ -127,9 +130,13 @@ def gemini_nlu_handler():
         """
 
         payload = {
-            "contents": [
-                {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_transcript}]}
-            ]
+            "contents": [{"role": "user", "parts": [{"text": user_transcript}]}],
+            "systemInstruction": {
+                "parts": [{"text": system_prompt}]
+            },
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
         }
 
         headers = {
@@ -147,20 +154,12 @@ def gemini_nlu_handler():
             if candidate and candidate.get('content') and candidate['content'].get('parts'):
                 gemini_content_str = candidate['content']['parts'][0].get('text')
                 if gemini_content_str:
-                    # Use regex to find the JSON block within the markdown code block
-                    json_match = re.search(r'\{.*\}', gemini_content_str, re.DOTALL)
-                    if not json_match:
-                        print(f"ERROR: No JSON object found in the AI response: {gemini_content_str}")
-                        return jsonify({"error": "AI service did not return a valid JSON object."}), 500
-
-                    json_str_to_parse = json_match.group(0)
-
                     try:
-                        parsed_content = json.loads(json_str_to_parse)
+                        parsed_content = json.loads(gemini_content_str)
                         return jsonify(parsed_content), 200
                     except json.JSONDecodeError as e:
-                        print(f"ERROR: Failed to decode extracted JSON string: {e}. Extracted string: '{json_str_to_parse}'")
-                        return jsonify({"error": f"AI service returned malformed JSON content after extraction: {e}"}), 500
+                        print(f"ERROR: Failed to decode Gemini JSON content string: {e}. Raw content string: '{gemini_content_str}'")
+                        return jsonify({"error": f"AI service returned malformed JSON content: {e}"}), 500
                 else:
                     print("ERROR: Gemini content part 'text' is missing or empty.")
                     return jsonify({"error": "AI service response content is empty."}), 500
@@ -178,11 +177,8 @@ def gemini_nlu_handler():
         print(f"ERROR: Timeout error during Gemini API call: {timeout_err}")
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
     except requests.exceptions.RequestException as req_err:
-        error_message = f"An unknown error occurred during the AI service request: {req_err}"
-        if req_err.response is not None:
-            error_message += f" | Details: {req_err.response.text}"
-        print(f"ERROR: General request error during Gemini API call: {error_message}")
-        return jsonify({"error": error_message}), 500
+        print(f"ERROR: General request error during Gemini API call: {req_err}")
+        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
         print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")

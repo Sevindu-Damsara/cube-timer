@@ -332,7 +332,7 @@ window.getSolveInsight = async function (solveId) {
         type: "get_insight", // Indicate the type of request
         scramble: solve.scramble,
         cubeType: currentCubeType, // Use currentCubeType from settings
-        time_ms: solve.time,
+        solveTimeMs: solve.time,
         penalty: solve.penalty,
         userLevel: userLevel
     };
@@ -363,16 +363,11 @@ window.getSolveInsight = async function (solveId) {
         console.log("[DEBUG] Cloud Function raw response:", result);
 
         // Display insights
-        // Hide the main insight message area if other, more specific insights are available.
-        if (result.scrambleAnalysis || result.personalizedTip || result.targetedPracticeFocus) {
-            insightMessageElement.style.display = 'none';
-        } else if (result.insight && insightMessageElement) {
+        if (result.insight && insightMessageElement) {
             insightMessageElement.textContent = result.insight;
             insightMessageElement.style.display = 'block';
         } else {
-            // Only show this if no other insights are available at all.
             insightMessageElement.textContent = "General insight unavailable.";
-            insightMessageElement.style.display = 'block';
         }
 
         if (result.scrambleAnalysis && scrambleAnalysisText && scrambleAnalysisDisplay) {
@@ -396,7 +391,6 @@ window.getSolveInsight = async function (solveId) {
             if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
         }
 
-        if (insightSpinner) insightSpinner.style.display = 'none'; // Explicitly hide spinner after content is processed
         console.log("[DEBUG] Cloud Function response received and displayed.");
 
     } catch (e) {

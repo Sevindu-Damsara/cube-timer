@@ -399,7 +399,6 @@ window.getSolveInsight = async function (solveId) {
             if (personalizedTipDisplay) personalizedTipDisplay.style.display = 'none';
         }
 
-        if (insightSpinner) insightSpinner.style.display = 'none'; // Explicitly hide spinner after content is processed
         console.log("[DEBUG] Cloud Function response received and displayed.");
 
     } catch (e) {
@@ -1110,42 +1109,12 @@ async function handleCanonicalCommand(canonicalCommand, value = null, query = nu
         // and save them, but they won't update the UI on the current page immediately.
         // It's better to navigate to settings page for these.
         case 'toggle_inspection':
-            enableInspection = !enableInspection;
-            speakAsJarvis(`Inspection is now ${enableInspection ? 'enabled' : 'disabled'}.`);
-            saveUserSettings();
-            applySettingsToUI();
-            break;
         case 'toggle_sound_effects':
-            enableSoundEffects = !enableSoundEffects;
-            speakAsJarvis(`Sound effects are now ${enableSoundEffects ? 'enabled' : 'disabled'}.`);
-            saveUserSettings();
-            applySettingsToUI();
-            break;
         case 'set_cube_type':
-            if (['2x2', '3x3', '4x4', 'pyraminx'].includes(value)) {
-                cubeType = value;
-                speakAsJarvis(`Cube type set to ${value}.`);
-                saveUserSettings();
-                applySettingsToUI();
-            } else {
-                speakAsJarvis(`I'm sorry, Sir Sevindu, but '${value}' is not a valid cube type.`);
-            }
-            break;
         case 'set_theme':
-            if (['dark', 'light', 'vibrant'].includes(value)) {
-                currentTheme = value;
-                speakAsJarvis(`Theme set to ${value}.`);
-                saveUserSettings();
-                applySettingsToUI();
-            } else {
-                speakAsJarvis(`I'm sorry, Sir Sevindu, but '${value}' is not a valid theme.`);
-            }
-            break;
         case 'toggle_3d_cube_view':
-            show3DCubeView = !show3DCubeView;
-            speakAsJarvis(`3D cube view is now ${show3DCubeView ? 'enabled' : 'disabled'}.`);
-            saveUserSettings();
-            applySettingsToUI();
+            speakAsJarvis(`Sir Sevindu, to modify settings, please navigate to the settings page. I am redirecting you now.`);
+            window.location.href = 'settings.html';
             break;
         case 'get_best_time':
             speakAsJarvis(`Your best recorded time is ${bestTimeDisplay.textContent}, Sir Sevindu.`);
@@ -1658,54 +1627,7 @@ async function loadUserSettings() {
     console.log("[DEBUG] script.js: Exiting loadUserSettings.");
 }
 
-/**
- * Saves current user settings. Uses Firestore for authenticated users, Local Storage for guests.
- * This is a duplicate of the function in settings.js, adapted for script.js.
- */
-async function saveUserSettings() {
-    console.log("[DEBUG] script.js: Entering saveUserSettings.");
-    if (isUserAuthenticated && db && userId) { // Authenticated user
-        console.log("[DEBUG] script.js: Authenticated and Firestore ready. Attempting to save settings.");
-        const userSettingsRef = doc(db, `artifacts/${appId}/users/${userId}/settings/preferences`);
-        const settingsToSave = {
-            enableInspection: enableInspection,
-            enableSoundEffects: enableSoundEffects,
-            cubeType: cubeType,
-            theme: currentTheme,
-            show3DCubeView: show3DCubeView,
-            lastUpdated: Date.now()
-        };
-        try {
-            console.log("[DEBUG] script.js: Attempting to set doc in Firestore:", settingsToSave);
-            await setDoc(userSettingsRef, settingsToSave, { merge: true });
-            console.log("[DEBUG] script.js: User settings saved to Firestore.");
-        } catch (e) {
-            console.error("[ERROR] script.js: Error saving user settings to Firestore: ", e);
-            // Fallback to local save if Firestore fails
-            saveLocalUserSettings();
-            console.warn("[WARN] script.js: Firestore failed to save settings, saved to local storage (non-persistent).");
-        }
-    } else { // Guest user
-        console.log("[DEBUG] script.js: Guest user. Saving settings to local storage.");
-        // We need a local save function here as well
-        try {
-            const settingsToSave = {
-                enableInspection: enableInspection,
-                enableSoundEffects: enableSoundEffects,
-                cubeType: cubeType,
-                theme: currentTheme,
-                show3DCubeView: show3DCubeView,
-                lastUpdated: Date.now()
-            };
-            localStorage.setItem(`${LOCAL_STORAGE_PREFIX}settings`, JSON.stringify(settingsToSave));
-            console.log("[DEBUG] script.js: User settings saved to local storage.");
-        } catch (e) {
-            console.error("[ERROR] script.js: Error saving settings to local storage:", e);
-        }
-    }
-    console.log("[DEBUG] script.js: Exiting saveUserSettings.");
-}
-
+// Removed saveUserSettings from script.js as it's now primarily in settings.js
 
 /**
  * Retrieves the hexadecimal color code for the primary background based on the current theme.
