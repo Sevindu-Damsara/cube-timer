@@ -4,7 +4,7 @@
   "description": "A Rubik's Cube timer with AI features.",
   "main": "script.js",
   "scripts": {
-    "build:css": "node node_modules/tailwindcss/lib/cli.js -i style.css -o dist/style.css --minify"
+    "build:css": "npx tailwindcss -i ./style.css -o ./dist/style.css --minify"
   },
   "keywords": [
     "rubiks",

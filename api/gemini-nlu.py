@@ -30,9 +30,35 @@ def gemini_nlu_handler():
         request_json = request.get_json(silent=True)
         print(f"DEBUG: Received NLU request JSON: {request_json}")
 
-        if not request_json or 'transcript' not in request_json:
-            print("ERROR: Invalid JSON body. Missing 'transcript'.")
-            return jsonify({"error": "Invalid request: 'transcript' field is required."}), 400
+        if not request_json or ('transcript' not in request_json and 'query' not in request_json):
+            print("ERROR: Invalid JSON body. Missing 'transcript' or 'query'.")
+            return jsonify({"error": "Invalid request: 'transcript' or 'query' field is required."}), 400
+
+        if 'query' in request_json:
+            # This is a general knowledge question, not a command classification
+            user_query = request_json.get('query')
+            answer_prompt = f"You are Jarvis, a helpful AI assistant. Answer the following user question concisely and politely. Question: {user_query}"
+
+            gemini_api_key = os.environ.get("GEMINI_API_KEY")
+            headers = {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': gemini_api_key
+            }
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": answer_prompt}]}]
+            }
+
+            gemini_response = requests.post(gemini_url, headers=headers, data=json.dumps(payload))
+            gemini_response.raise_for_status()
+            gemini_result = gemini_response.json()
+
+            if gemini_result and gemini_result.get('candidates'):
+                answer = gemini_result['candidates'][0]['content']['parts'][0].get('text')
+                return jsonify({"answer": answer}), 200
+            else:
+                return jsonify({"error": "Failed to get an answer from the AI service."}), 500
 
         user_transcript = request_json.get('transcript', '')
 
