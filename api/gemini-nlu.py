@@ -100,11 +100,23 @@ def gemini_nlu_handler():
         }
         """
 
+        # Restructure the prompt for better reliability with JSON output
+        # The system prompt is now part of the conversational history
         payload = {
-            "contents": [{"role": "user", "parts": [{"text": user_transcript}]}],
-            "systemInstruction": {
-                "parts": [{"text": system_prompt}]
-            },
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": system_prompt}]
+                },
+                {
+                    "role": "model",
+                    "parts": [{"text": "{\"canonicalCommand\": \"unknown\", \"commandValue\": null, \"confidence\": 0.5}"}]
+                },
+                {
+                    "role": "user",
+                    "parts": [{"text": user_transcript}]
+                }
+            ],
             "generationConfig": {
                 "responseMimeType": "application/json"
             }

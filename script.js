@@ -402,9 +402,21 @@ window.getSolveInsight = async function (solveId) {
         console.log("[DEBUG] Cloud Function response received and displayed.");
 
     } catch (e) {
-        if (insightMessageElement) insightMessageElement.textContent = `Failed to get insight: ${e.message}`;
+        const detailedError = getDetailedError(e.message);
+        if (insightMessageElement) {
+            insightMessageElement.textContent = `Failed to get insight. Raw API response:`;
+            // Use a <pre> tag to format the JSON nicely
+            const pre = document.createElement('pre');
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.wordBreak = 'break-all';
+            pre.style.backgroundColor = '#2d3748'; // A dark background
+            pre.style.padding = '1rem';
+            pre.style.borderRadius = '0.5rem';
+            pre.textContent = detailedError;
+            insightMessageElement.appendChild(pre);
+        }
         console.error("[ERROR] Error calling Cloud Function:", e);
-        speakAsJarvis(`Sir Sevindu, I encountered an error while generating insight: ${e.message}`);
+        speakAsJarvis(`Sir Sevindu, I encountered an error while generating insight. Please check the details in the popup.`);
     } finally {
         if (insightSpinner) insightSpinner.style.display = 'none'; // Hide spinner
         console.log("[DEBUG] AI Insight generation process completed.");
@@ -454,7 +466,8 @@ async function getAlgorithmOrExplanation(query) {
 
     } catch (e) {
         console.error("[ERROR] Error calling Cloud Function for algorithm/explanation:", e);
-        return `Sir Sevindu, I encountered an error retrieving that information: ${e.message}`;
+        const detailedError = getDetailedError(e.message);
+        return `Sir Sevindu, I encountered an error retrieving that information. The raw API response is as follows: ${detailedError}`;
     }
 }
 
@@ -502,7 +515,8 @@ async function getGeneralAnswer(query) {
 
     } catch (e) {
         console.error("[ERROR] Error calling Cloud Function for general answer:", e);
-        return `Sir Sevindu, I encountered an error retrieving that information: ${e.message}`;
+        const detailedError = getDetailedError(e.message);
+        return `Sir Sevindu, I encountered an error retrieving that information. The raw API response is as follows: ${detailedError}`;
     }
 }
 
@@ -1305,6 +1319,29 @@ function loadLocalUserSettings() {
 // as they are primarily for the settings page and moved to settings.js
 
 // --- Utility Functions ---
+
+/**
+ * Parses a raw error message to extract a JSON object if one exists.
+ * @param {string} errorMessage - The raw error message string.
+ * @returns {string} - A formatted string of the JSON object or the original message.
+ */
+function getDetailedError(errorMessage) {
+    try {
+        // Attempt to find a JSON object within the error string
+        const jsonMatch = errorMessage.match(/\{.*\}/);
+        if (jsonMatch && jsonMatch[0]) {
+            const errorObj = JSON.parse(jsonMatch[0]);
+            // Pretty-print the JSON object for better readability
+            return JSON.stringify(errorObj, null, 2);
+        }
+    } catch (parseError) {
+        // If parsing fails, just return the original message
+        return errorMessage;
+    }
+    // If no JSON is found, return the original message
+    return errorMessage;
+}
+
 
 /**
  * Formats milliseconds into M:SS.mmm string.
