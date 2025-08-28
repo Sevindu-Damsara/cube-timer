@@ -53,18 +53,23 @@ def gemini_insight_handler():
             return jsonify({"error": "Invalid JSON body or empty request."}), 400
 
         request_type = request_json.get('type')
+        print(f"DEBUG: ROUTING LOGIC - Received request_type: '{request_type}'")
 
-        if request_type == 'lesson_chat':
-            return handle_lesson_chat(request_json)
-        elif request_type == 'generate_course':
-            return handle_generate_course(request_json)
-        elif request_type == 'get_answer' or request_type == 'get_algorithm':
+        if request_type == 'get_answer' or request_type == 'get_algorithm':
+            print("DEBUG: ROUTING LOGIC - Routing to handle_general_query.")
             return handle_general_query(request_json)
         elif request_type == 'get_insight':
-             return generate_insight(request_json)
+            print("DEBUG: ROUTING LOGIC - Routing to generate_insight.")
+            return generate_insight(request_json)
+        elif request_type == 'lesson_chat':
+            print("DEBUG: ROUTING LOGIC - Routing to handle_lesson_chat.")
+            return handle_lesson_chat(request_json)
+        elif request_type == 'generate_course':
+            print("DEBUG: ROUTING LOGIC - Routing to handle_generate_course.")
+            return handle_generate_course(request_json)
         else:
             # Fallback to existing insight generation if no specific type is provided
-            print(f"WARN: request_type '{request_type}' not recognized, falling back to insight generation.")
+            print(f"WARN: ROUTING LOGIC - request_type '{request_type}' not recognized, falling back to insight generation.")
             return generate_insight(request_json)
 
     except requests.exceptions.ConnectionError as conn_err:
