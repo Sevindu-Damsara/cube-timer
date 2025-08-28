@@ -100,28 +100,23 @@ def gemini_nlu_handler():
         }
         """
 
-        # Simplified payload structure
-        combined_prompt = f"{system_prompt}\n\n---\n\nUser Transcript: \"{user_transcript}\""
+        # Drastically simplified payload to increase robustness.
+        # Ask for a plain text response that is a JSON string.
+        simple_prompt = f"""
+        Analyze the following user command and respond with ONLY a valid JSON object in the format specified below. Do not include any other text, explanation, or markdown formatting.
+
+        User command: "{user_transcript}"
+
+        JSON format:
+        {{
+          "canonicalCommand": "...",
+          "commandValue": "...",
+          "query": "...",
+          "confidence": 0.0
+        }}
+        """
         payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": combined_prompt}]
-                }
-            ],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "canonicalCommand": {"type": "STRING"},
-                        "commandValue": {"type": "STRING"},
-                        "query": {"type": "STRING"},
-                        "confidence": {"type": "NUMBER"}
-                    },
-                    "required": ["canonicalCommand", "confidence"]
-                }
-            }
+            "contents": [{"role": "user", "parts": [{"text": simple_prompt}]}]
         }
 
         headers = {
@@ -171,7 +166,7 @@ def gemini_nlu_handler():
         return jsonify({"error": "AI service request timed out. The request took too long to get a response."}), 504
     except requests.exceptions.RequestException as req_err:
         print(f"ERROR: General request error during Gemini API call: {req_err}")
-        return jsonify({"error": f"An unknown error occurred during the AI service request: {req_err}"}), 500
+        return jsonify({"error": f"An unknown error occurred during the AI service request (v3): {req_err}"}), 500
     except json.JSONDecodeError as json_err:
         raw_body = request.get_data(as_text=True)
         print(f"ERROR: JSON decoding error on incoming request: {json_err}. Raw request body: '{raw_body}'")
