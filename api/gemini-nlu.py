@@ -110,7 +110,17 @@ def gemini_nlu_handler():
                 }
             ],
             "generationConfig": {
-                "responseMimeType": "application/json"
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "canonicalCommand": {"type": "STRING"},
+                        "commandValue": {"type": "STRING"},
+                        "query": {"type": "STRING"},
+                        "confidence": {"type": "NUMBER"}
+                    },
+                    "required": ["canonicalCommand", "confidence"]
+                }
             }
         }
 
