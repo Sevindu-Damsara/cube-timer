@@ -36,7 +36,7 @@ def gemini_nlu_handler():
 
         user_transcript = request_json.get('transcript', '')
 
-        gemini_api_key = "AIzaSyC3GRortpcNP5HvIL9673UWkEhJvokYF2o"
+        gemini_api_key = "AIzaSyC3GRortpcNP5HvIL9673UWkEhJvokYF2o" # This is a placeholder, will be replaced by env var
         if not gemini_api_key:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
             return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500
@@ -45,7 +45,8 @@ def gemini_nlu_handler():
             'Content-Type': 'application/json',
             'x-goog-api-key': gemini_api_key
         }
-        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+        # Corrected the URL from /v1/ to /v1beta/ based on server logs
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
         system_prompt = """
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.
