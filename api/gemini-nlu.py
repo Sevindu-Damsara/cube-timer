@@ -36,7 +36,7 @@ def gemini_nlu_handler():
 
         user_transcript = request_json.get('transcript', '')
 
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        gemini_api_key = "AIzaSyC3GRortpcNP5HvIL9673UWkEhJvokYF2o"
         if not gemini_api_key:
             print("ERROR: GEMINI_API_KEY environment variable not set.")
             return jsonify({"error": "Server configuration error: GEMINI_API_KEY is not set."}), 500

@@ -24,7 +24,7 @@ def static_proxy(path):
 
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = "AIzaSyC3GRortpcNP5HvIL9673UWkEhJvokYF2o"
 GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 # Constants for exponential backoff (no longer used for retries, but kept for reference if needed)
