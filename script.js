@@ -402,6 +402,9 @@ window.getSolveInsight = async function (solveId) {
         console.log("[DEBUG] Cloud Function response received and displayed.");
 
     } catch (e) {
+        console.error("--- JULES DEBUG: RAW INSIGHT ERROR MESSAGE ---");
+        console.error(e.message);
+        console.error("--- END OF JULES DEBUG ---");
         const detailedError = getDetailedError(e.message);
         if (insightMessageElement) {
             insightMessageElement.textContent = `Failed to get insight. Raw API response:`;
@@ -1049,6 +1052,9 @@ async function processVoiceCommandWithGemini(rawTranscript) {
         }
 
     } catch (e) {
+        console.error("--- JULES DEBUG: RAW NLU ERROR MESSAGE ---");
+        console.error(e.message);
+        console.error("--- END OF JULES DEBUG ---");
         speakAsJarvis(`Sir Sevindu, I encountered an error communicating with the Natural Language Understanding module: ${e.message}`);
         console.error("[ERROR] Error calling Gemini NLU Cloud Function:", e);
         updateVoiceFeedbackDisplay("NLU communication error", false, true);
