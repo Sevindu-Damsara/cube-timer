@@ -45,8 +45,12 @@ def gemini_nlu_handler():
             'Content-Type': 'application/json',
             'x-goog-api-key': gemini_api_key
         }
-        # Corrected the URL from /v1/ to /v1beta/ based on server logs
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+        # Corrected the URL based on official Vertex AI documentation.
+        # The previous endpoint was for Google AI, not the Vertex AI platform the project uses.
+        project_id = "ubically-timer"
+        location = "us-central1"
+        model_id = "gemini-pro" # Using the standard model name.
+        gemini_url = f"https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/{model_id}:generateContent"
 
         system_prompt = """
         You are Jarvis, an AI assistant for a Rubik's Cube timer application.

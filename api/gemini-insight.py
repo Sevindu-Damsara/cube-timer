@@ -25,7 +25,10 @@ def static_proxy(path):
 # Retrieve Gemini API key from environment variables for security.
 # In Vercel, set this as an environment variable (e.g., GEMINI_API_KEY).
 GEMINI_API_KEY = "AIzaSyC3GRortpcNP5HvIL9673UWkEhJvokYF2o"
-GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+# Corrected base URL to use the Vertex AI endpoint
+PROJECT_ID = "ubically-timer"
+LOCATION = "us-central1"
+GEMINI_API_BASE_URL = f"https://{LOCATION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models"
 
 # Constants for exponential backoff (no longer used for retries, but kept for reference if needed)
 # MAX_RETRIES = 5
@@ -120,7 +123,8 @@ def handle_general_query(request_json):
 
     # Using a simpler text-generation model might be faster and cheaper for this.
     # Using gemini-pro for now for consistency.
-    gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+    model_id = "gemini-pro"
+    gemini_url = f"{GEMINI_API_BASE_URL}/{model_id}:generateContent"
 
     payload = {
         "contents": [{"role": "user", "parts": [{"text": query}]}],
@@ -235,7 +239,7 @@ def generate_insight(request_json):
     
     try:
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent", # Using a stable model
             headers=headers,
             json=payload,
             timeout=30
@@ -341,7 +345,7 @@ def handle_lesson_chat(request_json):
 
     try:
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent", # Using a stable model
             headers=headers,
             json=payload,
             timeout=30
@@ -628,7 +632,7 @@ def handle_generate_course(request_json):
 
     try:
         gemini_response = requests.post(
-            f"{GEMINI_API_BASE_URL}/gemini-2.5-flash-lite:generateContent",
+            f"{GEMINI_API_BASE_URL}/gemini-pro:generateContent", # Using a stable model
             headers=headers,
             json=payload,
             timeout=120
